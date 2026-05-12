@@ -1,0 +1,75 @@
+package cn.oa.controller;
+
+import cn.oa.common.result.PageResult;
+import cn.oa.common.result.R;
+import cn.oa.entity.SysEmployee;
+import cn.oa.service.EmployeeService;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/employee")
+@Tag(name = "员工管理")
+public class EmployeeController {
+
+    @Autowired
+    private EmployeeService employeeService;
+
+    @GetMapping("/page")
+    @Operation(summary = "分页查询员工")
+    public R<PageResult<SysEmployee>> page(@RequestParam int pageNum,
+                                           @RequestParam int pageSize,
+                                           @RequestParam(required = false) String empName,
+                                           @RequestParam(required = false) Long deptId) {
+        IPage<SysEmployee> page = employeeService.pageList(pageNum, pageSize, empName, deptId);
+        return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "获取员工详情")
+    public R<SysEmployee> getById(@PathVariable Long id) {
+        SysEmployee employee = employeeService.getById(id);
+        return R.ok(employee);
+    }
+
+    @PostMapping
+    @Operation(summary = "新增员工")
+    public R<Void> add(@RequestBody SysEmployee employee) {
+        employeeService.addEmployee(employee);
+        return R.ok();
+    }
+
+    @PutMapping
+    @Operation(summary = "修改员工")
+    public R<Void> update(@RequestBody SysEmployee employee) {
+        employeeService.updateById(employee);
+        return R.ok();
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "删除员工")
+    public R<Void> delete(@PathVariable Long id) {
+        employeeService.removeById(id);
+        return R.ok();
+    }
+
+    @PutMapping("/password")
+    @Operation(summary = "修改密码")
+    public R<Void> updatePassword(@RequestParam Long empId,
+                                  @RequestParam String oldPwd,
+                                  @RequestParam String newPwd) {
+        employeeService.updatePassword(empId, oldPwd, newPwd);
+        return R.ok();
+    }
+}

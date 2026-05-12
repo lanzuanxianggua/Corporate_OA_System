@@ -1,0 +1,98 @@
+######################################################################
+# Build & Package Output
+
+.gradle
+/build/
+!gradle/wrapper/gradle-wrapper.jar
+
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+out/
+bin/
+dist/
+*.class
+
+######################################################################
+# Package Files
+
+*.jar
+*.war
+*.ear
+*.zip
+*.tar
+*.tar.gz
+*.rar
+
+######################################################################
+# Frontend
+
+node_modules/
+.npm
+.yarn
+.vite/
+.vuepress/dist/
+
+######################################################################
+# IDE
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+######################################################################
+# Logs
+
+*.log
+
+######################################################################
+# Temp Files
+
+*.tmp
+*.bak
+*.swp
+*~
+
+.DS_Store
+Thumbs.db
+
+######################################################################
+# Local Configuration
+
+application-local.properties
+application-local.yml
+application-local.yaml
