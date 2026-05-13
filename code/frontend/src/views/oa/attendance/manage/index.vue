@@ -1,302 +1,105 @@
-<script setup lang="ts">
-import { ref, onMounted } from "vue";
-import { http } from "@/utils/http";
-import { getAttendanceManage } from "@/api/oa/attendance";
-
-defineOptions({ name: "OaAttendanceManage" });
-
-interface AttendanceRow {
-  id: number;
-  empName: string;
-  deptName: string;
-  workDate: string;
-  clockIn: string;
-  clockOut: string;
-  status: string;
-  ip: string;
-  address: string;
-}
-
-interface DeptOption {
-  deptId: number;
-  deptName: string;
-}
-
-const loading = ref(false);
-const tableData = ref<AttendanceRow[]>([]);
-const total = ref(0);
-const deptList = ref<DeptOption[]>([]);
-
-const pagination = ref({
-  currentPage: 1,
-  pageSize: 10
-});
-
-const queryParams = ref<{
-  deptId: number | string;
-  dateRange: [string, string] | null;
-  empName: string;
-}>({
-  deptId: "",
-  dateRange: null,
-  empName: ""
-});
-
-/** 获取状态标签类型 */
-function getStatusType(status: string): "" | "success" | "warning" | "danger" | "info" {
-  const map: Record<string, "" | "success" | "warning" | "danger" | "info"> = {
-    正常: "success",
-    迟到: "warning",
-    早退: "warning",
-    缺勤: "danger"
-  };
-  return map[status] || "info";
-}
-
-/** 加载部门列表 */
-async function loadDeptList() {
-  try {
-    const res = await http.request<{ data: DeptOption[] }>(
-      "get",
-      "/api/dept/list"
-    );
-    if (res.data) {
-      deptList.value = res.data;
-    }
-  } catch {
-    // 静默处理
-  }
-}
-
-/** 加载考勤数据 */
-async function loadData() {
-  loading.value = true;
-  try {
-    const params: Record<string, any> = {
-      pageNum: pagination.value.currentPage,
-      pageSize: pagination.value.pageSize
-    };
-    if (queryParams.value.deptId !== "") {
-      params.deptId = queryParams.value.deptId;
-    }
-    if (queryParams.value.empName) {
-      params.empName = queryParams.value.empName;
-    }
-    if (queryParams.value.dateRange && queryParams.value.dateRange.length === 2) {
-      params.startDate = queryParams.value.dateRange[0];
-      params.endDate = queryParams.value.dateRange[1];
-    }
-    const res = await getAttendanceManage(params);
-    if (res.data) {
-      tableData.value = res.data.list || [];
-      total.value = res.data.total || 0;
-    }
-  } catch {
-    // 静默处理
-  } finally {
-    loading.value = false;
-  }
-}
-
-/** 搜索 */
-function handleSearch() {
-  pagination.value.currentPage = 1;
-  loadData();
-}
-
-/** 重置 */
-function handleReset() {
-  queryParams.value = {
-    deptId: "",
-    dateRange: null,
-    empName: ""
-  };
-  pagination.value.currentPage = 1;
-  loadData();
-}
-
-/** 分页大小变更 */
-function handleSizeChange(val: number) {
-  pagination.value.pageSize = val;
-  pagination.value.currentPage = 1;
-  loadData();
-}
-
-/** 当前页变更 */
-function handleCurrentChange(val: number) {
-  pagination.value.currentPage = val;
-  loadData();
-}
-
-onMounted(() => {
-  loadDeptList();
-  loadData();
-});
-</script>
-
 <template>
-  <div class="attendance-manage-container">
-    <el-card shadow="hover">
+  <div class="manage-container">
+    <el-card>
       <template #header>
         <div class="card-header">
           <span>考勤管理</span>
+          <div class="search-form">
+            <el-input v-model="searchName" placeholder="搜索员工姓名" style="width: 200px; margin-right: 10px" />
+            <el-date-picker
+              v-model="dateRange"
+              type="daterange"
+              range-separator="至"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              style="margin-right: 10px"
+            />
+            <el-select v-model="status" placeholder="状态" style="width: 120px; margin-right: 10px">
+              <el-option label="全部" value="" />
+              <el-option label="正常" value="正常" />
+              <el-option label="迟到" value="迟到" />
+              <el-option label="早退" value="早退" />
+              <el-option label="缺勤" value="缺勤" />
+            </el-select>
+            <el-button type="primary">查询</el-button>
+          </div>
         </div>
       </template>
-
-      <!-- 搜索栏 -->
-      <div class="filter-bar">
-        <el-select
-          v-model="queryParams.deptId"
-          placeholder="选择部门"
-          clearable
-          style="width: 200px"
-        >
-          <el-option
-            v-for="dept in deptList"
-            :key="dept.deptId"
-            :label="dept.deptName"
-            :value="dept.deptId"
-          />
-        </el-select>
-
-        <el-input
-          v-model="queryParams.empName"
-          placeholder="员工姓名"
-          clearable
-          style="width: 180px"
-        />
-
-        <el-date-picker
-          v-model="queryParams.dateRange"
-          type="daterange"
-          range-separator="至"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
-          value-format="YYYY-MM-DD"
-          clearable
-          style="width: 360px"
-        />
-
-        <el-button type="primary" @click="handleSearch">查询</el-button>
-        <el-button @click="handleReset">重置</el-button>
-      </div>
-
-      <!-- 表格 -->
-      <el-table
-        :data="tableData"
-        v-loading="loading"
-        stripe
-        border
-        style="width: 100%"
-        empty-text="暂无考勤数据"
-      >
-        <el-table-column
-          prop="empName"
-          label="员工姓名"
-          width="120"
-          align="center"
-        />
-        <el-table-column
-          prop="workDate"
-          label="工作日期"
-          width="130"
-          align="center"
-        />
-        <el-table-column
-          prop="clockIn"
-          label="上班打卡"
-          width="160"
-          align="center"
-        >
+      <el-table :data="tableData" stripe>
+        <el-table-column prop="empCode" label="工号" width="100" />
+        <el-table-column prop="empName" label="姓名" width="120" />
+        <el-table-column prop="deptName" label="部门" width="120" />
+        <el-table-column prop="morningIn" label="上班时间" width="120" />
+        <el-table-column prop="morningOut" label="下班时间" width="120" />
+        <el-table-column prop="workHours" label="工作时长" width="100" />
+        <el-table-column prop="status" label="状态">
           <template #default="{ row }">
-            {{ row.clockIn || "--" }}
-          </template>
-        </el-table-column>
-        <el-table-column
-          prop="clockOut"
-          label="下班打卡"
-          width="160"
-          align="center"
-        >
-          <template #default="{ row }">
-            {{ row.clockOut || "--" }}
-          </template>
-        </el-table-column>
-        <el-table-column
-          prop="status"
-          label="考勤状态"
-          width="100"
-          align="center"
-        >
-          <template #default="{ row }">
-            <el-tag
-              v-if="row.status"
-              :type="getStatusType(row.status)"
-              size="small"
-            >
-              {{ row.status }}
-            </el-tag>
-            <span v-else>--</span>
-          </template>
-        </el-table-column>
-        <el-table-column
-          prop="ip"
-          label="打卡IP"
-          min-width="140"
-        >
-          <template #default="{ row }">
-            {{ row.ip || "--" }}
-          </template>
-        </el-table-column>
-        <el-table-column
-          prop="address"
-          label="打卡地址"
-          min-width="200"
-        >
-          <template #default="{ row }">
-            {{ row.address || "--" }}
+            <el-tag :type="getStatusType(row.status)">{{ row.status }}</el-tag>
           </template>
         </el-table-column>
       </el-table>
-
-      <!-- 分页 -->
-      <div class="pagination-wrapper">
+      <div class="pagination">
         <el-pagination
-          v-model:current-page="pagination.currentPage"
-          v-model:page-size="pagination.pageSize"
-          :page-sizes="[10, 20, 50, 100]"
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
           :total="total"
-          background
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
+          :page-sizes="[10, 20, 50]"
+          layout="total, sizes, prev, pager, next"
         />
       </div>
     </el-card>
   </div>
 </template>
 
-<style scoped>
-.attendance-manage-container {
-  padding: 16px;
-}
+<script setup lang="ts">
+import { ref } from "vue";
 
-.card-header {
-  font-size: 16px;
-  font-weight: 600;
-}
+const searchName = ref("");
+const dateRange = ref([]);
+const status = ref("");
+const currentPage = ref(1);
+const pageSize = ref(10);
+const total = ref(156);
 
-.filter-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
+const tableData = ref([
+  { empCode: "E001", empName: "张三", deptName: "技术部", morningIn: "08:55", morningOut: "18:30", workHours: "9.5小时", status: "正常" },
+  { empCode: "E002", empName: "李四", deptName: "市场部", morningIn: "09:10", morningOut: "18:00", workHours: "8.8小时", status: "迟到" },
+  { empCode: "E003", empName: "王五", deptName: "人事部", morningIn: "08:50", morningOut: "18:20", workHours: "9.5小时", status: "正常" },
+  { empCode: "E004", empName: "赵六", deptName: "财务部", morningIn: "08:45", morningOut: "17:50", workHours: "9.1小时", status: "早退" },
+  { empCode: "E005", empName: "钱七", deptName: "技术部", morningIn: "-", morningOut: "-", workHours: "-", status: "缺勤" },
+]);
 
-.pagination-wrapper {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 16px;
+const getStatusType = (status: string) => {
+  const map: Record<string, string> = {
+    "正常": "success",
+    "迟到": "warning",
+    "早退": "warning",
+    "缺勤": "danger"
+  };
+  return map[status] || "info";
+};
+</script>
+
+<style scoped lang="scss">
+.manage-container {
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .search-form {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .pagination {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+  }
 }
 </style>

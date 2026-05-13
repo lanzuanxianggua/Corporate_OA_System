@@ -1,275 +1,216 @@
-<script setup lang="ts">
-import { ref } from "vue";
-import tree from "./tree.vue";
-import { useUser } from "./utils/hook";
-import { PureTableBar } from "@/components/RePureTableBar";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-
-import Upload from "~icons/ri/upload-line";
-import Role from "~icons/ri/admin-line";
-import Password from "~icons/ri/lock-password-line";
-import More from "~icons/ep/more-filled";
-import Delete from "~icons/ep/delete";
-import EditPen from "~icons/ep/edit-pen";
-import Refresh from "~icons/ep/refresh";
-import AddFill from "~icons/ri/add-circle-line";
-
-defineOptions({
-  name: "SystemUser"
-});
-
-const treeRef = ref();
-const formRef = ref();
-const tableRef = ref();
-
-const {
-  form,
-  loading,
-  columns,
-  dataList,
-  treeData,
-  treeLoading,
-  selectedNum,
-  pagination,
-  buttonClass,
-  deviceDetection,
-  onSearch,
-  resetForm,
-  onbatchDel,
-  openDialog,
-  onTreeSelect,
-  handleUpdate,
-  handleDelete,
-  handleUpload,
-  handleReset,
-  handleRole,
-  handleSizeChange,
-  onSelectionCancel,
-  handleCurrentChange,
-  handleSelectionChange
-} = useUser(tableRef, treeRef);
-</script>
-
 <template>
-  <div :class="['flex', 'justify-between', deviceDetection() && 'flex-wrap']">
-    <tree
-      ref="treeRef"
-      :class="['mr-2', deviceDetection() ? 'w-full' : 'min-w-50']"
-      :treeData="treeData"
-      :treeLoading="treeLoading"
-      @tree-select="onTreeSelect"
-    />
-    <div
-      :class="[deviceDetection() ? ['w-full', 'mt-2'] : 'w-[calc(100%-200px)]']"
-    >
-      <el-form
-        ref="formRef"
-        :inline="true"
-        :model="form"
-        class="search-form bg-bg_color w-full pl-8 pt-3 overflow-auto"
-      >
-        <el-form-item label="用户名称：" prop="username">
-          <el-input
-            v-model="form.username"
-            placeholder="请输入用户名称"
-            clearable
-            class="w-45!"
-          />
+  <div class="user-container">
+    <el-card>
+      <template #header>
+        <div class="card-header">
+          <span>员工管理</span>
+          <div class="search-form">
+            <el-input v-model="searchName" placeholder="搜索员工姓名" style="width: 200px; margin-right: 10px" clearable />
+            <el-select v-model="status" placeholder="状态" style="width: 120px; margin-right: 10px" clearable>
+              <el-option label="全部" :value="undefined" />
+              <el-option label="启用" :value="1" />
+              <el-option label="禁用" :value="0" />
+            </el-select>
+            <el-button type="primary" @click="handleSearch">查询</el-button>
+            <el-button type="primary" @click="handleAdd">
+              <el-icon><Plus /></el-icon>
+              新增用户
+            </el-button>
+          </div>
+        </div>
+      </template>
+      <el-table :data="tableData" stripe v-loading="loading">
+        <el-table-column prop="username" label="用户名" width="120" />
+        <el-table-column prop="nickname" label="昵称" width="120" />
+        <el-table-column prop="dept.name" label="部门" width="120">
+          <template #default="{ row }">
+            {{ row.dept?.name || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="phone" label="手机号" width="130" />
+        <el-table-column prop="email" label="邮箱" />
+        <el-table-column prop="roles" label="角色" width="150">
+          <template #default="{ row }">
+            <el-tag v-for="role in row.roles" :key="role.id" size="small" style="margin-right: 4px">{{ role.name }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="status" label="状态" width="80">
+          <template #default="{ row }">
+            <el-switch v-model="row.status" :active-value="1" :inactive-value="0" />
+          </template>
+        </el-table-column>
+        <el-table-column prop="createTime" label="创建时间" width="160" />
+        <el-table-column label="操作" width="150">
+          <template #default="{ row }">
+            <el-button type="primary" link size="small" @click="handleEdit(row)">编辑</el-button>
+            <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div class="pagination">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 50]"
+          layout="total, sizes, prev, pager, next"
+          @size-change="loadData"
+          @current-change="loadData"
+        />
+      </div>
+    </el-card>
+
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑用户' : '新增用户'" width="600px">
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
+        <el-form-item label="用户名" prop="username">
+          <el-input v-model="form.username" :disabled="isEdit" placeholder="请输入用户名" />
         </el-form-item>
-        <el-form-item label="手机号码：" prop="phone">
-          <el-input
-            v-model="form.phone"
-            placeholder="请输入手机号码"
-            clearable
-            class="w-45!"
-          />
+        <el-form-item label="昵称" prop="nickname">
+          <el-input v-model="form.nickname" placeholder="请输入昵称" />
         </el-form-item>
-        <el-form-item label="状态：" prop="status">
-          <el-select
-            v-model="form.status"
-            placeholder="请选择"
-            clearable
-            class="w-45!"
-          >
-            <el-option label="已开启" value="1" />
-            <el-option label="已关闭" value="0" />
-          </el-select>
+        <el-form-item label="手机号" prop="phone">
+          <el-input v-model="form.phone" placeholder="请输入手机号" />
         </el-form-item>
-        <el-form-item>
-          <el-button
-            type="primary"
-            :icon="useRenderIcon('ri/search-line')"
-            :loading="loading"
-            @click="onSearch"
-          >
-            搜索
-          </el-button>
-          <el-button :icon="useRenderIcon(Refresh)" @click="resetForm(formRef)">
-            重置
-          </el-button>
+        <el-form-item label="邮箱" prop="email">
+          <el-input v-model="form.email" placeholder="请输入邮箱" />
+        </el-form-item>
+        <el-form-item v-if="!isEdit" label="初始密码" prop="password">
+          <el-input v-model="form.password" type="password" placeholder="请输入初始密码" show-password />
         </el-form-item>
       </el-form>
-
-      <PureTableBar
-        title="用户管理（仅演示，操作后不生效）"
-        :columns="columns"
-        @refresh="onSearch"
-      >
-        <template #buttons>
-          <el-button
-            type="primary"
-            :icon="useRenderIcon(AddFill)"
-            @click="openDialog()"
-          >
-            新增用户
-          </el-button>
-        </template>
-        <template v-slot="{ size, dynamicColumns }">
-          <div
-            v-if="selectedNum > 0"
-            v-motion-fade
-            class="bg-(--el-fill-color-light) w-full h-11.5 mb-2 pl-4 flex items-center"
-          >
-            <div class="flex-auto">
-              <span
-                style="font-size: var(--el-font-size-base)"
-                class="text-[rgba(42,46,54,0.5)] dark:text-[rgba(220,220,242,0.5)]"
-              >
-                已选 {{ selectedNum }} 项
-              </span>
-              <el-button type="primary" text @click="onSelectionCancel">
-                取消选择
-              </el-button>
-            </div>
-            <el-popconfirm title="是否确认删除?" @confirm="onbatchDel">
-              <template #reference>
-                <el-button type="danger" text class="mr-1!">
-                  批量删除
-                </el-button>
-              </template>
-            </el-popconfirm>
-          </div>
-          <pure-table
-            ref="tableRef"
-            row-key="id"
-            adaptive
-            :adaptiveConfig="{ offsetBottom: 108 }"
-            align-whole="center"
-            table-layout="auto"
-            :loading="loading"
-            :size="size"
-            :data="dataList"
-            :columns="dynamicColumns"
-            :pagination="{ ...pagination, size }"
-            :header-cell-style="{
-              background: 'var(--el-fill-color-light)',
-              color: 'var(--el-text-color-primary)'
-            }"
-            @selection-change="handleSelectionChange"
-            @page-size-change="handleSizeChange"
-            @page-current-change="handleCurrentChange"
-          >
-            <template #operation="{ row }">
-              <el-button
-                class="reset-margin"
-                link
-                type="primary"
-                :size="size"
-                :icon="useRenderIcon(EditPen)"
-                @click="openDialog('修改', row)"
-              >
-                修改
-              </el-button>
-              <el-popconfirm
-                :title="`是否确认删除用户编号为${row.id}的这条数据`"
-                @confirm="handleDelete(row)"
-              >
-                <template #reference>
-                  <el-button
-                    class="reset-margin"
-                    link
-                    type="primary"
-                    :size="size"
-                    :icon="useRenderIcon(Delete)"
-                  >
-                    删除
-                  </el-button>
-                </template>
-              </el-popconfirm>
-              <el-dropdown>
-                <el-button
-                  class="ml-3! mt-0.5!"
-                  link
-                  type="primary"
-                  :size="size"
-                  :icon="useRenderIcon(More)"
-                  @click="handleUpdate(row)"
-                />
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item>
-                      <el-button
-                        :class="buttonClass"
-                        link
-                        type="primary"
-                        :size="size"
-                        :icon="useRenderIcon(Upload)"
-                        @click="handleUpload(row)"
-                      >
-                        上传头像
-                      </el-button>
-                    </el-dropdown-item>
-                    <el-dropdown-item>
-                      <el-button
-                        :class="buttonClass"
-                        link
-                        type="primary"
-                        :size="size"
-                        :icon="useRenderIcon(Password)"
-                        @click="handleReset(row)"
-                      >
-                        重置密码
-                      </el-button>
-                    </el-dropdown-item>
-                    <el-dropdown-item>
-                      <el-button
-                        :class="buttonClass"
-                        link
-                        type="primary"
-                        :size="size"
-                        :icon="useRenderIcon(Role)"
-                        @click="handleRole(row)"
-                      >
-                        分配角色
-                      </el-button>
-                    </el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
-            </template>
-          </pure-table>
-        </template>
-      </PureTableBar>
-    </div>
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleSubmit">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
-<style lang="scss" scoped>
-:deep(.el-dropdown-menu__item i) {
-  margin: 0;
-}
+<script setup lang="ts">
+import { ref, reactive, onMounted } from "vue";
+import { ElMessage, ElMessageBox } from "element-plus";
+import type { FormInstance, FormRules } from "element-plus";
+import { getUserPage } from "@/api/system";
 
-:deep(.el-button:focus-visible) {
-  outline: none;
-}
+const searchName = ref("");
+const status = ref<number | undefined>(undefined);
+const currentPage = ref(1);
+const pageSize = ref(10);
+const total = ref(0);
+const loading = ref(false);
+const dialogVisible = ref(false);
+const isEdit = ref(false);
+const formRef = ref<FormInstance>();
 
-.main-content {
-  margin: 24px 24px 0 !important;
-}
+const form = reactive({
+  username: "",
+  nickname: "",
+  phone: "",
+  email: "",
+  password: ""
+});
 
-.search-form {
-  :deep(.el-form-item) {
-    margin-bottom: 12px;
+const rules: FormRules = {
+  username: [{ required: true, message: "请输入用户名", trigger: "blur" }],
+  nickname: [{ required: true, message: "请输入昵称", trigger: "blur" }],
+  phone: [{ required: true, message: "请输入手机号", trigger: "blur" }],
+  email: [
+    { required: true, message: "请输入邮箱", trigger: "blur" },
+    { type: "email", message: "请输入正确的邮箱格式", trigger: "blur" }
+  ],
+  password: [{ required: true, message: "请输入密码", trigger: "blur" }]
+};
+
+const tableData = ref<any[]>([]);
+
+const loadData = async () => {
+  try {
+    loading.value = true;
+    const res: any = await getUserPage({
+      page: currentPage.value,
+      pageSize: pageSize.value,
+      username: searchName.value || undefined,
+      status: status.value
+    });
+    if (res.data?.list) {
+      tableData.value = res.data.list;
+      total.value = res.data.total;
+    }
+  } catch (error) {
+    console.error("获取用户列表失败", error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const handleSearch = () => {
+  currentPage.value = 1;
+  loadData();
+};
+
+const handleAdd = () => {
+  isEdit.value = false;
+  Object.assign(form, { username: "", nickname: "", phone: "", email: "", password: "" });
+  dialogVisible.value = true;
+};
+
+const handleEdit = (row: any) => {
+  isEdit.value = true;
+  Object.assign(form, {
+    username: row.username,
+    nickname: row.nickname,
+    phone: row.phone,
+    email: row.email,
+    password: ""
+  });
+  dialogVisible.value = true;
+};
+
+const handleDelete = (row: any) => {
+  ElMessageBox.confirm("确定要删除该用户吗？", "提示", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(() => {
+    ElMessage.success("删除成功");
+    loadData();
+  });
+};
+
+const handleSubmit = async () => {
+  if (!formRef.value) return;
+
+  await formRef.value.validate((valid) => {
+    if (valid) {
+      ElMessage.success(isEdit.value ? "修改成功" : "新增成功");
+      dialogVisible.value = false;
+      loadData();
+    }
+  });
+};
+
+onMounted(() => {
+  loadData();
+});
+</script>
+
+<style scoped lang="scss">
+.user-container {
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .search-form {
+    display: flex;
+    align-items: center;
+  }
+
+  .pagination {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
   }
 }
 </style>

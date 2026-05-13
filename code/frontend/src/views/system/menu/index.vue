@@ -1,163 +1,67 @@
-<script setup lang="ts">
-import { ref } from "vue";
-import { useMenu } from "./utils/hook";
-import { transformI18n } from "@/plugins/i18n";
-import { PureTableBar } from "@/components/RePureTableBar";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-
-import Delete from "~icons/ep/delete";
-import EditPen from "~icons/ep/edit-pen";
-import Refresh from "~icons/ep/refresh";
-import AddFill from "~icons/ri/add-circle-line";
-
-defineOptions({
-  name: "SystemMenu"
-});
-
-const formRef = ref();
-const tableRef = ref();
-const {
-  form,
-  loading,
-  columns,
-  dataList,
-  onSearch,
-  resetForm,
-  openDialog,
-  handleDelete,
-  handleSelectionChange
-} = useMenu();
-
-function onFullscreen() {
-  // 重置表格高度
-  tableRef.value.setAdaptive();
-}
-</script>
-
 <template>
-  <div class="main">
-    <el-form
-      ref="formRef"
-      :inline="true"
-      :model="form"
-      class="search-form bg-bg_color w-full pl-8 pt-3 overflow-auto"
-    >
-      <el-form-item label="菜单名称：" prop="title">
-        <el-input
-          v-model="form.title"
-          placeholder="请输入菜单名称"
-          clearable
-          class="w-45!"
-        />
-      </el-form-item>
-      <el-form-item>
-        <el-button
-          type="primary"
-          :icon="useRenderIcon('ri/search-line')"
-          :loading="loading"
-          @click="onSearch"
-        >
-          搜索
-        </el-button>
-        <el-button :icon="useRenderIcon(Refresh)" @click="resetForm(formRef)">
-          重置
-        </el-button>
-      </el-form-item>
-    </el-form>
-
-    <PureTableBar
-      title="菜单管理（仅演示，操作后不生效）"
-      :columns="columns"
-      :isExpandAll="false"
-      :tableRef="tableRef?.getTableRef()"
-      @refresh="onSearch"
-      @fullscreen="onFullscreen"
-    >
-      <template #buttons>
-        <el-button
-          type="primary"
-          :icon="useRenderIcon(AddFill)"
-          @click="openDialog()"
-        >
-          新增菜单
-        </el-button>
+  <div class="menu-container">
+    <el-card>
+      <template #header>
+        <span>菜单管理</span>
       </template>
-      <template v-slot="{ size, dynamicColumns }">
-        <pure-table
-          ref="tableRef"
-          adaptive
-          :adaptiveConfig="{ offsetBottom: 45 }"
-          align-whole="center"
-          row-key="id"
-          showOverflowTooltip
-          table-layout="auto"
-          :loading="loading"
-          :size="size"
-          :data="dataList"
-          :columns="dynamicColumns"
-          :header-cell-style="{
-            background: 'var(--el-fill-color-light)',
-            color: 'var(--el-text-color-primary)'
-          }"
-          @selection-change="handleSelectionChange"
-        >
-          <template #operation="{ row }">
-            <el-button
-              class="reset-margin"
-              link
-              type="primary"
-              :size="size"
-              :icon="useRenderIcon(EditPen)"
-              @click="openDialog('修改', row)"
-            >
-              修改
-            </el-button>
-            <el-button
-              v-show="row.menuType !== 3"
-              class="reset-margin"
-              link
-              type="primary"
-              :size="size"
-              :icon="useRenderIcon(AddFill)"
-              @click="openDialog('新增', { parentId: row.id } as any)"
-            >
-              新增
-            </el-button>
-            <el-popconfirm
-              :title="`是否确认删除菜单名称为${transformI18n(row.title)}的这条数据${row?.children?.length > 0 ? '。注意下级菜单也会一并删除，请谨慎操作' : ''}`"
-              @confirm="handleDelete(row)"
-            >
-              <template #reference>
-                <el-button
-                  class="reset-margin"
-                  link
-                  type="primary"
-                  :size="size"
-                  :icon="useRenderIcon(Delete)"
-                >
-                  删除
-                </el-button>
-              </template>
-            </el-popconfirm>
+      <el-table :data="tableData" row-key="id" :tree-props="{ children: 'children' }" stripe>
+        <el-table-column prop="menuName" label="菜单名称" width="200" />
+        <el-table-column prop="menuType" label="类型" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.menuType === '目录' ? 'warning' : 'success'" size="small">
+              {{ row.menuType }}
+            </el-tag>
           </template>
-        </pure-table>
-      </template>
-    </PureTableBar>
+        </el-table-column>
+        <el-table-column prop="path" label="路由路径" />
+        <el-table-column prop="component" label="组件路径" />
+        <el-table-column prop="orderNum" label="排序" width="80" />
+        <el-table-column prop="icon" label="图标" width="100">
+          <template #default="{ row }">
+            <el-icon v-if="row.icon"><component :is="row.icon" /></el-icon>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
   </div>
 </template>
 
-<style lang="scss" scoped>
-:deep(.el-table__inner-wrapper::before) {
-  height: 0;
-}
+<script setup lang="ts">
+import { ref } from "vue";
 
-.main-content {
-  margin: 24px 24px 0 !important;
-}
-
-.search-form {
-  :deep(.el-form-item) {
-    margin-bottom: 12px;
+const tableData = ref([
+  {
+    id: 1,
+    menuName: "系统管理",
+    menuType: "目录",
+    path: "/system",
+    component: "",
+    orderNum: 1,
+    icon: "Setting",
+    children: [
+      { id: 11, menuName: "员工管理", menuType: "菜单", path: "/system/user", component: "/system/user/index.vue", orderNum: 1, icon: "" },
+      { id: 12, menuName: "角色管理", menuType: "菜单", path: "/system/role", component: "/system/role/index.vue", orderNum: 2, icon: "" },
+      { id: 13, menuName: "菜单管理", menuType: "菜单", path: "/system/menu", component: "/system/menu/index.vue", orderNum: 3, icon: "" },
+      { id: 14, menuName: "部门管理", menuType: "菜单", path: "/system/dept", component: "/system/dept/index.vue", orderNum: 4, icon: "" }
+    ]
+  },
+  {
+    id: 2,
+    menuName: "OA办公",
+    menuType: "目录",
+    path: "/oa",
+    component: "",
+    orderNum: 2,
+    icon: "Document",
+    children: [
+      { id: 21, menuName: "工作台", menuType: "菜单", path: "/oa/workbench", component: "/oa/workbench/index.vue", orderNum: 1, icon: "" },
+      { id: 22, menuName: "考勤打卡", menuType: "菜单", path: "/oa/attendance/clock", component: "/oa/attendance/clock/index.vue", orderNum: 2, icon: "" }
+    ]
   }
+]);
+</script>
+
+<style scoped lang="scss">
+.menu-container {
 }
 </style>

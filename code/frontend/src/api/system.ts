@@ -1,87 +1,81 @@
-import { http } from "@/utils/http";
+import request from "../utils/request";
 
-type Result = {
-  code: number;
-  message: string;
-  data?: Array<any>;
-};
-
-type ResultTable = {
-  code: number;
-  message: string;
-  data?: {
-    /** 列表数据 */
-    list: Array<any>;
-    /** 总条目数 */
-    total?: number;
-    /** 每页显示条目个数 */
-    pageSize?: number;
-    /** 当前页数 */
-    currentPage?: number;
+export interface UserVO {
+  id: number;
+  username: string;
+  nickname: string;
+  phone: string;
+  email: string;
+  status: number;
+  avatar?: string;
+  createTime: string;
+  dept?: {
+    id: number;
+    name: string;
   };
+  roles?: Array<{
+    id: number;
+    name: string;
+    code: string;
+  }>;
+}
+
+export const getUserPage = (params: {
+  page: number;
+  pageSize: number;
+  username?: string;
+  status?: number;
+}) => {
+  return request.post<any, any>("/user", params);
 };
 
-/** 获取系统管理-用户管理列表 */
-export const getUserList = (data?: object) => {
-  return http.request<ResultTable>("post", "/user", { data });
+export const getAllRoles = () => {
+  return request.get<any, any>("/list-all-role");
 };
 
-/** 系统管理-用户管理-获取所有角色列表 */
-export const getAllRoleList = () => {
-  return http.request<Result>("get", "/list-all-role");
+export const getRoleByUserId = (userId: number) => {
+  return request.post<any, any>("/list-role-ids", { userId });
 };
 
-/** 系统管理-用户管理-根据userId，获取对应角色id列表（userId：用户id） */
-export const getRoleIds = (data?: object) => {
-  return http.request<Result>("post", "/list-role-ids", { data });
+export interface RoleVO {
+  id: number;
+  name: string;
+  code: string;
+  status: number;
+  remark: string;
+  createTime: string;
+}
+
+export const getRolePage = () => {
+  return request.post<any, any>("/role", {});
 };
 
-/** 获取系统管理-角色管理列表 */
-export const getRoleList = (data?: object) => {
-  return http.request<ResultTable>("post", "/role", { data });
+export interface MenuVO {
+  id: number;
+  menuName: string;
+  menuType: string;
+  path: string;
+  component: string;
+  orderNum: number;
+  icon: string;
+  children?: MenuVO[];
+}
+
+export const getMenuList = () => {
+  return request.post<any, any>("/menu", {});
 };
 
-/** 获取系统管理-菜单管理列表 */
-export const getMenuList = (data?: object) => {
-  return http.request<Result>("post", "/menu", { data });
-};
+export interface DeptVO {
+  id: number;
+  deptName: string;
+  leader: string;
+  phone: string;
+  orderNum: number;
+  status: number;
+  createTime: string;
+  children?: DeptVO[];
+}
 
-/** 获取系统管理-部门管理列表 */
-export const getDeptList = (data?: object) => {
-  return http.request<Result>("post", "/dept", { data });
-};
-
-/** 获取系统监控-在线用户列表 */
-export const getOnlineLogsList = (data?: object) => {
-  return http.request<ResultTable>("post", "/online-logs", { data });
-};
-
-/** 获取系统监控-登录日志列表 */
-export const getLoginLogsList = (data?: object) => {
-  return http.request<ResultTable>("post", "/login-logs", { data });
-};
-
-/** 获取系统监控-操作日志列表 */
-export const getOperationLogsList = (data?: object) => {
-  return http.request<ResultTable>("post", "/operation-logs", { data });
-};
-
-/** 获取系统监控-系统日志列表 */
-export const getSystemLogsList = (data?: object) => {
-  return http.request<ResultTable>("post", "/system-logs", { data });
-};
-
-/** 获取系统监控-系统日志-根据 id 查日志详情 */
-export const getSystemLogsDetail = (data?: object) => {
-  return http.request<Result>("post", "/system-logs-detail", { data });
-};
-
-/** 获取角色管理-权限-菜单权限 */
-export const getRoleMenu = (data?: object) => {
-  return http.request<Result>("post", "/role-menu", { data });
-};
-
-/** 获取角色管理-权限-菜单权限-根据角色 id 查对应菜单 */
-export const getRoleMenuIds = (data?: object) => {
-  return http.request<Result>("post", "/role-menu-ids", { data });
+export const getDeptList = () => {
+  return request.post<any, any>("/dept", {});
 };

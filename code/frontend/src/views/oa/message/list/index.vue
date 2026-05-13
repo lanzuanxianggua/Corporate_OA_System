@@ -1,248 +1,142 @@
-<script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
-import { ElMessage } from "element-plus";
-import {
-  getMessagePage,
-  markMessageRead,
-  batchMarkRead
-} from "@/api/oa/message";
-
-defineOptions({ name: "OaMessageList" });
-
-/** 消息记录 */
-interface MessageRecord {
-  id: number;
-  title: string;
-  senderName: string;
-  content: string;
-  createTime: string;
-  isRead: number;
-}
-
-const loading = ref(false);
-const messages = ref<MessageRecord[]>([]);
-const detailVisible = ref(false);
-const currentMessage = ref<MessageRecord | null>(null);
-
-const pagination = reactive({
-  pageNum: 1,
-  pageSize: 10,
-  total: 0
-});
-
-/** 加载消息列表 */
-async function fetchMessages() {
-  loading.value = true;
-  try {
-    const res = await getMessagePage({
-      pageNum: pagination.pageNum,
-      pageSize: pagination.pageSize
-    });
-    const data = res.data ?? res;
-    messages.value = data.list ?? data.records ?? [];
-    pagination.total = data.total ?? 0;
-  } catch {
-    ElMessage.error("获取消息列表失败");
-  } finally {
-    loading.value = false;
-  }
-}
-
-/** 查看消息详情 */
-async function handleViewDetail(row: MessageRecord) {
-  currentMessage.value = { ...row };
-  detailVisible.value = true;
-
-  // 自动标记已读
-  if (row.isRead === 0) {
-    try {
-      await markMessageRead(row.id);
-      row.isRead = 1;
-    } catch {
-      // 静默处理
-    }
-  }
-}
-
-/** 标记单条已读 */
-async function handleMarkRead(row: MessageRecord) {
-  try {
-    await markMessageRead(row.id);
-    row.isRead = 1;
-    ElMessage.success("已标记为已读");
-  } catch {
-    ElMessage.error("操作失败");
-  }
-}
-
-/** 全部标记已读 */
-async function handleMarkAllRead() {
-  try {
-    await batchMarkRead();
-    messages.value.forEach((m) => (m.isRead = 1));
-    ElMessage.success("已全部标记为已读");
-  } catch {
-    ElMessage.error("操作失败");
-  }
-}
-
-/** 行点击 */
-function handleRowClick(row: MessageRecord) {
-  handleViewDetail(row);
-}
-
-/** 分页变化 */
-function handlePageChange(pageNum: number) {
-  pagination.pageNum = pageNum;
-  fetchMessages();
-}
-
-function handleSizeChange(pageSize: number) {
-  pagination.pageSize = pageSize;
-  pagination.pageNum = 1;
-  fetchMessages();
-}
-
-onMounted(() => {
-  fetchMessages();
-});
-</script>
-
 <template>
-  <div class="oa-message-list">
-    <el-card shadow="hover">
+  <div class="message-list-container">
+    <el-card>
       <template #header>
-        <div class="card-header">
-          <span class="card-title">消息中心</span>
-          <el-button type="primary" @click="handleMarkAllRead">全部已读</el-button>
-        </div>
+        <span>消息中心</span>
       </template>
-
-      <el-table
-        :data="messages"
-        stripe
-        v-loading="loading"
-        empty-text="暂无消息"
-        style="width: 100%"
-        @row-click="handleRowClick"
-        class="message-table"
-      >
-        <el-table-column prop="title" label="标题" min-width="250">
-          <template #default="{ row }">
-            <span :class="{ 'unread-text': row.isRead === 0 }">
-              {{ row.title }}
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="senderName" label="发送人" width="120" align="center" />
-        <el-table-column prop="createTime" label="发送时间" width="180" align="center" />
-        <el-table-column prop="isRead" label="状态" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.isRead === 1 ? 'success' : 'danger'" size="small">
-              {{ row.isRead === 1 ? "已读" : "未读" }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="120" align="center" fixed="right">
-          <template #default="{ row }">
-            <el-button
-              v-if="row.isRead === 0"
-              type="primary"
-              link
-              size="small"
-              @click.stop="handleMarkRead(row)"
-            >
-              标记已读
-            </el-button>
-            <el-button
-              type="primary"
-              link
-              size="small"
-              @click.stop="handleViewDetail(row)"
-            >
-              查看
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <div class="pagination-wrapper">
-        <el-pagination
-          v-model:current-page="pagination.pageNum"
-          v-model:page-size="pagination.pageSize"
-          :total="pagination.total"
-          :page-sizes="[10, 20, 50]"
-          layout="total, sizes, prev, pager, next, jumper"
-          @current-change="handlePageChange"
-          @size-change="handleSizeChange"
-        />
+      <div class="message-list" v-loading="loading">
+        <div
+          v-for="item in messageList"
+          :key="item.id"
+          class="message-card"
+          :class="{ unread: !item.isRead }"
+          @click="handleRead(item)"
+        >
+          <div class="message-avatar">
+            <el-avatar :size="48" :style="{ backgroundColor: getAvatarColor(item.senderName) }">
+              {{ item.senderName?.charAt(0) || '系' }}
+            </el-avatar>
+          </div>
+          <div class="message-content">
+            <div class="message-header">
+              <span class="sender-name">{{ item.senderName }}</span>
+              <span class="send-time">{{ item.createTime }}</span>
+            </div>
+            <div class="message-title">{{ item.title }}</div>
+            <div class="message-body">{{ item.content }}</div>
+          </div>
+          <div class="message-action">
+            <el-tag v-if="!item.isRead" type="warning" size="small">未读</el-tag>
+            <el-tag v-else type="success" size="small">已读</el-tag>
+          </div>
+        </div>
+        <el-empty v-if="!loading && messageList.length === 0" description="暂无消息" :image-size="80" />
       </div>
     </el-card>
-
-    <!-- 消息详情弹窗 -->
-    <el-dialog
-      v-model="detailVisible"
-      title="消息详情"
-      width="600px"
-    >
-      <template v-if="currentMessage">
-        <el-descriptions :column="1" border>
-          <el-descriptions-item label="标题">
-            {{ currentMessage.title }}
-          </el-descriptions-item>
-          <el-descriptions-item label="发送人">
-            {{ currentMessage.senderName }}
-          </el-descriptions-item>
-          <el-descriptions-item label="发送时间">
-            {{ currentMessage.createTime }}
-          </el-descriptions-item>
-          <el-descriptions-item label="内容">
-            <div class="message-content">{{ currentMessage.content }}</div>
-          </el-descriptions-item>
-        </el-descriptions>
-      </template>
-      <template #footer>
-        <el-button @click="detailVisible = false">关闭</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
-<style scoped>
-.oa-message-list {
-  padding: 20px;
-}
+<script setup lang="ts">
+import { ref, onMounted } from "vue";
+import { getUnreadCount, markAsRead } from "@/api/message";
 
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+const loading = ref(false);
+const messageList = ref<any[]>([]);
 
-.card-title {
-  font-size: 16px;
-  font-weight: 600;
-}
+const getAvatarColor = (name: string) => {
+  const colors = ['#409EFF', '#67C23A', '#E6A23C', '#9254de', '#F56C6C', '#909399'];
+  const index = (name?.charCodeAt(0) || 0) % colors.length;
+  return colors[index];
+};
 
-.message-table {
-  cursor: pointer;
-}
+const loadData = async () => {
+  try {
+    loading.value = true;
+    const res: any = await getUnreadCount();
+    console.log("未读消息数量:", res.data);
+  } catch (error) {
+    console.error("获取未读消息数量失败", error);
+  } finally {
+    loading.value = false;
+  }
+};
 
-.unread-text {
-  font-weight: 700;
-  color: #303133;
-}
+const handleRead = async (item: any) => {
+  if (!item.isRead) {
+    try {
+      await markAsRead(item.id);
+      item.isRead = true;
+    } catch (error) {
+      console.error("标记已读失败", error);
+    }
+  }
+};
 
-.pagination-wrapper {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 16px;
-}
+onMounted(() => {
+  loadData();
+});
+</script>
 
-.message-content {
-  white-space: pre-wrap;
-  line-height: 1.6;
-  max-height: 300px;
-  overflow-y: auto;
+<style scoped lang="scss">
+.message-list-container {
+  .message-list {
+    .message-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      border-bottom: 1px solid #ebeef5;
+      cursor: pointer;
+      transition: background-color 0.3s;
+
+      &:hover {
+        background-color: #f5f7fa;
+      }
+
+      &.unread {
+        background-color: #ecf5ff;
+      }
+
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+  }
+
+  .message-content {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .message-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  .sender-name {
+    font-weight: bold;
+    color: #303133;
+  }
+
+  .send-time {
+    font-size: 12px;
+    color: #c0c4cc;
+  }
+
+  .message-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #303133;
+    margin-bottom: 4px;
+  }
+
+  .message-body {
+    font-size: 13px;
+    color: #909399;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 </style>

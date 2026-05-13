@@ -1,247 +1,154 @@
 <template>
-  <div class="oa-notice-manage">
-    <el-card shadow="hover">
+  <div class="notice-manage-container">
+    <el-card>
       <template #header>
         <div class="card-header">
-          <span class="card-title">公告管理</span>
+          <span>公告管理</span>
           <el-button type="primary" @click="handleAdd">
             <el-icon><Plus /></el-icon>
-            新增公告
+            发布公告
           </el-button>
         </div>
       </template>
-
-      <el-table :data="noticeList" stripe style="width: 100%" v-loading="loading">
-        <el-table-column prop="title" label="公告标题" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="content" label="公告内容" min-width="300" show-overflow-tooltip>
+      <el-table :data="tableData" stripe>
+        <el-table-column prop="title" label="标题" />
+        <el-table-column prop="publisher" label="发布人" width="100" />
+        <el-table-column prop="publishTime" label="发布时间" width="160" />
+        <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
-            {{ truncateContent(row.content) }}
+            <el-tag :type="row.status === '已发布' ? 'success' : 'info'">{{ row.status }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" width="180" align="center" />
-        <el-table-column prop="status" label="状态" width="100" align="center">
+        <el-table-column label="操作" width="150">
           <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : row.status === 0 ? 'info' : 'warning'">
-              {{ row.status === 1 ? '已发布' : row.status === 0 ? '草稿' : '已撤回' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="180" align="center" fixed="right">
-          <template #default="{ row }">
-            <el-button
-              v-if="row.status !== 1"
-              type="success"
-              link
-              size="small"
-              @click="handlePublish(row)"
-            >
-              发布
-            </el-button>
-            <el-button
-              v-if="row.status === 1"
-              type="warning"
-              link
-              size="small"
-              @click="handleWithdraw(row)"
-            >
-              撤回
-            </el-button>
+            <el-button type="primary" link size="small" @click="handleEdit(row)">编辑</el-button>
+            <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
-
-      <div class="pagination-wrapper">
+      <div class="pagination">
         <el-pagination
-          v-model:current-page="queryParams.pageNum"
-          v-model:page-size="queryParams.pageSize"
-          :page-sizes="[10, 20, 50]"
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
           :total="total"
-          layout="total, sizes, prev, pager, next, jumper"
-          background
-          @size-change="fetchNoticeList"
-          @current-change="fetchNoticeList"
+          :page-sizes="[10, 20, 50]"
+          layout="total, sizes, prev, pager, next"
         />
       </div>
     </el-card>
 
-    <!-- 新增公告弹窗 -->
-    <el-dialog
-      v-model="dialogVisible"
-      title="新增公告"
-      width="640px"
-      :close-on-click-modal="false"
-      @closed="resetForm"
-    >
-      <el-form
-        ref="formRef"
-        :model="form"
-        :rules="rules"
-        label-width="80px"
-      >
-        <el-form-item label="公告标题" prop="title">
-          <el-input v-model="form.title" placeholder="请输入公告标题" maxlength="100" show-word-limit />
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑公告' : '发布公告'" width="600px">
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
+        <el-form-item label="标题" prop="title">
+          <el-input v-model="form.title" placeholder="请输入公告标题" />
         </el-form-item>
-        <el-form-item label="公告内容" prop="content">
-          <el-input
-            v-model="form.content"
-            type="textarea"
-            :rows="8"
-            placeholder="请输入公告内容"
-            maxlength="2000"
-            show-word-limit
-          />
+        <el-form-item label="内容" prop="content">
+          <el-input v-model="form.content" type="textarea" :rows="6" placeholder="请输入公告内容" />
+        </el-form-item>
+        <el-form-item label="紧急程度" prop="urgent">
+          <el-select v-model="form.urgent" style="width: 100%">
+            <el-option label="普通" value="普通" />
+            <el-option label="重要" value="重要" />
+            <el-option label="紧急" value="紧急" />
+          </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">
-          确定
-        </el-button>
+        <el-button type="primary" @click="handleSubmit">确定</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
-import { getNoticePage, addNotice, publishNotice, withdrawNotice } from '@/api/oa/notice'
+import { ref, reactive } from "vue";
+import { ElMessage, ElMessageBox } from "element-plus";
+import type { FormInstance, FormRules } from "element-plus";
 
-defineOptions({ name: 'OaNoticeManage' })
-
-interface NoticeRecord {
-  id: number
-  title: string
-  content: string
-  createTime: string
-  status: number
-}
-
-const loading = ref(false)
-const submitting = ref(false)
-const dialogVisible = ref(false)
-const total = ref(0)
-const noticeList = ref<NoticeRecord[]>([])
-const formRef = ref<FormInstance>()
-
-const queryParams = reactive({
-  pageNum: 1,
-  pageSize: 10
-})
+const currentPage = ref(1);
+const pageSize = ref(10);
+const total = ref(3);
+const dialogVisible = ref(false);
+const isEdit = ref(false);
+const formRef = ref<FormInstance>();
 
 const form = reactive({
-  title: '',
-  content: ''
-})
+  id: null as number | null,
+  title: "",
+  content: "",
+  urgent: "普通"
+});
 
-const rules = reactive<FormRules>({
-  title: [{ required: true, message: '请输入公告标题', trigger: 'blur' }],
-  content: [{ required: true, message: '请输入公告内容', trigger: 'blur' }]
-})
+const rules: FormRules = {
+  title: [{ required: true, message: "请输入标题", trigger: "blur" }],
+  content: [{ required: true, message: "请输入内容", trigger: "blur" }]
+};
 
-/** 截断内容显示 */
-const truncateContent = (content: string): string => {
-  if (!content) return ''
-  return content.length > 50 ? content.substring(0, 50) + '...' : content
-}
+const tableData = ref([
+  { id: 1, title: "关于2026年端午节放假安排的通知", publisher: "管理员", publishTime: "2026-05-10 10:00", status: "已发布" },
+  { id: 2, title: "关于开展2026年度员工体检的通知", publisher: "人事部", publishTime: "2026-05-08 09:00", status: "已发布" },
+  { id: 3, title: "关于启用新考勤系统的通知", publisher: "技术部", publishTime: "2026-05-05 14:00", status: "已发布" }
+]);
 
-/** 打开新增弹窗 */
 const handleAdd = () => {
-  dialogVisible.value = true
-}
+  isEdit.value = false;
+  form.id = null;
+  form.title = "";
+  form.content = "";
+  form.urgent = "普通";
+  dialogVisible.value = true;
+};
 
-/** 提交新增公告 */
-const handleSubmit = async () => {
-  const valid = await formRef.value?.validate().catch(() => false)
-  if (!valid) return
+const handleEdit = (row: any) => {
+  isEdit.value = true;
+  form.id = row.id;
+  form.title = row.title;
+  form.content = row.content;
+  form.urgent = "普通";
+  dialogVisible.value = true;
+};
 
-  submitting.value = true
-  try {
-    await addNotice({ title: form.title, content: form.content })
-    ElMessage.success('公告创建成功')
-    dialogVisible.value = false
-    fetchNoticeList()
-  } catch {
-    ElMessage.error('创建失败，请稍后重试')
-  } finally {
-    submitting.value = false
-  }
-}
+const handleDelete = (row: any) => {
+  ElMessageBox.confirm("确定要删除这条公告吗？", "提示", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(() => {
+    const index = tableData.value.findIndex((item) => item.id === row.id);
+    if (index > -1) {
+      tableData.value.splice(index, 1);
+      ElMessage.success("删除成功");
+    }
+  });
+};
 
-/** 发布公告 */
-const handlePublish = async (row: NoticeRecord) => {
-  await ElMessageBox.confirm(`确认发布公告「${row.title}」？`, '发布确认', {
-    confirmButtonText: '发布',
-    cancelButtonText: '取消',
-    type: 'info'
-  })
-  try {
-    await publishNotice(row.id)
-    ElMessage.success('发布成功')
-    fetchNoticeList()
-  } catch {
-    ElMessage.error('发布失败')
-  }
-}
-
-/** 撤回公告 */
-const handleWithdraw = async (row: NoticeRecord) => {
-  await ElMessageBox.confirm(`确认撤回公告「${row.title}」？`, '撤回确认', {
-    confirmButtonText: '撤回',
-    cancelButtonText: '取消',
-    type: 'warning'
-  })
-  try {
-    await withdrawNotice(row.id)
-    ElMessage.success('已撤回')
-    fetchNoticeList()
-  } catch {
-    ElMessage.error('撤回失败')
-  }
-}
-
-/** 重置表单 */
-const resetForm = () => {
-  formRef.value?.resetFields()
-}
-
-/** 获取公告分页列表 */
-const fetchNoticeList = async () => {
-  loading.value = true
-  try {
-    const res = await getNoticePage(queryParams)
-    const data = res.data ?? res
-    noticeList.value = data.records ?? data.list ?? []
-    total.value = data.total ?? 0
-  } catch {
-    ElMessage.error('获取公告列表失败')
-  } finally {
-    loading.value = false
-  }
-}
-
-onMounted(() => {
-  fetchNoticeList()
-})
+const handleSubmit = () => {
+  formRef.value?.validate((valid) => {
+    if (valid) {
+      if (isEdit.value) {
+        ElMessage.success("修改成功");
+      } else {
+        ElMessage.success("发布成功");
+      }
+      dialogVisible.value = false;
+    }
+  });
+};
 </script>
 
-<style scoped>
-.oa-notice-manage {
-  padding: 20px;
-}
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.card-title {
-  font-size: 16px;
-  font-weight: 600;
-}
-.pagination-wrapper {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
+<style scoped lang="scss">
+.notice-manage-container {
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .pagination {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+  }
 }
 </style>

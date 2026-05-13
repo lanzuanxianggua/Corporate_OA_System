@@ -1,139 +1,207 @@
-<script setup lang="ts">
-import { ref, onMounted } from "vue";
-import {
-  getPersonalAttendanceSummary,
-  getPersonalAttendanceTrend,
-  getPersonalLeaveSummary,
-  getPersonalMonthlyCompare
-} from "@/api/oa/report";
-
-defineOptions({ name: "OaReportPersonal" });
-
-const currentMonth = ref(new Date().toISOString().slice(0, 7));
-const summary = ref<any>({});
-const trend = ref<any[]>([]);
-const leaveSummary = ref<any[]>([]);
-const compare = ref<any>({});
-const loading = ref(true);
-
-async function loadData() {
-  loading.value = true;
-  try {
-    const [summaryRes, trendRes, leaveRes, compareRes] = await Promise.allSettled([
-      getPersonalAttendanceSummary({ month: currentMonth.value }),
-      getPersonalAttendanceTrend({ months: 6 }),
-      getPersonalLeaveSummary({ month: currentMonth.value }),
-      getPersonalMonthlyCompare({ month: currentMonth.value })
-    ]);
-    if (summaryRes.status === "fulfilled" && summaryRes.value.data) summary.value = summaryRes.value.data;
-    if (trendRes.status === "fulfilled" && trendRes.value.data) trend.value = trendRes.value.data;
-    if (leaveRes.status === "fulfilled" && leaveRes.value.data) leaveSummary.value = leaveRes.value.data;
-    if (compareRes.status === "fulfilled" && compareRes.value.data) compare.value = compareRes.value.data;
-  } finally {
-    loading.value = false;
-  }
-}
-
-onMounted(loadData);
-
-function onMonthChange() {
-  loadData();
-}
-</script>
-
 <template>
-  <div class="personal-report" v-loading="loading">
+  <div class="report-personal-container">
     <el-card>
       <template #header>
         <div class="card-header">
           <span>个人报表</span>
-          <el-date-picker v-model="currentMonth" type="month" value-format="YYYY-MM" @change="onMonthChange" />
+          <el-date-picker v-model="month" type="month" placeholder="选择月份" style="width: 200px" />
         </div>
       </template>
     </el-card>
 
-    <el-row :gutter="16" style="margin-top: 16px">
+    <el-row :gutter="20" class="stats-row">
       <el-col :span="6">
-        <el-card shadow="hover">
-          <div class="stat-card">
-            <div class="stat-value" style="color: #67C23A">{{ summary.normalDays || 0 }}</div>
-            <div class="stat-label">正常出勤（天）</div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background-color: #e6f7ff">
+            <el-icon size="24" color="#409EFF"><Calendar /></el-icon>
           </div>
-        </el-card>
+          <div class="stat-info">
+            <span class="stat-value">22</span>
+            <span class="stat-label">出勤天数</span>
+          </div>
+        </div>
       </el-col>
       <el-col :span="6">
-        <el-card shadow="hover">
-          <div class="stat-card">
-            <div class="stat-value" style="color: #E6A23C">{{ summary.lateDays || 0 }}</div>
-            <div class="stat-label">迟到（天）</div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background-color: #fff7e6">
+            <el-icon size="24" color="#E6A23C"><Clock /></el-icon>
           </div>
-        </el-card>
+          <div class="stat-info">
+            <span class="stat-value">1</span>
+            <span class="stat-label">迟到次数</span>
+          </div>
+        </div>
       </el-col>
       <el-col :span="6">
-        <el-card shadow="hover">
-          <div class="stat-card">
-            <div class="stat-value" style="color: #F56C6C">{{ summary.absentDays || 0 }}</div>
-            <div class="stat-label">缺勤（天）</div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background-color: #fff1f0">
+            <el-icon size="24" color="#F56C6C"><Timer /></el-icon>
           </div>
-        </el-card>
+          <div class="stat-info">
+            <span class="stat-value">0</span>
+            <span class="stat-label">早退次数</span>
+          </div>
+        </div>
       </el-col>
       <el-col :span="6">
-        <el-card shadow="hover">
-          <div class="stat-card">
-            <div class="stat-value" style="color: #409EFF">{{ summary.attendanceRate || 0 }}%</div>
-            <div class="stat-label">出勤率</div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background-color: #f9f0ff">
+            <el-icon size="24" color="#9254de"><Calendar /></el-icon>
           </div>
-        </el-card>
+          <div class="stat-info">
+            <span class="stat-value">1</span>
+            <span class="stat-label">请假天数</span>
+          </div>
+        </div>
       </el-col>
     </el-row>
 
-    <el-row :gutter="16" style="margin-top: 16px">
-      <el-col :span="12">
-        <el-card>
-          <template #header>出勤趋势</template>
-          <div v-if="trend.length" class="trend-list">
-            <div v-for="item in trend" :key="item.month" class="trend-item">
-              <span>{{ item.month }}</span>
-              <el-progress :percentage="item.rate" :stroke-width="12" style="flex: 1; margin-left: 8px" />
-            </div>
-          </div>
-          <el-empty v-else description="暂无数据" />
-        </el-card>
-      </el-col>
-      <el-col :span="12">
-        <el-card>
-          <template #header>请假统计</template>
-          <div v-if="leaveSummary.length">
-            <div v-for="item in leaveSummary" :key="item.type" class="leave-item">
-              <span>{{ item.type }}</span>
-              <el-tag type="warning">{{ item.count }}次</el-tag>
-            </div>
-          </div>
-          <el-empty v-else description="暂无数据" />
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <el-card style="margin-top: 16px" v-if="compare.currentMonthNormal !== undefined">
-      <template #header>月度对比</template>
-      <el-descriptions :column="3" border>
-        <el-descriptions-item label="">{{ currentMonth }}</el-descriptions-item>
-        <el-descriptions-item label="正常">{{ compare.currentMonthNormal }}天</el-descriptions-item>
-        <el-descriptions-item label="迟到">{{ compare.currentMonthLate }}天</el-descriptions-item>
-        <el-descriptions-item label="上月"></el-descriptions-item>
-        <el-descriptions-item label="正常">{{ compare.lastMonthNormal }}天</el-descriptions-item>
-        <el-descriptions-item label="迟到">{{ compare.lastMonthLate }}天</el-descriptions-item>
-      </el-descriptions>
+    <el-card class="chart-card">
+      <template #header>
+        <span>出勤趋势</span>
+      </template>
+      <div ref="trendChartRef" style="height: 300px"></div>
     </el-card>
+
+    <el-row :gutter="20">
+      <el-col :span="12">
+        <el-card class="chart-card">
+          <template #header>
+            <span>请假统计</span>
+          </template>
+          <div ref="leaveChartRef" style="height: 250px"></div>
+        </el-card>
+      </el-col>
+      <el-col :span="12">
+        <el-card class="chart-card">
+          <template #header>
+            <span>月度对比</span>
+          </template>
+          <div ref="compareChartRef" style="height: 250px"></div>
+        </el-card>
+      </el-col>
+    </el-row>
   </div>
 </template>
 
-<style scoped>
-.card-header { display: flex; justify-content: space-between; align-items: center; }
-.stat-card { text-align: center; padding: 16px 0; }
-.stat-value { font-size: 32px; font-weight: bold; }
-.stat-label { font-size: 13px; color: #999; margin-top: 8px; }
-.trend-list { display: flex; flex-direction: column; gap: 12px; }
-.trend-item { display: flex; align-items: center; }
-.leave-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
+<script setup lang="ts">
+import { ref, onMounted } from "vue";
+import * as echarts from "echarts";
+
+const month = ref("");
+const trendChartRef = ref<HTMLElement>();
+const leaveChartRef = ref<HTMLElement>();
+const compareChartRef = ref<HTMLElement>();
+
+onMounted(() => {
+  initTrendChart();
+  initLeaveChart();
+  initCompareChart();
+});
+
+const initTrendChart = () => {
+  if (!trendChartRef.value) return;
+  const chart = echarts.init(trendChartRef.value);
+  chart.setOption({
+    tooltip: { trigger: "axis" },
+    legend: { data: ["出勤天数"] },
+    xAxis: { type: "category", data: ["1月", "2月", "3月", "4月", "5月", "6月"] },
+    yAxis: { type: "value", max: 31 },
+    series: [{
+      name: "出勤天数",
+      type: "line",
+      smooth: true,
+      data: [22, 20, 23, 21, 22, 0],
+      areaStyle: { color: "rgba(64, 158, 255, 0.2)" },
+      lineStyle: { color: "#409EFF" },
+      itemStyle: { color: "#409EFF" }
+    }]
+  });
+};
+
+const initLeaveChart = () => {
+  if (!leaveChartRef.value) return;
+  const chart = echarts.init(leaveChartRef.value);
+  chart.setOption({
+    tooltip: { trigger: "item" },
+    series: [{
+      type: "pie",
+      radius: ["40%", "70%"],
+      data: [
+        { value: 1, name: "事假", itemStyle: { color: "#E6A23C" } },
+        { value: 1, name: "病假", itemStyle: { color: "#67C23A" } },
+        { value: 3, name: "年假", itemStyle: { color: "#409EFF" } }
+      ]
+    }]
+  });
+};
+
+const initCompareChart = () => {
+  if (!compareChartRef.value) return;
+  const chart = echarts.init(compareChartRef.value);
+  chart.setOption({
+    tooltip: { trigger: "axis" },
+    legend: { data: ["本月", "上月"] },
+    xAxis: { type: "category", data: ["正常出勤", "迟到", "缺勤"] },
+    yAxis: { type: "value" },
+    series: [
+      { name: "本月", type: "bar", data: [20, 1, 0], itemStyle: { color: "#409EFF" } },
+      { name: "上月", type: "bar", data: [19, 2, 0], itemStyle: { color: "#67C23A" } }
+    ]
+  });
+};
+</script>
+
+<style scoped lang="scss">
+.report-personal-container {
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .stats-row {
+    margin: 20px 0;
+  }
+
+  .stat-card {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  }
+
+  .stat-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .stat-info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .stat-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: #303133;
+  }
+
+  .stat-label {
+    font-size: 14px;
+    color: #909399;
+    margin-top: 4px;
+  }
+
+  .chart-card {
+    margin-top: 20px;
+  }
+}
 </style>

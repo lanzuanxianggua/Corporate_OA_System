@@ -1,0 +1,15 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  width: 100%;
+  height: 100%;
+  font-family: "PingFang SC", "Microsoft YaHei", "Inter", "Helvetica Neue", sans-serif;
+}
+
+body {
+  background-color: #f5f7fa;
+}

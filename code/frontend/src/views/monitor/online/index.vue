@@ -1,124 +1,89 @@
-<script setup lang="ts">
-import { ref } from "vue";
-import { useRole } from "./hook";
-import { PureTableBar } from "@/components/RePureTableBar";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-
-import Plane from "~icons/ri/plane-line";
-import Refresh from "~icons/ep/refresh";
-
-defineOptions({
-  name: "OnlineUser"
-});
-
-const formRef = ref();
-const {
-  form,
-  loading,
-  columns,
-  dataList,
-  pagination,
-  onSearch,
-  resetForm,
-  handleOffline,
-  handleSizeChange,
-  handleCurrentChange,
-  handleSelectionChange
-} = useRole();
-</script>
-
 <template>
-  <div class="main">
-    <el-form
-      ref="formRef"
-      :inline="true"
-      :model="form"
-      class="search-form bg-bg_color w-full pl-8 pt-3 overflow-auto"
-    >
-      <el-form-item label="用户名" prop="username">
-        <el-input
-          v-model="form.username"
-          placeholder="请输入用户名"
-          clearable
-          class="w-45!"
-        />
-      </el-form-item>
-      <el-form-item>
-        <el-button
-          type="primary"
-          :icon="useRenderIcon('ri:search-line')"
-          :loading="loading"
-          @click="onSearch"
-        >
-          搜索
-        </el-button>
-        <el-button :icon="useRenderIcon(Refresh)" @click="resetForm(formRef)">
-          重置
-        </el-button>
-      </el-form-item>
-    </el-form>
-
-    <PureTableBar
-      title="在线用户（仅演示，操作后不生效）"
-      :columns="columns"
-      @refresh="onSearch"
-    >
-      <template v-slot="{ size, dynamicColumns }">
-        <pure-table
-          align-whole="center"
-          showOverflowTooltip
-          table-layout="auto"
-          :loading="loading"
-          :size="size"
-          adaptive
-          :adaptiveConfig="{ offsetBottom: 108 }"
-          :data="dataList"
-          :columns="dynamicColumns"
-          :pagination="{ ...pagination, size }"
-          :header-cell-style="{
-            background: 'var(--el-fill-color-light)',
-            color: 'var(--el-text-color-primary)'
-          }"
-          @selection-change="handleSelectionChange"
-          @page-size-change="handleSizeChange"
-          @page-current-change="handleCurrentChange"
-        >
-          <template #operation="{ row }">
-            <el-popconfirm
-              :title="`是否强制下线${row.username}`"
-              @confirm="handleOffline(row)"
-            >
-              <template #reference>
-                <el-button
-                  class="reset-margin"
-                  link
-                  type="primary"
-                  :size="size"
-                  :icon="useRenderIcon(Plane)"
-                >
-                  强退
-                </el-button>
-              </template>
-            </el-popconfirm>
-          </template>
-        </pure-table>
+  <div class="online-container">
+    <el-card>
+      <template #header>
+        <span>在线用户</span>
       </template>
-    </PureTableBar>
+      <el-table :data="tableData" stripe v-loading="loading">
+        <el-table-column prop="username" label="用户名" width="150" />
+        <el-table-column prop="ip" label="登录IP" width="150" />
+        <el-table-column prop="dept" label="部门" width="120" />
+        <el-table-column prop="browser" label="浏览器" />
+        <el-table-column prop="loginTime" label="登录时间" width="160" />
+        <el-table-column label="操作" width="100">
+          <template #default="{ row }">
+            <el-button type="danger" size="small" @click="handleForceLogout(row)">强制下线</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div class="pagination">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 50]"
+          layout="total, sizes, prev, pager, next"
+          @size-change="loadData"
+          @current-change="loadData"
+        />
+      </div>
+    </el-card>
   </div>
 </template>
 
-<style lang="scss" scoped>
-:deep(.el-dropdown-menu__item i) {
-  margin: 0;
-}
+<script setup lang="ts">
+import { ref, onMounted } from "vue";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { getOnlineLogs, forceLogout } from "@/api/monitor";
 
-.main-content {
-  margin: 24px 24px 0 !important;
-}
+const loading = ref(false);
+const currentPage = ref(1);
+const pageSize = ref(10);
+const total = ref(0);
+const tableData = ref<any[]>([]);
 
-.search-form {
-  :deep(.el-form-item) {
-    margin-bottom: 12px;
+const loadData = async () => {
+  try {
+    loading.value = true;
+    const res: any = await getOnlineLogs({ page: currentPage.value, pageSize: pageSize.value });
+    if (res.data?.list) {
+      tableData.value = res.data.list;
+      total.value = res.data.total;
+    }
+  } catch (error) {
+    console.error("获取在线用户失败", error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const handleForceLogout = (row: any) => {
+  ElMessageBox.confirm(`确定要强制下线用户 "${row.username}" 吗？`, "提示", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(async () => {
+    try {
+      await forceLogout(row.id);
+      ElMessage.success("操作成功");
+      loadData();
+    } catch (error) {
+      console.error("强制下线失败", error);
+    }
+  });
+};
+
+onMounted(() => {
+  loadData();
+});
+</script>
+
+<style scoped lang="scss">
+.online-container {
+  .pagination {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
   }
 }
 </style>

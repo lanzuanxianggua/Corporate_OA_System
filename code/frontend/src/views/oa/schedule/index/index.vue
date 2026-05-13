@@ -1,251 +1,56 @@
-<script setup lang="ts">
-import { ref, reactive, onMounted, watch } from "vue";
-import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from "element-plus";
-import {
-  getScheduleByDateRange,
-  addSchedule,
-  updateSchedule,
-  deleteSchedule
-} from "@/api/oa/schedule";
-
-defineOptions({ name: "OaScheduleIndex" });
-
-/** 日程记录 */
-interface ScheduleRecord {
-  id?: number;
-  title: string;
-  date: string;
-  time: string;
-  content: string;
-}
-
-const loading = ref(false);
-const dialogVisible = ref(false);
-const dialogTitle = ref("新增日程");
-const schedules = ref<ScheduleRecord[]>([]);
-const currentDate = ref(new Date());
-const formRef = ref<FormInstance>();
-
-const form = reactive({
-  id: undefined as number | undefined,
-  title: "",
-  date: "",
-  time: "",
-  content: ""
-});
-
-const rules = reactive<FormRules>({
-  title: [{ required: true, message: "请输入日程标题", trigger: "blur" }],
-  date: [{ required: true, message: "请选择日期", trigger: "change" }],
-  time: [{ required: true, message: "请选择时间", trigger: "change" }]
-});
-
-/** 格式化日期为 YYYY-MM-DD */
-function formatDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
-/** 获取当月日期范围 */
-function getMonthRange(date: Date): { start: string; end: string } {
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const start = new Date(year, month, 1);
-  const end = new Date(year, month + 1, 0);
-  return {
-    start: formatDate(start),
-    end: formatDate(end)
-  };
-}
-
-/** 加载日程数据 */
-async function fetchSchedules() {
-  loading.value = true;
-  try {
-    const range = getMonthRange(currentDate.value);
-    const res = await getScheduleByDateRange(range.start, range.end);
-    schedules.value = res.data ?? res ?? [];
-  } catch {
-    ElMessage.error("获取日程失败");
-  } finally {
-    loading.value = false;
-  }
-}
-
-/** 获取指定日期的日程 */
-function getSchedulesByDate(date: string): ScheduleRecord[] {
-  return schedules.value.filter((s) => s.date === date);
-}
-
-/** 日历单元格内容 */
-function calendarCellContent(date: Date): ScheduleRecord[] {
-  return getSchedulesByDate(formatDate(date));
-}
-
-/** 点击日期 - 新增日程 */
-function handleDateClick(date: Date) {
-  dialogTitle.value = "新增日程";
-  form.id = undefined;
-  form.title = "";
-  form.date = formatDate(date);
-  form.time = "";
-  form.content = "";
-  dialogVisible.value = true;
-}
-
-/** 编辑日程 */
-function handleEdit(schedule: ScheduleRecord) {
-  dialogTitle.value = "编辑日程";
-  form.id = schedule.id;
-  form.title = schedule.title;
-  form.date = schedule.date;
-  form.time = schedule.time;
-  form.content = schedule.content;
-  dialogVisible.value = true;
-}
-
-/** 删除日程 */
-async function handleDelete(schedule: ScheduleRecord) {
-  if (!schedule.id) return;
-  await ElMessageBox.confirm(`确认删除日程「${schedule.title}」？`, "提示", {
-    confirmButtonText: "确定",
-    cancelButtonText: "取消",
-    type: "warning"
-  });
-  try {
-    await deleteSchedule(schedule.id);
-    ElMessage.success("删除成功");
-    fetchSchedules();
-  } catch {
-    ElMessage.error("删除失败");
-  }
-}
-
-/** 提交日程 */
-async function handleSubmit() {
-  const valid = await formRef.value?.validate().catch(() => false);
-  if (!valid) return;
-
-  try {
-    if (form.id) {
-      await updateSchedule({ ...form });
-      ElMessage.success("修改成功");
-    } else {
-      await addSchedule({ ...form });
-      ElMessage.success("添加成功");
-    }
-    dialogVisible.value = false;
-    fetchSchedules();
-  } catch {
-    ElMessage.error(form.id ? "修改失败" : "添加失败");
-  }
-}
-
-/** 月份切换时重新加载数据 */
-watch(currentDate, () => {
-  fetchSchedules();
-});
-
-onMounted(() => {
-  fetchSchedules();
-});
-</script>
-
 <template>
-  <div class="oa-schedule-index">
-    <el-card shadow="hover">
-      <template #header>
-        <span class="card-title">我的日程</span>
-      </template>
-
-      <el-calendar v-model="currentDate">
-        <template #date-cell="{ data }">
-          <div class="calendar-cell" @click="handleDateClick(new Date(data.day))">
-            <div class="calendar-day">{{ data.day.split("-")[2] }}</div>
-            <div class="calendar-schedules">
-              <div
-                v-for="item in calendarCellContent(new Date(data.day))"
-                :key="item.id"
-                class="schedule-item"
-                :title="item.title"
-              >
-                <span class="schedule-time">{{ item.time }}</span>
-                {{ item.title }}
+  <div class="schedule-container">
+    <el-row :gutter="20">
+      <el-col :span="8">
+        <el-card class="calendar-card">
+          <el-calendar v-model="currentDate">
+            <template #date-cell="{ data }">
+              <div class="calendar-day">
+                <span>{{ data.day.split("-").slice(2).join("") }}</span>
+                <div v-if="hasSchedule(data.day)" class="schedule-dot"></div>
+              </div>
+            </template>
+          </el-calendar>
+        </el-card>
+      </el-col>
+      <el-col :span="16">
+        <el-card class="schedule-card">
+          <template #header>
+            <div class="card-header">
+              <span>{{ selectedDate }} 日程</span>
+              <el-button type="primary" size="small" @click="handleAdd">
+                <el-icon><Plus /></el-icon>
+                添加日程
+              </el-button>
+            </div>
+          </template>
+          <div class="timeline" v-if="scheduleList.length > 0">
+            <div v-for="item in scheduleList" :key="item.id" class="timeline-item">
+              <div class="timeline-time">{{ item.time }}</div>
+              <div class="timeline-content">
+                <div class="timeline-title">{{ item.title }}</div>
+                <div class="timeline-desc">{{ item.desc }}</div>
               </div>
             </div>
           </div>
-        </template>
-      </el-calendar>
-    </el-card>
+          <el-empty v-else description="暂无日程" :image-size="80" />
+        </el-card>
+      </el-col>
+    </el-row>
 
-    <!-- 今日日程列表 -->
-    <el-card shadow="hover" style="margin-top: 16px">
-      <template #header>
-        <span class="card-title">今日日程</span>
-      </template>
-      <el-table
-        :data="getSchedulesByDate(formatDate(new Date()))"
-        stripe
-        empty-text="今日暂无日程"
-        style="width: 100%"
-      >
-        <el-table-column prop="title" label="标题" min-width="200" />
-        <el-table-column prop="time" label="时间" width="120" align="center" />
-        <el-table-column prop="content" label="内容" min-width="200" show-overflow-tooltip />
-        <el-table-column label="操作" width="150" align="center" fixed="right">
-          <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="handleEdit(row)">
-              编辑
-            </el-button>
-            <el-button type="danger" link size="small" @click="handleDelete(row)">
-              删除
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
-
-    <!-- 新增/编辑日程弹窗 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="dialogTitle"
-      width="500px"
-      :close-on-click-modal="false"
-    >
+    <el-dialog v-model="dialogVisible" title="添加日程" width="500px">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="标题" prop="title">
-          <el-input v-model="form.title" placeholder="请输入日程标题" maxlength="50" />
+        <el-form-item label="日程标题" prop="title">
+          <el-input v-model="form.title" placeholder="请输入日程标题" />
         </el-form-item>
-        <el-form-item label="日期" prop="date">
-          <el-date-picker
-            v-model="form.date"
-            type="date"
-            placeholder="请选择日期"
-            value-format="YYYY-MM-DD"
-            style="width: 100%"
-          />
+        <el-form-item label="开始时间" prop="startTime">
+          <el-date-picker v-model="form.startTime" type="datetime" placeholder="选择开始时间" style="width: 100%" />
         </el-form-item>
-        <el-form-item label="时间" prop="time">
-          <el-time-select
-            v-model="form.time"
-            start="06:00"
-            step="00:30"
-            end="23:00"
-            placeholder="请选择时间"
-            style="width: 100%"
-          />
+        <el-form-item label="结束时间" prop="endTime">
+          <el-date-picker v-model="form.endTime" type="datetime" placeholder="选择结束时间" style="width: 100%" />
         </el-form-item>
-        <el-form-item label="内容" prop="content">
-          <el-input
-            v-model="form.content"
-            type="textarea"
-            :rows="4"
-            placeholder="请输入日程内容"
-            maxlength="500"
-            show-word-limit
-          />
+        <el-form-item label="备注">
+          <el-input v-model="form.desc" type="textarea" :rows="3" placeholder="请输入备注" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -256,53 +61,113 @@ onMounted(() => {
   </div>
 </template>
 
-<style scoped>
-.oa-schedule-index {
-  padding: 20px;
-}
+<script setup lang="ts">
+import { ref, computed } from "vue";
+import { ElMessage } from "element-plus";
+import dayjs from "dayjs";
+import type { FormInstance, FormRules } from "element-plus";
 
-.card-title {
-  font-size: 16px;
-  font-weight: 600;
-}
+const currentDate = ref(new Date());
+const dialogVisible = ref(false);
+const formRef = ref<FormInstance>();
 
-.calendar-cell {
-  height: 100%;
-  cursor: pointer;
-  overflow: hidden;
-}
+const form = ref({
+  title: "",
+  startTime: "",
+  endTime: "",
+  desc: ""
+});
 
-.calendar-day {
-  font-size: 14px;
-  font-weight: 600;
-  padding: 4px;
-}
+const rules: FormRules = {
+  title: [{ required: true, message: "请输入日程标题", trigger: "blur" }],
+  startTime: [{ required: true, message: "请选择开始时间", trigger: "change" }],
+  endTime: [{ required: true, message: "请选择结束时间", trigger: "change" }]
+};
 
-.calendar-schedules {
-  max-height: 60px;
-  overflow-y: auto;
-}
+const selectedDate = computed(() => dayjs(currentDate.value).format("YYYY-MM-DD"));
 
-.schedule-item {
-  font-size: 12px;
-  color: #409eff;
-  padding: 2px 4px;
-  margin: 1px 0;
-  background: #ecf5ff;
-  border-radius: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+const scheduleList = ref([
+  { id: 1, time: "09:00", title: "晨会", desc: "技术部周例会" },
+  { id: 2, time: "14:00", title: "项目评审", desc: "新项目需求评审会议" }
+]);
 
-.schedule-time {
-  margin-right: 4px;
-  color: #909399;
-}
+const hasSchedule = (date: string) => {
+  return ["01", "05", "13", "20"].includes(date.split("-")[2]);
+};
 
-:deep(.el-calendar-table .el-calendar-day) {
-  padding: 0;
-  height: auto;
-  min-height: 80px;
+const handleAdd = () => {
+  form.value = { title: "", startTime: "", endTime: "", desc: "" };
+  dialogVisible.value = true;
+};
+
+const handleSubmit = () => {
+  formRef.value?.validate((valid) => {
+    if (valid) {
+      ElMessage.success("添加成功");
+      dialogVisible.value = false;
+    }
+  });
+};
+</script>
+
+<style scoped lang="scss">
+.schedule-container {
+  .calendar-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    position: relative;
+
+    .schedule-dot {
+      width: 4px;
+      height: 4px;
+      background-color: #409EFF;
+      border-radius: 50%;
+      position: absolute;
+      bottom: 4px;
+    }
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .timeline {
+    .timeline-item {
+      display: flex;
+      gap: 16px;
+      padding: 12px 0;
+      border-bottom: 1px solid #ebeef5;
+
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+
+    .timeline-time {
+      width: 60px;
+      color: #409EFF;
+      font-weight: bold;
+    }
+
+    .timeline-content {
+      flex: 1;
+    }
+
+    .timeline-title {
+      font-weight: bold;
+      color: #303133;
+      margin-bottom: 4px;
+    }
+
+    .timeline-desc {
+      font-size: 13px;
+      color: #909399;
+    }
+  }
 }
 </style>

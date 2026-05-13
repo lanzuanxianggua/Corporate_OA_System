@@ -1,187 +1,111 @@
-<script setup lang="ts">
-import { getMine } from "@/api/user";
-import { useRouter } from "vue-router";
-import { ReText } from "@/components/ReText";
-import Profile from "./components/Profile.vue";
-import { ref, onMounted, onBeforeMount } from "vue";
-import Preferences from "./components/Preferences.vue";
-import SecurityLog from "./components/SecurityLog.vue";
-import { useGlobal, deviceDetection } from "@pureadmin/utils";
-import AccountManagement from "./components/AccountManagement.vue";
-import { useDataThemeChange } from "@/layout/hooks/useDataThemeChange";
-import LaySidebarTopCollapse from "@/layout/components/lay-sidebar/components/SidebarTopCollapse.vue";
-
-import leftLine from "~icons/ri/arrow-left-s-line";
-import ProfileIcon from "~icons/ri/user-3-line";
-import PreferencesIcon from "~icons/ri/settings-3-line";
-import SecurityLogIcon from "~icons/ri/window-line";
-import AccountManagementIcon from "~icons/ri/profile-line";
-
-defineOptions({
-  name: "AccountSettings"
-});
-
-const router = useRouter();
-const isOpen = ref(deviceDetection() ? false : true);
-const { $storage } = useGlobal<GlobalPropertiesApi>();
-onBeforeMount(() => {
-  useDataThemeChange().dataThemeChange($storage.layout?.themeMode);
-});
-
-const userInfo = ref({
-  avatar: "",
-  username: "",
-  nickname: ""
-});
-const panes = [
-  {
-    key: "profile",
-    label: "个人信息",
-    icon: ProfileIcon,
-    component: Profile
-  },
-  {
-    key: "preferences",
-    label: "偏好设置",
-    icon: PreferencesIcon,
-    component: Preferences
-  },
-  {
-    key: "securityLog",
-    label: "安全日志",
-    icon: SecurityLogIcon,
-    component: SecurityLog
-  },
-  {
-    key: "accountManagement",
-    label: "账户管理",
-    icon: AccountManagementIcon,
-    component: AccountManagement
-  }
-];
-const witchPane = ref("profile");
-
-onMounted(async () => {
-  const { code, data } = await getMine();
-  if (code === 0) {
-    userInfo.value = data;
-  }
-});
-</script>
-
 <template>
-  <el-container class="h-full">
-    <el-aside
-      v-if="isOpen"
-      class="pure-account-settings overflow-hidden px-2 dark:bg-(--el-bg-color)! border-r border-(--pure-border-color)"
-      :width="deviceDetection() ? '180px' : '240px'"
-    >
-      <el-menu :default-active="witchPane" class="pure-account-settings-menu">
-        <div
-          class="h-12.5! text-(--pure-theme-menu-text) cursor-pointer text-sm transition-all duration-300 ease-in-out hover:scale-105 will-change-transform transform-gpu origin-center hover:text-base! hover:text-(--pure-theme-menu-title-hover)!"
-          @click="router.go(-1)"
-        >
-          <div
-            class="h-full flex items-center px-(--el-menu-base-level-padding)"
-          >
-            <IconifyIconOffline :icon="leftLine" />
-            <span class="ml-2">返回</span>
+  <div class="account-settings-container">
+    <el-card>
+      <el-tabs v-model="activeTab">
+        <el-tab-pane label="基本信息" name="info">
+          <div class="info-section">
+            <div class="avatar-section">
+              <el-avatar :size="80" style="background-color: #409EFF">张</el-avatar>
+              <div class="user-info">
+                <h3>张三</h3>
+                <el-tag size="small">管理员</el-tag>
+              </div>
+            </div>
+            <el-descriptions :column="2" border style="margin-top: 20px">
+              <el-descriptions-item label="用户名">admin</el-descriptions-item>
+              <el-descriptions-item label="昵称">张三</el-descriptions-item>
+              <el-descriptions-item label="邮箱">zhangsan@oa.com</el-descriptions-item>
+              <el-descriptions-item label="手机号">13800138000</el-descriptions-item>
+              <el-descriptions-item label="部门">技术部</el-descriptions-item>
+              <el-descriptions-item label="角色">管理员</el-descriptions-item>
+            </el-descriptions>
           </div>
-        </div>
-        <div class="flex items-center ml-8 my-4">
-          <el-avatar :size="48" :src="userInfo.avatar" />
-          <div class="ml-4 flex flex-col max-w-32.5">
-            <ReText class="font-bold self-baseline!">
-              {{ userInfo.nickname }}
-            </ReText>
-            <ReText class="self-baseline!" type="info">
-              {{ userInfo.username }}
-            </ReText>
-          </div>
-        </div>
-        <el-menu-item
-          v-for="item in panes"
-          :key="item.key"
-          :index="item.key"
-          @click="
-            () => {
-              witchPane = item.key;
-              if (deviceDetection()) {
-                isOpen = !isOpen;
-              }
-            }
-          "
-        >
-          <div class="flex items-center z-10">
-            <el-icon><IconifyIconOffline :icon="item.icon" /></el-icon>
-            <span>{{ item.label }}</span>
-          </div>
-        </el-menu-item>
-      </el-menu>
-    </el-aside>
-    <el-main>
-      <LaySidebarTopCollapse
-        v-if="deviceDetection()"
-        class="px-0"
-        :is-active="isOpen"
-        @toggleClick="isOpen = !isOpen"
-      />
-      <component
-        :is="panes.find(item => item.key === witchPane).component"
-        :class="[!deviceDetection() && 'ml-30']"
-      />
-    </el-main>
-  </el-container>
+        </el-tab-pane>
+        <el-tab-pane label="修改密码" name="password">
+          <el-form ref="formRef" :model="passwordForm" :rules="rules" label-width="100px" style="max-width: 400px">
+            <el-form-item label="当前密码" prop="oldPassword">
+              <el-input v-model="passwordForm.oldPassword" type="password" placeholder="请输入当前密码" show-password />
+            </el-form-item>
+            <el-form-item label="新密码" prop="newPassword">
+              <el-input v-model="passwordForm.newPassword" type="password" placeholder="请输入新密码" show-password />
+            </el-form-item>
+            <el-form-item label="确认密码" prop="confirmPassword">
+              <el-input v-model="passwordForm.confirmPassword" type="password" placeholder="请确认新密码" show-password />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="handleSubmit">修改密码</el-button>
+              <el-button @click="handleReset">重置</el-button>
+            </el-form-item>
+          </el-form>
+        </el-tab-pane>
+      </el-tabs>
+    </el-card>
+  </div>
 </template>
 
-<style lang="scss">
-.pure-account-settings {
-  background: var(--pure-theme-menu-bg) !important;
-}
+<script setup lang="ts">
+import { ref, reactive } from "vue";
+import { ElMessage } from "element-plus";
+import type { FormInstance, FormRules } from "element-plus";
 
-.pure-account-settings-menu {
-  background-color: transparent;
-  border: none;
+const activeTab = ref("info");
+const formRef = ref<FormInstance>();
 
-  .el-menu-item {
-    height: 48px !important;
-    color: var(--pure-theme-menu-text);
-    background-color: transparent !important;
-    transition: color 0.2s;
+const passwordForm = reactive({
+  oldPassword: "",
+  newPassword: "",
+  confirmPassword: ""
+});
 
-    &:hover {
-      color: var(--pure-theme-menu-title-hover) !important;
-    }
-
-    &.is-active {
-      color: #fff !important;
-
-      &:hover {
-        color: #fff !important;
-      }
-
-      &::before {
-        position: absolute;
-        inset: 0 8px;
-        clear: both;
-        margin: 4px 0;
-        content: "";
-        background: var(--el-color-primary);
-        border-radius: 3px;
-      }
-    }
+const validateConfirmPassword = (rule: any, value: string, callback: any) => {
+  if (value !== passwordForm.newPassword) {
+    callback(new Error("两次输入的密码不一致"));
+  } else {
+    callback();
   }
-}
-</style>
+};
 
-<style lang="scss" scoped>
-body[layout] {
-  .el-menu--vertical .is-active {
-    color: #fff !important;
-    transition: color 0.2s;
+const rules: FormRules = {
+  oldPassword: [{ required: true, message: "请输入当前密码", trigger: "blur" }],
+  newPassword: [
+    { required: true, message: "请输入新密码", trigger: "blur" },
+    { min: 6, message: "密码长度不能少于6位", trigger: "blur" }
+  ],
+  confirmPassword: [
+    { required: true, message: "请确认新密码", trigger: "blur" },
+    { validator: validateConfirmPassword, trigger: "blur" }
+  ]
+};
 
-    &:hover {
-      color: #fff !important;
+const handleSubmit = () => {
+  formRef.value?.validate((valid) => {
+    if (valid) {
+      ElMessage.success("密码修改成功");
+      handleReset();
+    }
+  });
+};
+
+const handleReset = () => {
+  formRef.value?.resetFields();
+};
+</script>
+
+<style scoped lang="scss">
+.account-settings-container {
+  .info-section {
+    max-width: 600px;
+  }
+
+  .avatar-section {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+
+    .user-info {
+      h3 {
+        margin-bottom: 8px;
+      }
     }
   }
 }
