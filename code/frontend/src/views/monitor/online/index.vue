@@ -1,31 +1,21 @@
 <template>
-  <div class="online-container">
+  <div>
     <el-card>
-      <template #header>
-        <span>在线用户</span>
-      </template>
-      <el-table :data="tableData" stripe v-loading="loading">
-        <el-table-column prop="username" label="用户名" width="150" />
-        <el-table-column prop="ip" label="登录IP" width="150" />
-        <el-table-column prop="dept" label="部门" width="120" />
-        <el-table-column prop="browser" label="浏览器" />
-        <el-table-column prop="loginTime" label="登录时间" width="160" />
-        <el-table-column label="操作" width="100">
+      <template #header><span class="font-medium">在线用户</span></template>
+      <el-table :data="userList" stripe>
+        <el-table-column label="用户名" prop="empName" />
+        <el-table-column label="登录IP" prop="ip" />
+        <el-table-column label="部门" prop="deptName" />
+        <el-table-column label="浏览器" prop="browser" />
+        <el-table-column label="登录时间" prop="loginTime" />
+        <el-table-column label="操作" width="120">
           <template #default="{ row }">
             <el-button type="danger" size="small" @click="handleForceLogout(row)">强制下线</el-button>
           </template>
         </el-table-column>
       </el-table>
-      <div class="pagination">
-        <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :total="total"
-          :page-sizes="[10, 20, 50]"
-          layout="total, sizes, prev, pager, next"
-          @size-change="loadData"
-          @current-change="loadData"
-        />
+      <div class="flex justify-end mt-4">
+        <el-pagination v-model:current-page="page" v-model:page-size="pageSize" :total="total" layout="total, prev, pager, next" @current-change="fetchData" />
       </div>
     </el-card>
   </div>
@@ -36,54 +26,27 @@ import { ref, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { getOnlineLogs, forceLogout } from "@/api/monitor";
 
-const loading = ref(false);
-const currentPage = ref(1);
+const userList = ref<any[]>([]);
+const page = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
-const tableData = ref<any[]>([]);
 
-const loadData = async () => {
+const fetchData = async () => {
   try {
-    loading.value = true;
-    const res: any = await getOnlineLogs({ page: currentPage.value, pageSize: pageSize.value });
-    if (res.data?.list) {
-      tableData.value = res.data.list;
-      total.value = res.data.total;
-    }
-  } catch (error) {
-    console.error("获取在线用户失败", error);
-  } finally {
-    loading.value = false;
-  }
+    const r: any = await getOnlineLogs({ page: page.value, pageSize: pageSize.value });
+    if (r.data?.list) { userList.value = r.data.list; total.value = r.data.total || 0; }
+    else if (r.data?.records) { userList.value = r.data.records; total.value = r.data.total || 0; }
+  } catch {}
 };
 
-const handleForceLogout = (row: any) => {
-  ElMessageBox.confirm(`确定要强制下线用户 "${row.username}" 吗？`, "提示", {
-    confirmButtonText: "确定",
-    cancelButtonText: "取消",
-    type: "warning"
-  }).then(async () => {
-    try {
-      await forceLogout(row.id);
-      ElMessage.success("操作成功");
-      loadData();
-    } catch (error) {
-      console.error("强制下线失败", error);
-    }
-  });
+const handleForceLogout = async (row: any) => {
+  try {
+    await ElMessageBox.confirm(`确定强制下线用户 "${row.empName || row.username}" ？`, "提示", { type: "warning" });
+    await forceLogout(row.empId || row.id);
+    ElMessage.success("操作成功");
+    await fetchData();
+  } catch {}
 };
 
-onMounted(() => {
-  loadData();
-});
+onMounted(fetchData);
 </script>
-
-<style scoped lang="scss">
-.online-container {
-  .pagination {
-    margin-top: 20px;
-    display: flex;
-    justify-content: flex-end;
-  }
-}
-</style>

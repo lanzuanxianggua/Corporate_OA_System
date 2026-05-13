@@ -1,65 +1,47 @@
 <template>
-  <div class="logs-container">
+  <div>
+    <div class="flex items-center gap-3 mb-4">
+      <el-input v-model="searchModule" placeholder="搜索操作模块" clearable class="w-48" />
+      <el-button type="primary" @click="fetchData">查询</el-button>
+    </div>
     <el-card>
-      <template #header>
-        <div class="card-header">
-          <span>操作日志</span>
-          <el-input v-model="searchModule" placeholder="搜索操作模块" style="width: 200px" />
-        </div>
-      </template>
-      <el-table :data="tableData" stripe>
-        <el-table-column prop="operator" label="操作人" width="100" />
-        <el-table-column prop="ip" label="IP地址" width="150" />
-        <el-table-column prop="module" label="操作模块" width="120" />
-        <el-table-column prop="content" label="操作内容" />
-        <el-table-column prop="status" label="状态" width="80">
+      <template #header><span class="font-medium">操作日志</span></template>
+      <el-table :data="logList" stripe>
+        <el-table-column label="操作人" prop="username" />
+        <el-table-column label="IP地址" prop="ip" />
+        <el-table-column label="操作模块" prop="module" />
+        <el-table-column label="操作内容" prop="summary" show-overflow-tooltip />
+        <el-table-column label="状态" width="80">
           <template #default="{ row }">
-            <el-tag :type="row.status === '成功' ? 'success' : 'danger'" size="small">{{ row.status }}</el-tag>
+            <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">{{ row.status === 1 ? "成功" : "失败" }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="operationTime" label="操作时间" width="160" />
+        <el-table-column label="操作时间" prop="operatingTime" width="180" />
       </el-table>
-      <div class="pagination">
-        <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :total="total"
-          :page-sizes="[10, 20, 50]"
-          layout="total, sizes, prev, pager, next"
-        />
+      <div class="flex justify-end mt-4">
+        <el-pagination v-model:current-page="page" v-model:page-size="pageSize" :total="total" layout="total, prev, pager, next" @current-change="fetchData" />
       </div>
     </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
+import { getOperationLogs } from "@/api/monitor";
 
 const searchModule = ref("");
-const currentPage = ref(1);
+const logList = ref<any[]>([]);
+const page = ref(1);
 const pageSize = ref(10);
-const total = ref(5);
+const total = ref(0);
 
-const tableData = ref([
-  { operator: "admin", ip: "192.168.1.100", module: "用户管理", content: "新增用户: zhangsan", status: "成功", operationTime: "2026-05-13 10:00" },
-  { operator: "admin", ip: "192.168.1.100", module: "角色管理", content: "修改角色: 管理员", status: "成功", operationTime: "2026-05-13 11:30" },
-  { operator: "张三", ip: "192.168.1.101", module: "考勤管理", content: "提交请假申请", status: "成功", operationTime: "2026-05-13 14:00" },
-  { operator: "李四", ip: "192.168.1.102", module: "公告管理", content: "发布公告: 端午节放假通知", status: "成功", operationTime: "2026-05-13 15:30" }
-]);
+const fetchData = async () => {
+  try {
+    const r: any = await getOperationLogs({ page: page.value, pageSize: pageSize.value, module: searchModule.value || undefined });
+    if (r.data?.list) { logList.value = r.data.list; total.value = r.data.total || 0; }
+    else if (r.data?.records) { logList.value = r.data.records; total.value = r.data.total || 0; }
+  } catch {}
+};
+
+onMounted(fetchData);
 </script>
-
-<style scoped lang="scss">
-.logs-container {
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .pagination {
-    margin-top: 20px;
-    display: flex;
-    justify-content: flex-end;
-  }
-}
-</style>

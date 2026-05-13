@@ -1,36 +1,41 @@
-import request from "../utils/request";
+import request from "@/utils/request";
 
 export interface NoticeVO {
   id?: number;
   title: string;
   content: string;
+  noticeType?: number;
   publisherId?: number;
-  publisherName?: string;
-  publishTime?: string;
-  urgent?: boolean;
+  publisher?: string;
+  status?: number;
+  createTime?: string;
+  updateTime?: string;
   isRead?: boolean;
 }
 
-export const getNoticePage = (params: { pageNum: number; pageSize: number }) => {
-  return request.get<any, any>("/notice/page", { params });
+export const getNoticePage = (params: {
+  pageNum: number;
+  pageSize: number;
+}) => {
+  return request.get<any, any>("/api/notice/page", { params });
 };
 
 export const getNoticeById = (id: number) => {
-  return request.get<any, any>(`/notice/${id}`);
+  return request.get<any, any>(`/api/notice/${id}`);
 };
 
 export const addNotice = (data: Partial<NoticeVO>) => {
-  return request.post("/notice", data);
+  return request.post("/api/notice", data);
 };
 
 export const updateNotice = (data: Partial<NoticeVO>) => {
-  return request.put("/notice", data);
+  return request.put("/api/notice", data);
 };
 
 export const deleteNotice = (id: number) => {
-  return request.delete(`/notice/${id}`);
+  return request.delete(`/api/notice/${id}`);
 };
 
 export const markNoticeAsRead = (id: number) => {
-  return request.post(`/notice/${id}/read`);
+  return request.post(`/api/notice/${id}/read`);
 };

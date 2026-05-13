@@ -1,5 +1,7 @@
-import request from "../utils/request";
+import request from "@/utils/request";
 
 export const getDashboardStats = (period = "today") => {
-  return request.get<any, any>("/statistics/dashboard", { params: { period } });
+  return request.get<any, any>("/api/statistics/dashboard", {
+    params: { period }
+  });
 };

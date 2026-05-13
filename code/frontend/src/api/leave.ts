@@ -1,27 +1,21 @@
-import request from "../utils/request";
+import request from "@/utils/request";
 
 export interface LeaveApplyVO {
   id?: number;
-  empId: number;
+  empId?: number;
   empName?: string;
-  deptName?: string;
-  type: string;
-  startTime: string;
-  endTime: string;
-  days: number;
-  reason: string;
-  status: number;
-  approverId?: number;
-  approverName?: string;
-  remark?: string;
+  leaveType?: number;
+  startTime?: string;
+  endTime?: string;
+  reason?: string;
+  status?: number;
   createTime?: string;
+  remark?: string;
 }
 
 export interface PageResult<T> {
   list: T[];
   total: number;
-  pageSize: number;
-  currentPage: number;
 }
 
 export const getLeavePage = (params: {
@@ -30,11 +24,11 @@ export const getLeavePage = (params: {
   empId?: number;
   status?: number;
 }) => {
-  return request.get<any, any>("/leave/page", { params });
+  return request.get<any, any>("/api/leave/page", { params });
 };
 
 export const submitLeave = (data: Partial<LeaveApplyVO>) => {
-  return request.post("/leave/submit", data);
+  return request.post("/api/leave/submit", data);
 };
 
 export const approveLeave = (data: {
@@ -42,5 +36,5 @@ export const approveLeave = (data: {
   status: number;
   remark?: string;
 }) => {
-  return request.post("/leave/approve", data);
+  return request.post("/api/leave/approve", data);
 };

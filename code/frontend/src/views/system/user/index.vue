@@ -1,86 +1,68 @@
 <template>
-  <div class="user-container">
+  <div>
+    <div class="flex items-center gap-3 mb-4">
+      <el-input v-model="searchUsername" placeholder="搜索用户名" clearable class="w-48" />
+      <el-select v-model="searchStatus" placeholder="状态" clearable class="w-32">
+        <el-option label="启用" :value="1" /><el-option label="禁用" :value="0" />
+      </el-select>
+      <el-button type="primary" @click="fetchData">查询</el-button>
+      <el-button type="primary" :icon="Plus" @click="openDialog()">新增员工</el-button>
+    </div>
     <el-card>
-      <template #header>
-        <div class="card-header">
-          <span>员工管理</span>
-          <div class="search-form">
-            <el-input v-model="searchName" placeholder="搜索员工姓名" style="width: 200px; margin-right: 10px" clearable />
-            <el-select v-model="status" placeholder="状态" style="width: 120px; margin-right: 10px" clearable>
-              <el-option label="全部" :value="undefined" />
-              <el-option label="启用" :value="1" />
-              <el-option label="禁用" :value="0" />
-            </el-select>
-            <el-button type="primary" @click="handleSearch">查询</el-button>
-            <el-button type="primary" @click="handleAdd">
-              <el-icon><Plus /></el-icon>
-              新增用户
-            </el-button>
-          </div>
-        </div>
-      </template>
-      <el-table :data="tableData" stripe v-loading="loading">
-        <el-table-column prop="username" label="用户名" width="120" />
-        <el-table-column prop="nickname" label="昵称" width="120" />
-        <el-table-column prop="dept.name" label="部门" width="120">
+      <el-table :data="userList" stripe>
+        <el-table-column label="用户名" prop="username" />
+        <el-table-column label="昵称" prop="nickname" />
+        <el-table-column label="部门">
+          <template #default="{ row }">{{ row.dept?.name || "-" }}</template>
+        </el-table-column>
+        <el-table-column label="手机号" prop="phone" />
+        <el-table-column label="邮箱" prop="email" />
+        <el-table-column label="角色">
           <template #default="{ row }">
-            {{ row.dept?.name || '-' }}
+            <el-tag v-for="role in row.roles" :key="role.id" size="small" class="mr-1">{{ role.name }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="phone" label="手机号" width="130" />
-        <el-table-column prop="email" label="邮箱" />
-        <el-table-column prop="roles" label="角色" width="150">
-          <template #default="{ row }">
-            <el-tag v-for="role in row.roles" :key="role.id" size="small" style="margin-right: 4px">{{ role.name }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="status" label="状态" width="80">
+        <el-table-column label="状态" width="80">
           <template #default="{ row }">
             <el-switch v-model="row.status" :active-value="1" :inactive-value="0" />
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" width="160" />
-        <el-table-column label="操作" width="150">
+        <el-table-column label="创建时间" prop="createTime" width="180" />
+        <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="handleEdit(row)">编辑</el-button>
-            <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
+            <el-button type="primary" link @click="openDialog(row)">编辑</el-button>
+            <el-button type="danger" link @click="handleDelete(row.id)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
-      <div class="pagination">
-        <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :total="total"
-          :page-sizes="[10, 20, 50]"
-          layout="total, sizes, prev, pager, next"
-          @size-change="loadData"
-          @current-change="loadData"
-        />
+      <div class="flex justify-end mt-4">
+        <el-pagination v-model:current-page="page" v-model:page-size="pageSize" :total="total" layout="total, prev, pager, next" @current-change="fetchData" />
       </div>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑用户' : '新增用户'" width="600px">
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model="form.username" :disabled="isEdit" placeholder="请输入用户名" />
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑员工' : '新增员工'" width="550px">
+      <el-form :model="form" label-width="80px">
+        <el-form-item label="用户名"><el-input v-model="form.username" /></el-form-item>
+        <el-form-item label="昵称"><el-input v-model="form.nickname" /></el-form-item>
+        <el-form-item label="手机号"><el-input v-model="form.phone" /></el-form-item>
+        <el-form-item label="邮箱"><el-input v-model="form.email" /></el-form-item>
+        <el-form-item label="部门">
+          <el-select v-model="form.deptId" placeholder="选择部门" class="w-full">
+            <el-option v-for="d in deptOptions" :key="d.id" :label="d.name || d.deptName" :value="d.id" />
+          </el-select>
         </el-form-item>
-        <el-form-item label="昵称" prop="nickname">
-          <el-input v-model="form.nickname" placeholder="请输入昵称" />
+        <el-form-item label="角色">
+          <el-select v-model="form.roleIds" multiple placeholder="选择角色" class="w-full">
+            <el-option v-for="r in roleOptions" :key="r.id" :label="r.name" :value="r.id" />
+          </el-select>
         </el-form-item>
-        <el-form-item label="手机号" prop="phone">
-          <el-input v-model="form.phone" placeholder="请输入手机号" />
-        </el-form-item>
-        <el-form-item label="邮箱" prop="email">
-          <el-input v-model="form.email" placeholder="请输入邮箱" />
-        </el-form-item>
-        <el-form-item v-if="!isEdit" label="初始密码" prop="password">
-          <el-input v-model="form.password" type="password" placeholder="请输入初始密码" show-password />
+        <el-form-item v-if="!isEdit" label="初始密码">
+          <el-input v-model="form.password" type="password" show-password placeholder="默认123456" />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">确定</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">确定</el-button>
       </template>
     </el-dialog>
   </div>
@@ -89,128 +71,75 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import type { FormInstance, FormRules } from "element-plus";
-import { getUserPage } from "@/api/system";
+import { Plus } from "@element-plus/icons-vue";
+import { getUserPage, getAllRoles, getDeptList } from "@/api/system";
+import { addEmployee, updateEmployee, deleteEmployee } from "@/api/employee";
 
-const searchName = ref("");
-const status = ref<number | undefined>(undefined);
-const currentPage = ref(1);
+const searchUsername = ref("");
+const searchStatus = ref<number | "">("");
+const userList = ref<any[]>([]);
+const page = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
-const loading = ref(false);
 const dialogVisible = ref(false);
 const isEdit = ref(false);
-const formRef = ref<FormInstance>();
+const submitting = ref(false);
+const roleOptions = ref<any[]>([]);
+const deptOptions = ref<any[]>([]);
 
-const form = reactive({
-  username: "",
-  nickname: "",
-  phone: "",
-  email: "",
-  password: ""
-});
+const form = reactive({ id: undefined as number | undefined, username: "", nickname: "", phone: "", email: "", deptId: undefined as number | undefined, roleIds: [] as number[], password: "" });
 
-const rules: FormRules = {
-  username: [{ required: true, message: "请输入用户名", trigger: "blur" }],
-  nickname: [{ required: true, message: "请输入昵称", trigger: "blur" }],
-  phone: [{ required: true, message: "请输入手机号", trigger: "blur" }],
-  email: [
-    { required: true, message: "请输入邮箱", trigger: "blur" },
-    { type: "email", message: "请输入正确的邮箱格式", trigger: "blur" }
-  ],
-  password: [{ required: true, message: "请输入密码", trigger: "blur" }]
-};
-
-const tableData = ref<any[]>([]);
-
-const loadData = async () => {
-  try {
-    loading.value = true;
-    const res: any = await getUserPage({
-      page: currentPage.value,
-      pageSize: pageSize.value,
-      username: searchName.value || undefined,
-      status: status.value
-    });
-    if (res.data?.list) {
-      tableData.value = res.data.list;
-      total.value = res.data.total;
-    }
-  } catch (error) {
-    console.error("获取用户列表失败", error);
-  } finally {
-    loading.value = false;
+const flattenDepts = (list: any[]): any[] => {
+  const result: any[] = [];
+  for (const item of list) {
+    result.push(item);
+    if (item.children?.length) result.push(...flattenDepts(item.children));
   }
+  return result;
 };
 
-const handleSearch = () => {
-  currentPage.value = 1;
-  loadData();
-};
-
-const handleAdd = () => {
-  isEdit.value = false;
-  Object.assign(form, { username: "", nickname: "", phone: "", email: "", password: "" });
+const openDialog = async (row?: any) => {
+  isEdit.value = !!row;
+  if (row) { Object.assign(form, { ...row, roleIds: row.roles?.map((r: any) => r.id) || [] }); }
+  else { Object.assign(form, { id: undefined, username: "", nickname: "", phone: "", email: "", deptId: undefined, roleIds: [], password: "" }); }
   dialogVisible.value = true;
 };
 
-const handleEdit = (row: any) => {
-  isEdit.value = true;
-  Object.assign(form, {
-    username: row.username,
-    nickname: row.nickname,
-    phone: row.phone,
-    email: row.email,
-    password: ""
-  });
-  dialogVisible.value = true;
-};
-
-const handleDelete = (row: any) => {
-  ElMessageBox.confirm("确定要删除该用户吗？", "提示", {
-    confirmButtonText: "确定",
-    cancelButtonText: "取消",
-    type: "warning"
-  }).then(() => {
-    ElMessage.success("删除成功");
-    loadData();
-  });
+const fetchData = async () => {
+  try {
+    const r: any = await getUserPage({ page: page.value, pageSize: pageSize.value, username: searchUsername.value || undefined, status: searchStatus.value as any });
+    if (r.data?.list) { userList.value = r.data.list; total.value = r.data.total || 0; }
+  } catch {}
 };
 
 const handleSubmit = async () => {
-  if (!formRef.value) return;
-
-  await formRef.value.validate((valid) => {
-    if (valid) {
-      ElMessage.success(isEdit.value ? "修改成功" : "新增成功");
-      dialogVisible.value = false;
-      loadData();
+  submitting.value = true;
+  try {
+    if (isEdit.value && form.id) {
+      await updateEmployee({ id: form.id, username: form.username, empName: form.nickname, phone: form.phone, email: form.email, deptId: form.deptId });
+    } else {
+      await addEmployee({ username: form.username, empName: form.nickname, phone: form.phone, email: form.email, deptId: form.deptId, password: form.password || "123456" });
     }
-  });
+    ElMessage.success(isEdit.value ? "编辑成功" : "新增成功");
+    dialogVisible.value = false;
+    await fetchData();
+  } catch (e: any) { ElMessage.error(e.message || "操作失败"); }
+  finally { submitting.value = false; }
 };
 
-onMounted(() => {
-  loadData();
+const handleDelete = async (id: number) => {
+  try { await ElMessageBox.confirm("确定删除该员工？", "提示", { type: "warning" }); await deleteEmployee(id); ElMessage.success("删除成功"); await fetchData(); } catch {}
+};
+
+onMounted(async () => {
+  fetchData();
+  try { const r: any = await getAllRoles(); if (r.data) roleOptions.value = r.data; } catch {}
+  try {
+    const r: any = await getDeptList();
+    if (r.data) {
+      const flat = flattenDepts(Array.isArray(r.data) ? r.data : []);
+      deptOptions.value = flat;
+    }
+  } catch {}
 });
 </script>
-
-<style scoped lang="scss">
-.user-container {
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .search-form {
-    display: flex;
-    align-items: center;
-  }
-
-  .pagination {
-    margin-top: 20px;
-    display: flex;
-    justify-content: flex-end;
-  }
-}
-</style>

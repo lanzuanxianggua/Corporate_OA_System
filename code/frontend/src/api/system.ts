@@ -1,23 +1,17 @@
-import request from "../utils/request";
+import request from "@/utils/request";
 
 export interface UserVO {
-  id: number;
-  username: string;
-  nickname: string;
-  phone: string;
-  email: string;
-  status: number;
+  id?: number;
+  username?: string;
+  nickname?: string;
+  empName?: string;
+  phone?: string;
+  email?: string;
+  status?: number;
   avatar?: string;
-  createTime: string;
-  dept?: {
-    id: number;
-    name: string;
-  };
-  roles?: Array<{
-    id: number;
-    name: string;
-    code: string;
-  }>;
+  createTime?: string;
+  dept?: { id: number; name: string };
+  roles?: Array<{ id: number; name: string; code: string }>;
 }
 
 export const getUserPage = (params: {
@@ -38,26 +32,26 @@ export const getRoleByUserId = (userId: number) => {
 };
 
 export interface RoleVO {
-  id: number;
-  name: string;
-  code: string;
-  status: number;
-  remark: string;
-  createTime: string;
+  id?: number;
+  name?: string;
+  code?: string;
+  status?: number;
+  remark?: string;
+  createTime?: string;
 }
 
-export const getRolePage = () => {
-  return request.post<any, any>("/role", {});
+export const getRolePage = (params?: Record<string, any>) => {
+  return request.post<any, any>("/role", params || {});
 };
 
 export interface MenuVO {
-  id: number;
-  menuName: string;
-  menuType: string;
-  path: string;
-  component: string;
-  orderNum: number;
-  icon: string;
+  id?: number;
+  menuName?: string;
+  menuType?: string;
+  path?: string;
+  component?: string;
+  orderNum?: number;
+  icon?: string;
   children?: MenuVO[];
 }
 
@@ -65,17 +59,14 @@ export const getMenuList = () => {
   return request.post<any, any>("/menu", {});
 };
 
-export interface DeptVO {
-  id: number;
-  deptName: string;
-  leader: string;
-  phone: string;
-  orderNum: number;
-  status: number;
-  createTime: string;
-  children?: DeptVO[];
-}
-
 export const getDeptList = () => {
   return request.post<any, any>("/dept", {});
+};
+
+export const getMine = () => {
+  return request.get<any, any>("/mine");
+};
+
+export const getMineLogs = (params?: Record<string, any>) => {
+  return request.get<any, any>("/mine-logs", { params });
 };

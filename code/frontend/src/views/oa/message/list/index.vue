@@ -1,142 +1,86 @@
 <template>
-  <div class="message-list-container">
-    <el-card>
-      <template #header>
-        <span>消息中心</span>
-      </template>
-      <div class="message-list" v-loading="loading">
-        <div
-          v-for="item in messageList"
-          :key="item.id"
-          class="message-card"
-          :class="{ unread: !item.isRead }"
-          @click="handleRead(item)"
-        >
-          <div class="message-avatar">
-            <el-avatar :size="48" :style="{ backgroundColor: getAvatarColor(item.senderName) }">
-              {{ item.senderName?.charAt(0) || '系' }}
-            </el-avatar>
-          </div>
-          <div class="message-content">
-            <div class="message-header">
-              <span class="sender-name">{{ item.senderName }}</span>
-              <span class="send-time">{{ item.createTime }}</span>
+  <div>
+    <div v-if="messageList.length > 0" class="space-y-3">
+      <div
+        v-for="item in messageList"
+        :key="item.id"
+        class="p-4 rounded-lg border border-[#ebeef5] transition-colors cursor-pointer"
+        :class="item.isRead ? 'bg-white' : 'bg-[#ecf5ff]'"
+        @click="openDetail(item)"
+      >
+        <div class="flex items-start gap-3">
+          <el-avatar :size="40" :style="{ backgroundColor: avatarColor(item.senderName) }" class="shrink-0">
+            {{ item.senderName?.charAt(0) || "?" }}
+          </el-avatar>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="font-medium text-sm text-[#303133]">{{ item.senderName }}</span>
+              <span class="text-xs text-[#909399]">{{ formatTime(item.createTime) }}</span>
             </div>
-            <div class="message-title">{{ item.title }}</div>
-            <div class="message-body">{{ item.content }}</div>
+            <div class="text-sm text-[#606266] truncate">{{ item.content }}</div>
           </div>
-          <div class="message-action">
-            <el-tag v-if="!item.isRead" type="warning" size="small">未读</el-tag>
-            <el-tag v-else type="success" size="small">已读</el-tag>
-          </div>
+          <el-button v-if="!item.isRead" type="primary" link size="small" @click.stop="handleRead(item)">
+            标记已读
+          </el-button>
         </div>
-        <el-empty v-if="!loading && messageList.length === 0" description="暂无消息" :image-size="80" />
       </div>
-    </el-card>
+    </div>
+    <el-empty v-else description="暂无消息" />
+
+    <div class="flex justify-end mt-4">
+      <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total" layout="total, prev, pager, next" @current-change="fetchList" />
+    </div>
+
+    <el-dialog v-model="dialogVisible" :title="currentMsg?.title || '消息详情'" width="500px">
+      <div class="text-sm text-[#606266] leading-6">{{ currentMsg?.content }}</div>
+      <div class="mt-4 text-xs text-[#909399]">{{ currentMsg?.senderName }} · {{ formatTime(currentMsg?.createTime) }}</div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { getUnreadCount, markAsRead } from "@/api/message";
+import { ElMessage } from "element-plus";
+import { getMessagePage, markAsRead } from "@/api/message";
 
-const loading = ref(false);
 const messageList = ref<any[]>([]);
+const dialogVisible = ref(false);
+const currentMsg = ref<any>(null);
+const pageNum = ref(1);
+const pageSize = ref(10);
+const total = ref(0);
 
-const getAvatarColor = (name: string) => {
-  const colors = ['#409EFF', '#67C23A', '#E6A23C', '#9254de', '#F56C6C', '#909399'];
-  const index = (name?.charCodeAt(0) || 0) % colors.length;
-  return colors[index];
+const colors = ["#409EFF", "#67C23A", "#E6A23C", "#F56C6C", "#9254de"];
+const avatarColor = (name?: string) => colors[(name?.charCodeAt(0) || 0) % colors.length];
+
+const formatTime = (time?: string) => {
+  if (!time) return "-";
+  return time.replace("T", " ").substring(0, 16);
 };
 
-const loadData = async () => {
+const fetchList = async () => {
   try {
-    loading.value = true;
-    const res: any = await getUnreadCount();
-    console.log("未读消息数量:", res.data);
-  } catch (error) {
-    console.error("获取未读消息数量失败", error);
-  } finally {
-    loading.value = false;
-  }
+    const res: any = await getMessagePage({ pageNum: pageNum.value, pageSize: pageSize.value });
+    if (res.data?.list) {
+      messageList.value = res.data.list;
+      total.value = res.data.total || 0;
+    }
+  } catch {}
 };
 
 const handleRead = async (item: any) => {
-  if (!item.isRead) {
-    try {
-      await markAsRead(item.id);
-      item.isRead = true;
-    } catch (error) {
-      console.error("标记已读失败", error);
-    }
-  }
+  try {
+    await markAsRead(item.id);
+    item.isRead = 1;
+    ElMessage.success("已标记为已读");
+  } catch {}
 };
 
-onMounted(() => {
-  loadData();
-});
+const openDetail = (item: any) => {
+  currentMsg.value = item;
+  dialogVisible.value = true;
+  if (!item.isRead) handleRead(item);
+};
+
+onMounted(fetchList);
 </script>
-
-<style scoped lang="scss">
-.message-list-container {
-  .message-list {
-    .message-card {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 16px;
-      border-bottom: 1px solid #ebeef5;
-      cursor: pointer;
-      transition: background-color 0.3s;
-
-      &:hover {
-        background-color: #f5f7fa;
-      }
-
-      &.unread {
-        background-color: #ecf5ff;
-      }
-
-      &:last-child {
-        border-bottom: none;
-      }
-    }
-  }
-
-  .message-content {
-    flex: 1;
-    overflow: hidden;
-  }
-
-  .message-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 4px;
-  }
-
-  .sender-name {
-    font-weight: bold;
-    color: #303133;
-  }
-
-  .send-time {
-    font-size: 12px;
-    color: #c0c4cc;
-  }
-
-  .message-title {
-    font-size: 14px;
-    font-weight: 500;
-    color: #303133;
-    margin-bottom: 4px;
-  }
-
-  .message-body {
-    font-size: 13px;
-    color: #909399;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-}
-</style>

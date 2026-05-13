@@ -1,135 +1,256 @@
 <template>
-  <div class="leave-approval-container">
-    <el-card>
+  <div class="h-full">
+    <el-card shadow="never">
+      <!-- 顶部筛选 -->
       <template #header>
-        <div class="card-header">
-          <span>请假审批</span>
-          <el-radio-group v-model="status">
-            <el-radio-button label="">全部</el-radio-button>
-            <el-radio-button label="待审批">待审批</el-radio-button>
-            <el-radio-button label="已通过">已通过</el-radio-button>
-            <el-radio-button label="已拒绝">已拒绝</el-radio-button>
+        <div class="flex items-center justify-between">
+          <span class="text-base font-semibold text-[#303133]">请假审批</span>
+          <el-radio-group v-model="statusFilter" @change="handleFilterChange">
+            <el-radio-button :value="undefined">全部</el-radio-button>
+            <el-radio-button :value="0">待审批</el-radio-button>
+            <el-radio-button :value="1">已通过</el-radio-button>
+            <el-radio-button :value="2">已拒绝</el-radio-button>
           </el-radio-group>
         </div>
       </template>
-      <el-table :data="tableData" stripe>
-        <el-table-column prop="applicant" label="申请人" width="100" />
-        <el-table-column prop="dept" label="部门" width="100" />
-        <el-table-column prop="type" label="类型" width="80" />
-        <el-table-column prop="timeRange" label="时间范围" width="220" />
-        <el-table-column prop="days" label="天数" width="80" />
-        <el-table-column prop="reason" label="原因" />
-        <el-table-column prop="status" label="状态" width="100">
+
+      <!-- 审批列表 -->
+      <el-table
+        :data="tableData"
+        v-loading="loading"
+        stripe
+        style="width: 100%"
+        :header-cell-style="{ background: '#f5f7fa', color: '#606266' }"
+      >
+        <el-table-column prop="empName" label="申请人" width="90" />
+        <el-table-column prop="deptName" label="部门" width="100" />
+        <el-table-column label="类型" width="70">
+          <template #default="{ row }">{{ leaveTypeMap[row.leaveType] || "其他" }}</template>
+        </el-table-column>
+        <el-table-column label="时间范围" min-width="180">
           <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)">{{ row.status }}</el-tag>
+            <div class="text-xs leading-5">
+              <div>{{ formatTime(row.startTime) }}</div>
+              <div>至 {{ formatTime(row.endTime) }}</div>
+            </div>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
+        <el-table-column label="天数" width="60" align="center">
+          <template #default="{ row }">{{ calcDays(row.startTime, row.endTime) }}</template>
+        </el-table-column>
+        <el-table-column prop="reason" label="原因" min-width="120" show-overflow-tooltip />
+        <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
-            <template v-if="row.status === '待审批'">
-              <el-button type="success" size="small" @click="handleApprove(row)">通过</el-button>
-              <el-button type="danger" size="small" @click="handleReject(row)">拒绝</el-button>
+            <el-tag
+              :type="statusTagType(row.status)"
+              size="small"
+              effect="light"
+            >
+              {{ statusText(row.status) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="160" align="center" fixed="right">
+          <template #default="{ row }">
+            <template v-if="row.status === 0">
+              <el-button
+                type="success"
+                size="small"
+                plain
+                @click="openApproveDialog(row, 1)"
+              >
+                通过
+              </el-button>
+              <el-button
+                type="danger"
+                size="small"
+                plain
+                @click="openApproveDialog(row, 2)"
+              >
+                拒绝
+              </el-button>
             </template>
-            <span v-else>-</span>
+            <span v-else class="text-[#c0c4cc] text-xs">已处理</span>
           </template>
         </el-table-column>
       </el-table>
-      <div class="pagination">
+
+      <!-- 分页 -->
+      <div class="mt-4 flex justify-end">
         <el-pagination
-          v-model:current-page="currentPage"
+          v-model:current-page="pageNum"
           v-model:page-size="pageSize"
           :total="total"
           :page-sizes="[10, 20, 50]"
           layout="total, sizes, prev, pager, next"
+          background
+          @change="fetchList"
         />
       </div>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" title="审批请假申请" width="500px">
-      <el-descriptions :column="1" border>
-        <el-descriptions-item label="申请人">{{ currentRow?.applicant }}</el-descriptions-item>
-        <el-descriptions-item label="部门">{{ currentRow?.dept }}</el-descriptions-item>
-        <el-descriptions-item label="类型">{{ currentRow?.type }}</el-descriptions-item>
-        <el-descriptions-item label="时间范围">{{ currentRow?.timeRange }}</el-descriptions-item>
-        <el-descriptions-item label="天数">{{ currentRow?.days }}</el-descriptions-item>
-        <el-descriptions-item label="原因">{{ currentRow?.reason }}</el-descriptions-item>
-      </el-descriptions>
-      <el-form label-top style="margin-top: 20px">
-        <el-form-item label="审批备注">
-          <el-input v-model="remark" type="textarea" :rows="3" placeholder="请输入审批备注" />
-        </el-form-item>
-      </el-form>
+    <!-- 审批弹窗 -->
+    <el-dialog
+      v-model="dialogVisible"
+      :title="approveAction === 1 ? '审批通过' : '审批拒绝'"
+      width="520px"
+      :close-on-click-modal="false"
+    >
+      <template v-if="currentRow">
+        <el-descriptions :column="2" border size="small" class="mb-4">
+          <el-descriptions-item label="申请人">
+            {{ currentRow.empName }}
+          </el-descriptions-item>
+          <el-descriptions-item label="部门">
+            {{ currentRow.deptName }}
+          </el-descriptions-item>
+          <el-descriptions-item label="请假类型">
+            {{ leaveTypeMap[currentRow.leaveType] || "其他" }}
+          </el-descriptions-item>
+          <el-descriptions-item label="请假天数">
+            {{ calcDays(currentRow.startTime, currentRow.endTime) }} 天
+          </el-descriptions-item>
+          <el-descriptions-item label="开始时间" :span="2">
+            {{ formatTime(currentRow.startTime) }}
+          </el-descriptions-item>
+          <el-descriptions-item label="结束时间" :span="2">
+            {{ formatTime(currentRow.endTime) }}
+          </el-descriptions-item>
+          <el-descriptions-item label="请假原因" :span="2">
+            {{ currentRow.reason }}
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <el-form label-position="top">
+          <el-form-item label="审批备注">
+            <el-input
+              v-model="approveRemark"
+              type="textarea"
+              :rows="3"
+              placeholder="请输入审批备注（可选）"
+              maxlength="200"
+              show-word-limit
+            />
+          </el-form-item>
+        </el-form>
+      </template>
+
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleConfirm">确认</el-button>
+        <el-button
+          :type="approveAction === 1 ? 'success' : 'danger'"
+          :loading="approving"
+          @click="handleApprove"
+        >
+          确认{{ approveAction === 1 ? "通过" : "拒绝" }}
+        </el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ref, onMounted } from "vue";
+import { ElMessage } from "element-plus";
+import {
+  getLeavePage,
+  approveLeave,
+  type LeaveApplyVO
+} from "@/api/leave";
 
-const status = ref("");
-const currentPage = ref(1);
+const leaveTypeMap: Record<number, string> = { 1: "事假", 2: "病假", 3: "年假", 4: "婚假", 5: "丧假", 6: "产假" };
+
+const calcDays = (startTime?: string, endTime?: string) => {
+  if (!startTime || !endTime) return "-";
+  const diff = new Date(endTime).getTime() - new Date(startTime).getTime();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+};
+
+// --- 列表 ---
+const loading = ref(false);
+const tableData = ref<LeaveApplyVO[]>([]);
+const pageNum = ref(1);
 const pageSize = ref(10);
-const total = ref(5);
+const total = ref(0);
+const statusFilter = ref<number | undefined>(undefined);
+
+const fetchList = async () => {
+  loading.value = true;
+  try {
+    const params: any = {
+      pageNum: pageNum.value,
+      pageSize: pageSize.value
+    };
+    if (statusFilter.value !== undefined) {
+      params.status = statusFilter.value;
+    }
+    const res: any = await getLeavePage(params);
+    tableData.value = res.data?.list || [];
+    total.value = res.data?.total || 0;
+  } catch {
+    // error handled by interceptor
+  } finally {
+    loading.value = false;
+  }
+};
+
+const handleFilterChange = () => {
+  pageNum.value = 1;
+  fetchList();
+};
+
+// --- 审批 ---
 const dialogVisible = ref(false);
-const remark = ref("");
-const currentRow = ref<any>(null);
-const actionType = ref<"approve" | "reject">("approve");
+const approving = ref(false);
+const currentRow = ref<LeaveApplyVO | null>(null);
+const approveAction = ref(1);
+const approveRemark = ref("");
 
-const tableData = ref([
-  { applicant: "张三", dept: "技术部", type: "事假", timeRange: "2026-05-20 09:00 ~ 2026-05-21 18:00", days: 2, reason: "处理私事", status: "待审批" },
-  { applicant: "李四", dept: "市场部", type: "病假", timeRange: "2026-05-18 09:00 ~ 2026-05-18 18:00", days: 1, reason: "身体不适", status: "待审批" },
-  { applicant: "王五", dept: "人事部", type: "年假", timeRange: "2026-06-01 09:00 ~ 2026-06-05 18:00", days: 5, reason: "休年假旅行", status: "已通过" },
-  { applicant: "赵六", dept: "财务部", type: "丧假", timeRange: "2026-05-15 09:00 ~ 2026-05-17 18:00", days: 3, reason: "家中有事", status: "已拒绝" }
-]);
-
-const getStatusType = (status: string) => {
-  const map: Record<string, string> = {
-    "待审批": "warning",
-    "已通过": "success",
-    "已拒绝": "danger"
-  };
-  return map[status] || "info";
-};
-
-const handleApprove = (row: any) => {
+const openApproveDialog = (row: LeaveApplyVO, action: number) => {
   currentRow.value = row;
-  actionType.value = "approve";
-  remark.value = "";
+  approveAction.value = action;
+  approveRemark.value = "";
   dialogVisible.value = true;
 };
 
-const handleReject = (row: any) => {
-  currentRow.value = row;
-  actionType.value = "reject";
-  remark.value = "";
-  dialogVisible.value = true;
+const handleApprove = async () => {
+  if (!currentRow.value?.id) return;
+  approving.value = true;
+  try {
+    await approveLeave({
+      id: currentRow.value.id,
+      status: approveAction.value,
+      remark: approveRemark.value
+    });
+    ElMessage.success(
+      approveAction.value === 1 ? "已通过该请假申请" : "已拒绝该请假申请"
+    );
+    dialogVisible.value = false;
+    fetchList();
+  } catch {
+    // error handled by interceptor
+  } finally {
+    approving.value = false;
+  }
 };
 
-const handleConfirm = () => {
-  const action = actionType.value === "approve" ? "通过" : "拒绝";
-  ElMessage.success(`已${action}`);
-  dialogVisible.value = false;
-  currentRow.value.status = actionType.value === "approve" ? "已通过" : "已拒绝";
+// --- 工具函数 ---
+const statusText = (status?: number) => {
+  const map: Record<number, string> = { 0: "待审批", 1: "已通过", 2: "已拒绝" };
+  return map[status ?? -1] || "未知";
 };
+
+const statusTagType = (status?: number) => {
+  const map: Record<number, string> = { 0: "warning", 1: "success", 2: "danger" };
+  return map[status ?? -1] || "info";
+};
+
+const formatTime = (time?: string) => {
+  if (!time) return "-";
+  return time.replace("T", " ").substring(0, 16);
+};
+
+onMounted(() => {
+  fetchList();
+});
 </script>
-
-<style scoped lang="scss">
-.leave-approval-container {
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .pagination {
-    margin-top: 20px;
-    display: flex;
-    justify-content: flex-end;
-  }
-}
-</style>

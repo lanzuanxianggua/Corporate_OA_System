@@ -1,22 +1,21 @@
-import request from "../utils/request";
-
-export interface AttendanceVO {
-  id?: number;
-  empId: number;
-  clockInTime?: string;
-  clockOutTime?: string;
-  status?: string;
-  workHours?: number;
-}
+import request from "@/utils/request";
 
 export const getTodayAttendance = () => {
-  return request.get<any, any>("/attendance/today");
+  return request.get<any, any>("/api/attendance/today");
+};
+
+export const getAttendancePage = (params: {
+  pageNum: number;
+  pageSize: number;
+  status?: number;
+}) => {
+  return request.get<any, any>("/api/attendance/page", { params });
 };
 
 export const clockIn = () => {
-  return request.post("/attendance/clock-in");
+  return request.post("/api/attendance/clock-in");
 };
 
 export const clockOut = () => {
-  return request.post("/attendance/clock-out");
+  return request.post("/api/attendance/clock-out");
 };

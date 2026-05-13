@@ -1,249 +1,151 @@
 <template>
-  <div class="clock-container">
-    <div class="clock-display">
-      <div class="time">{{ currentTime }}</div>
-      <div class="date">{{ currentDate }}</div>
+  <div>
+    <div class="text-center mb-8">
+      <div class="text-5xl font-bold text-[#303133] font-mono">{{ currentTime }}</div>
+      <div class="text-base text-[#909399] mt-2">{{ currentDate }}</div>
     </div>
 
-    <el-row :gutter="20" class="clock-cards">
+    <el-row :gutter="20" class="mb-6">
       <el-col :span="12">
-        <el-card class="clock-card">
-          <div class="clock-content">
-            <div class="clock-icon" style="background-color: #fff7e6">
-              <el-icon size="32" color="#E6A23C"><Sunrise /></el-icon>
+        <div class="bg-white rounded-lg p-6" style="box-shadow:0 2px 12px rgba(0,0,0,.06)">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 rounded-full bg-[#fff7e6] flex items-center justify-center">
+              <el-icon :size="24" color="#E6A23C"><Sunny /></el-icon>
             </div>
-            <div class="clock-info">
-              <span class="clock-title">上班打卡</span>
-              <span class="clock-time" v-if="attendance.clockInTime">
-                <el-icon color="#67C23A"><CircleCheck /></el-icon>
-                {{ formatTime(attendance.clockInTime) }}
-              </span>
-              <span class="clock-time no-clock" v-else>--:--</span>
-            </div>
-            <el-button
-              v-if="!attendance.clockInTime"
-              type="primary"
-              size="large"
-              @click="handleClockIn"
-              :loading="clocking"
-            >
-              点击打卡
-            </el-button>
-            <el-tag v-else type="success" size="large">已打卡</el-tag>
+            <span class="text-lg font-medium">上班打卡</span>
           </div>
-        </el-card>
+          <template v-if="todayData?.clockIn">
+            <div class="flex items-center gap-2 text-2xl font-bold text-[#67C23A]">
+              <el-icon><CircleCheck /></el-icon>
+              {{ todayData.clockIn.substring(11, 19) }}
+            </div>
+          </template>
+          <template v-else>
+            <el-button type="primary" size="large" :loading="clockingIn" :disabled="clockedInDone" @click="handleClockIn">点击打卡</el-button>
+          </template>
+        </div>
       </el-col>
       <el-col :span="12">
-        <el-card class="clock-card">
-          <div class="clock-content">
-            <div class="clock-icon" style="background-color: #e6f7ff">
-              <el-icon size="32" color="#409EFF"><Sunset /></el-icon>
+        <div class="bg-white rounded-lg p-6" style="box-shadow:0 2px 12px rgba(0,0,0,.06)">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 rounded-full bg-[#e6f7ff] flex items-center justify-center">
+              <el-icon :size="24" color="#409EFF"><Moon /></el-icon>
             </div>
-            <div class="clock-info">
-              <span class="clock-title">下班打卡</span>
-              <span class="clock-time" v-if="attendance.clockOutTime">
-                <el-icon color="#67C23A"><CircleCheck /></el-icon>
-                {{ formatTime(attendance.clockOutTime) }}
-              </span>
-              <span class="clock-time no-clock" v-else>--:--</span>
-            </div>
-            <el-button
-              v-if="attendance.clockInTime && !attendance.clockOutTime"
-              type="primary"
-              size="large"
-              @click="handleClockOut"
-              :loading="clocking"
-            >
-              点击打卡
-            </el-button>
-            <el-tag v-else-if="attendance.clockOutTime" type="success" size="large">已打卡</el-tag>
-            <el-tag v-else type="info" size="large">请先上班打卡</el-tag>
+            <span class="text-lg font-medium">下班打卡</span>
           </div>
-        </el-card>
+          <template v-if="todayData?.clockOut">
+            <div class="flex items-center gap-2 text-2xl font-bold text-[#67C23A]">
+              <el-icon><CircleCheck /></el-icon>
+              {{ todayData.clockOut.substring(11, 19) }}
+            </div>
+          </template>
+          <template v-else>
+            <el-button type="primary" size="large" :loading="clockingOut" :disabled="clockedOutDone" @click="handleClockOut">点击打卡</el-button>
+          </template>
+        </div>
       </el-col>
     </el-row>
 
-    <el-card class="record-card">
-      <template #header>
-        <span>今日考勤记录</span>
-      </template>
-      <el-descriptions :column="4" border>
-        <el-descriptions-item label="上班时间">{{ attendance.clockInTime ? formatTime(attendance.clockInTime) : '--:--' }}</el-descriptions-item>
-        <el-descriptions-item label="下班时间">{{ attendance.clockOutTime ? formatTime(attendance.clockOutTime) : '--:--' }}</el-descriptions-item>
-        <el-descriptions-item label="工作时长">{{ workHours }}</el-descriptions-item>
-        <el-descriptions-item label="考勤状态">
-          <el-tag :type="statusType">{{ statusText }}</el-tag>
-        </el-descriptions-item>
-      </el-descriptions>
+    <el-card>
+      <template #header><span class="font-medium">今日考勤记录</span></template>
+      <el-table :data="todayData ? [todayData] : []" stripe>
+        <el-table-column label="日期" prop="workDate" />
+        <el-table-column label="上班时间">
+          <template #default="{ row }">{{ row.clockIn?.substring(11, 19) || "-" }}</template>
+        </el-table-column>
+        <el-table-column label="下班时间">
+          <template #default="{ row }">{{ row.clockOut?.substring(11, 19) || "-" }}</template>
+        </el-table-column>
+        <el-table-column label="工作时长">
+          <template #default="{ row }">{{ calcWorkHours(row.clockIn, row.clockOut) }}</template>
+        </el-table-column>
+        <el-table-column label="状态">
+          <template #default="{ row }">
+            <el-tag :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="备注" prop="remark" />
+      </el-table>
+      <el-empty v-if="!todayData" description="今日暂无打卡记录" />
     </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
-import { ElMessage } from "element-plus";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import dayjs from "dayjs";
-import { getTodayAttendance, clockIn, clockOut } from "@/api/attendance";
+import { ElMessage } from "element-plus";
+import { getTodayAttendance, clockIn as clockInApi, clockOut as clockOutApi } from "@/api/attendance";
 
 const currentTime = ref(dayjs().format("HH:mm:ss"));
 const currentDate = ref(dayjs().format("YYYY年MM月DD日 dddd"));
-let timeInterval: number;
+const todayData = ref<any>(null);
+const clockingIn = ref(false);
+const clockingOut = ref(false);
+const clockedInDone = ref(false);
+const clockedOutDone = ref(false);
+let timer: number;
 
-const attendance = reactive({
-  clockInTime: "",
-  clockOutTime: ""
-});
-const clocking = ref(false);
+const statusMap: Record<number, { text: string; type: string }> = {
+  0: { text: "正常", type: "success" },
+  1: { text: "迟到", type: "warning" },
+  2: { text: "早退", type: "warning" },
+  3: { text: "缺勤", type: "danger" }
+};
+const statusText = (s?: number) => statusMap[s ?? -1]?.text || "未打卡";
+const statusType = (s?: number) => (statusMap[s ?? -1]?.type || "info") as any;
 
-const formatTime = (timeStr: string) => {
-  if (!timeStr) return "--:--";
-  const time = dayjs(timeStr);
-  return time.isValid() ? time.format("HH:mm") : timeStr;
+const calcWorkHours = (clockIn?: string, clockOut?: string) => {
+  if (!clockIn || !clockOut) return "-";
+  const diff = new Date(clockOut).getTime() - new Date(clockIn).getTime();
+  const hours = diff / (1000 * 60 * 60);
+  return hours.toFixed(1) + "小时";
 };
 
-const workHours = computed(() => {
-  if (!attendance.clockInTime || !attendance.clockOutTime) return "--";
-  const start = dayjs(attendance.clockInTime);
-  const end = dayjs(attendance.clockOutTime);
-  const diff = end.diff(start, "hour", true);
-  return `${diff.toFixed(1)}小时`;
-});
-
-const statusType = computed(() => {
-  if (!attendance.clockInTime) return "info";
-  if (dayjs(attendance.clockInTime).hour() > 9) return "warning";
-  return "success";
-});
-
-const statusText = computed(() => {
-  if (!attendance.clockInTime) return "未打卡";
-  if (dayjs(attendance.clockInTime).hour() > 9) return "迟到";
-  return "正常";
-});
-
-const loadTodayAttendance = async () => {
+const fetchData = async () => {
   try {
-    const res: any = await getTodayAttendance();
-    if (res.data) {
-      attendance.clockInTime = res.data.clockInTime || "";
-      attendance.clockOutTime = res.data.clockOutTime || "";
+    const r: any = await getTodayAttendance();
+    if (r.data) {
+      todayData.value = r.data;
+      if (r.data.clockIn) clockedInDone.value = true;
+      if (r.data.clockOut) clockedOutDone.value = true;
     }
-  } catch (error) {
-    console.error("获取今日考勤失败", error);
-  }
+  } catch {}
 };
 
 const handleClockIn = async () => {
+  clockingIn.value = true;
   try {
-    clocking.value = true;
-    await clockIn();
+    await clockInApi();
     ElMessage.success("上班打卡成功");
-    await loadTodayAttendance();
-  } catch (error: any) {
-    ElMessage.error(error.message || "打卡失败");
+    clockedInDone.value = true;
+    await fetchData();
+  } catch (e: any) {
+    ElMessage.error(e.message || "打卡失败");
   } finally {
-    clocking.value = false;
+    clockingIn.value = false;
   }
 };
 
 const handleClockOut = async () => {
+  clockingOut.value = true;
   try {
-    clocking.value = true;
-    await clockOut();
+    await clockOutApi();
     ElMessage.success("下班打卡成功");
-    await loadTodayAttendance();
-  } catch (error: any) {
-    ElMessage.error(error.message || "打卡失败");
+    clockedOutDone.value = true;
+    await fetchData();
+  } catch (e: any) {
+    ElMessage.error(e.message || "打卡失败");
   } finally {
-    clocking.value = false;
+    clockingOut.value = false;
   }
 };
 
 onMounted(() => {
-  timeInterval = window.setInterval(() => {
+  fetchData();
+  timer = window.setInterval(() => {
     currentTime.value = dayjs().format("HH:mm:ss");
-    currentDate.value = dayjs().format("YYYY年MM月DD日 dddd");
   }, 1000);
-  loadTodayAttendance();
 });
-
-onUnmounted(() => {
-  clearInterval(timeInterval);
-});
+onUnmounted(() => clearInterval(timer));
 </script>
-
-<style scoped lang="scss">
-.clock-container {
-  max-width: 1000px;
-  margin: 0 auto;
-}
-
-.clock-display {
-  text-align: center;
-  margin-bottom: 32px;
-
-  .time {
-    font-size: 64px;
-    font-weight: bold;
-    color: #303133;
-    font-family: "DIN Alternate", "Helvetica Neue", Arial, sans-serif;
-  }
-
-  .date {
-    font-size: 18px;
-    color: #909399;
-    margin-top: 8px;
-  }
-}
-
-.clock-cards {
-  margin-bottom: 20px;
-}
-
-.clock-card {
-  .clock-content {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    padding: 20px;
-  }
-}
-
-.clock-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.clock-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-
-  .clock-title {
-    font-size: 16px;
-    color: #606266;
-  }
-
-  .clock-time {
-    font-size: 28px;
-    font-weight: bold;
-    color: #303133;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    &.no-clock {
-      color: #c0c4cc;
-    }
-  }
-}
-
-.record-card {
-  margin-top: 20px;
-}
-</style>

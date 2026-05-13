@@ -1,143 +1,115 @@
 <template>
-  <div class="dept-container">
+  <div>
+    <div class="flex items-center justify-between mb-4">
+      <span class="text-lg font-medium">部门管理</span>
+      <el-button type="primary" :icon="Plus" @click="openDialog()">新增部门</el-button>
+    </div>
     <el-card>
-      <template #header>
-        <div class="card-header">
-          <span>部门管理</span>
-          <el-button type="primary" @click="handleAdd">
-            <el-icon><Plus /></el-icon>
-            新增部门
-          </el-button>
-        </div>
-      </template>
-      <el-table :data="tableData" row-key="id" :tree-props="{ children: 'children' }" stripe v-loading="loading">
-        <el-table-column prop="deptName" label="部门名称" width="200" />
-        <el-table-column prop="leader" label="负责人" width="120" />
-        <el-table-column prop="phone" label="联系电话" width="130" />
-        <el-table-column prop="orderNum" label="排序" width="80" />
-        <el-table-column prop="status" label="状态" width="100">
+      <el-table :data="deptList" row-key="id" :tree-props="{ children: 'children' }" default-expand-all stripe>
+        <el-table-column label="部门名称" min-width="200">
+          <template #default="{ row }">{{ row.name || row.deptName }}</template>
+        </el-table-column>
+        <el-table-column label="负责人">
+          <template #default="{ row }">{{ row.principal || row.leader || "-" }}</template>
+        </el-table-column>
+        <el-table-column label="联系电话" prop="phone" />
+        <el-table-column label="排序" width="80">
+          <template #default="{ row }">{{ row.sort ?? row.orderNum ?? 0 }}</template>
+        </el-table-column>
+        <el-table-column label="状态" width="80">
           <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">
-              {{ row.status === 1 ? '启用' : '禁用' }}
-            </el-tag>
+            <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">{{ row.status === 1 ? "启用" : "禁用" }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" width="160" />
+        <el-table-column label="创建时间" prop="createTime" width="180" />
         <el-table-column label="操作" width="150">
           <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="handleEdit(row)">编辑</el-button>
-            <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
+            <el-button type="primary" link @click="openDialog(row)">编辑</el-button>
+            <el-button type="danger" link @click="handleDelete(row.id)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
     </el-card>
 
     <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑部门' : '新增部门'" width="500px">
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="部门名称" prop="deptName">
-          <el-input v-model="form.deptName" placeholder="请输入部门名称" />
-        </el-form-item>
-        <el-form-item label="负责人" prop="leader">
-          <el-input v-model="form.leader" placeholder="请输入负责人" />
-        </el-form-item>
-        <el-form-item label="联系电话" prop="phone">
-          <el-input v-model="form.phone" placeholder="请输入联系电话" />
-        </el-form-item>
-        <el-form-item label="排序" prop="orderNum">
-          <el-input-number v-model="form.orderNum" :min="0" />
+      <el-form :model="form" label-width="80px">
+        <el-form-item label="部门名称"><el-input v-model="form.deptName" /></el-form-item>
+        <el-form-item label="负责人"><el-input v-model="form.leader" /></el-form-item>
+        <el-form-item label="联系电话"><el-input v-model="form.phone" /></el-form-item>
+        <el-form-item label="排序"><el-input-number v-model="form.sort" :min="0" /></el-form-item>
+        <el-form-item label="上级部门">
+          <el-tree-select v-model="form.parentId" :data="deptTreeData" :props="{ label: 'name', value: 'id', children: 'children' }" check-strictly clearable placeholder="无（顶级部门）" style="width: 100%" />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">确定</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">确定</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, computed, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import type { FormInstance, FormRules } from "element-plus";
-import { getDeptList } from "@/api/system";
+import { Plus } from "@element-plus/icons-vue";
+import { getDeptTree, addDept, updateDept, deleteDept } from "@/api/dept";
 
-const loading = ref(false);
+const deptList = ref<any[]>([]);
 const dialogVisible = ref(false);
 const isEdit = ref(false);
-const formRef = ref<FormInstance>();
+const submitting = ref(false);
+const form = reactive({ id: undefined as number | undefined, deptName: "", leader: "", phone: "", sort: 0, parentId: undefined as number | undefined });
 
-const form = reactive({
-  deptName: "",
-  leader: "",
-  phone: "",
-  orderNum: 0
-});
+const deptTreeData = computed(() => deptList.value);
 
-const rules: FormRules = {
-  deptName: [{ required: true, message: "请输入部门名称", trigger: "blur" }],
-  leader: [{ required: true, message: "请输入负责人", trigger: "blur" }]
+const openDialog = (row?: any) => {
+  isEdit.value = !!row;
+  if (row) {
+    Object.assign(form, {
+      id: row.id,
+      deptName: row.name || row.deptName || "",
+      leader: row.principal || row.leader || "",
+      phone: row.phone || "",
+      sort: row.sort ?? row.orderNum ?? 0,
+      parentId: row.parentId
+    });
+  } else {
+    Object.assign(form, { id: undefined, deptName: "", leader: "", phone: "", sort: 0, parentId: undefined });
+  }
+  dialogVisible.value = true;
 };
 
-const tableData = ref<any[]>([]);
-
-const loadData = async () => {
+const fetchData = async () => {
   try {
-    loading.value = true;
-    const res: any = await getDeptList();
-    if (res.data) {
-      tableData.value = res.data;
-    }
-  } catch (error) {
-    console.error("获取部门列表失败", error);
-  } finally {
-    loading.value = false;
-  }
+    const r: any = await getDeptTree();
+    if (r.data) deptList.value = Array.isArray(r.data) ? r.data : [];
+  } catch {}
 };
 
-const handleAdd = () => {
-  isEdit.value = false;
-  Object.assign(form, { deptName: "", leader: "", phone: "", orderNum: 0 });
-  dialogVisible.value = true;
+const handleSubmit = async () => {
+  submitting.value = true;
+  try {
+    const data = {
+      id: form.id,
+      deptName: form.deptName,
+      leader: form.leader,
+      phone: form.phone,
+      sort: form.sort,
+      parentId: form.parentId
+    };
+    if (isEdit.value) await updateDept(data);
+    else await addDept(data);
+    ElMessage.success("操作成功");
+    dialogVisible.value = false;
+    await fetchData();
+  } catch (e: any) { ElMessage.error(e.message || "操作失败"); }
+  finally { submitting.value = false; }
 };
 
-const handleEdit = (row: any) => {
-  isEdit.value = true;
-  Object.assign(form, row);
-  dialogVisible.value = true;
+const handleDelete = async (id: number) => {
+  try { await ElMessageBox.confirm("确定删除？", "提示", { type: "warning" }); await deleteDept(id); ElMessage.success("删除成功"); await fetchData(); } catch {}
 };
 
-const handleDelete = (row: any) => {
-  ElMessageBox.confirm("确定要删除该部门吗？", "提示", {
-    confirmButtonText: "确定",
-    cancelButtonText: "取消",
-    type: "warning"
-  }).then(() => {
-    ElMessage.success("删除成功");
-    loadData();
-  });
-};
-
-const handleSubmit = () => {
-  formRef.value?.validate((valid) => {
-    if (valid) {
-      ElMessage.success(isEdit.value ? "修改成功" : "新增成功");
-      dialogVisible.value = false;
-      loadData();
-    }
-  });
-};
-
-onMounted(() => {
-  loadData();
-});
+onMounted(fetchData);
 </script>
-
-<style scoped lang="scss">
-.dept-container {
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-}
-</style>

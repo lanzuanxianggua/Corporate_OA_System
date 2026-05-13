@@ -1,16 +1,26 @@
 <template>
-  <div class="layout-container">
-    <div class="layout-sidebar" :class="{ collapsed: isCollapsed }">
-      <div class="logo-area">
-        <el-icon v-if="!isCollapsed"><OfficeBuilding /></el-icon>
-        <span v-if="!isCollapsed">OA办公系统</span>
-        <el-icon v-else><OfficeBuilding /></el-icon>
+  <div class="flex h-screen bg-[#f5f7fa]">
+    <!-- 侧边栏 -->
+    <div
+      class="bg-white border-r border-[#ebeef5] transition-all duration-300 flex flex-col shrink-0"
+      :class="isCollapsed ? 'w-16' : 'w-[210px]'"
+    >
+      <div
+        class="h-14 flex items-center justify-center gap-2 border-b border-[#ebeef5] shrink-0"
+      >
+        <el-icon :size="24" color="#409EFF"><OfficeBuilding /></el-icon>
+        <span
+          v-if="!isCollapsed"
+          class="text-lg font-bold text-[#409EFF] whitespace-nowrap"
+        >
+          OA办公系统
+        </span>
       </div>
       <el-menu
         :default-active="activeMenu"
         :collapse="isCollapsed"
         :router="true"
-        class="sidebar-menu"
+        class="border-r-0 flex-1 overflow-y-auto"
         background-color="#ffffff"
         text-color="#303133"
         active-text-color="#409EFF"
@@ -19,6 +29,7 @@
           <el-icon><HomeFilled /></el-icon>
           <template #title>首页</template>
         </el-menu-item>
+
         <el-sub-menu index="oa">
           <template #title>
             <el-icon><Document /></el-icon>
@@ -28,20 +39,29 @@
           <el-menu-item index="/oa/attendance/clock">考勤打卡</el-menu-item>
           <el-menu-item index="/oa/attendance/record">考勤记录</el-menu-item>
           <el-menu-item index="/oa/leave/apply">请假申请</el-menu-item>
-          <el-menu-item index="/oa/notice/list">公告列表</el-menu-item>
+          <el-menu-item index="/oa/notice/list">公告通知</el-menu-item>
           <el-menu-item index="/oa/document/list">文档中心</el-menu-item>
           <el-menu-item index="/oa/schedule/index">我的日程</el-menu-item>
           <el-menu-item index="/oa/message/list">消息中心</el-menu-item>
+          <el-menu-item index="/oa/report/personal">个人报表</el-menu-item>
         </el-sub-menu>
-        <el-sub-menu index="report">
+
+        <el-sub-menu v-if="userStore.isAdmin()" index="oa-admin">
           <template #title>
             <el-icon><DataAnalysis /></el-icon>
-            <span>数据报表</span>
+            <span>OA管理</span>
           </template>
-          <el-menu-item index="/oa/report/personal">个人报表</el-menu-item>
+          <el-menu-item index="/oa/dashboard">数据看板</el-menu-item>
+          <el-menu-item index="/oa/attendance/manage">考勤管理</el-menu-item>
+          <el-menu-item index="/oa/leave/approval">请假审批</el-menu-item>
+          <el-menu-item index="/oa/notice/manage">公告管理</el-menu-item>
+          <el-menu-item index="/oa/document/manage">文档管理</el-menu-item>
+          <el-menu-item index="/oa/schedule/overview">日程总览</el-menu-item>
+          <el-menu-item index="/oa/message/send">发送消息</el-menu-item>
           <el-menu-item index="/oa/report/admin">管理员报表</el-menu-item>
         </el-sub-menu>
-        <el-sub-menu index="system">
+
+        <el-sub-menu v-if="userStore.isAdmin()" index="system">
           <template #title>
             <el-icon><Setting /></el-icon>
             <span>系统管理</span>
@@ -51,7 +71,8 @@
           <el-menu-item index="/system/menu">菜单管理</el-menu-item>
           <el-menu-item index="/system/dept">部门管理</el-menu-item>
         </el-sub-menu>
-        <el-sub-menu index="monitor">
+
+        <el-sub-menu v-if="userStore.isAdmin()" index="monitor">
           <template #title>
             <el-icon><Monitor /></el-icon>
             <span>系统监控</span>
@@ -59,37 +80,65 @@
           <el-menu-item index="/monitor/online">在线用户</el-menu-item>
           <el-menu-item index="/monitor/logs/login">登录日志</el-menu-item>
           <el-menu-item index="/monitor/logs/operation">操作日志</el-menu-item>
+          <el-menu-item index="/monitor/logs/system">系统日志</el-menu-item>
         </el-sub-menu>
       </el-menu>
     </div>
-    <div class="layout-main">
-      <div class="layout-navbar">
-        <div class="navbar-left">
+
+    <!-- 主区域 -->
+    <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+      <!-- 顶部导航栏 -->
+      <div
+        class="h-14 bg-white border-b border-[#ebeef5] flex items-center justify-between px-5 shrink-0"
+      >
+        <div class="flex items-center gap-4">
           <el-button text @click="isCollapsed = !isCollapsed">
-            <el-icon size="20"><Expand v-if="isCollapsed" /><Fold v-else /></el-icon>
+            <el-icon :size="20">
+              <Expand v-if="isCollapsed" />
+              <Fold v-else />
+            </el-icon>
           </el-button>
           <el-breadcrumb separator="/">
-            <el-breadcrumb-item :to="{ path: '/welcome' }">首页</el-breadcrumb-item>
-            <el-breadcrumb-item v-if="route.meta.title">{{ route.meta.title }}</el-breadcrumb-item>
+            <el-breadcrumb-item :to="{ path: '/welcome' }">
+              首页
+            </el-breadcrumb-item>
+            <el-breadcrumb-item v-if="route.meta.title !== '首页'">
+              {{ route.meta.title }}
+            </el-breadcrumb-item>
           </el-breadcrumb>
         </div>
-        <div class="navbar-right">
+        <div class="flex items-center gap-4">
+          <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99">
+            <el-button text @click="router.push('/oa/message/list')">
+              <el-icon :size="20"><Bell /></el-icon>
+            </el-button>
+          </el-badge>
           <el-dropdown @command="handleCommand">
-            <span class="user-info">
-              <el-avatar :size="32" style="margin-right: 8px">张</el-avatar>
-              <span>张三</span>
+            <span class="flex items-center cursor-pointer gap-1">
+              <el-avatar :size="32">
+                {{ userStore.userInfo?.empName?.charAt(0) || "U" }}
+              </el-avatar>
+              <span class="text-sm text-[#303133]">
+                {{ userStore.userInfo?.empName || "用户" }}
+              </span>
               <el-icon><ArrowDown /></el-icon>
             </span>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item command="settings">账号设置</el-dropdown-item>
-                <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
+                <el-dropdown-item command="settings">
+                  账号设置
+                </el-dropdown-item>
+                <el-dropdown-item command="logout" divided>
+                  退出登录
+                </el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
         </div>
       </div>
-      <div class="layout-content">
+
+      <!-- 内容区 -->
+      <div class="flex-1 p-5 overflow-y-auto">
         <router-view />
       </div>
     </div>
@@ -97,103 +146,50 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessageBox } from "element-plus";
+import { useUserStore } from "@/store/user";
+import { getUnreadCount } from "@/api/message";
 
 const route = useRoute();
 const router = useRouter();
+const userStore = useUserStore();
 const isCollapsed = ref(false);
+const unreadCount = ref(0);
 
 const activeMenu = computed(() => route.path);
 
-const handleCommand = (command: string) => {
+const handleCommand = async (command: string) => {
   if (command === "logout") {
-    ElMessageBox.confirm("确定要退出登录吗？", "提示", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning"
-    }).then(() => {
-      router.push("/login");
-    });
+    try {
+      await ElMessageBox.confirm("确定要退出登录吗？", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning"
+      });
+      await userStore.logoutAction();
+    } catch {
+      // cancelled
+    }
   } else if (command === "settings") {
     router.push("/account-settings");
   }
 };
-</script>
 
-<style scoped lang="scss">
-.layout-container {
-  display: flex;
-  height: 100vh;
-  background-color: #f5f7fa;
-}
-
-.layout-sidebar {
-  width: 210px;
-  background-color: #ffffff;
-  border-right: 1px solid #ebeef5;
-  transition: width 0.3s;
-  overflow: hidden;
-
-  &.collapsed {
-    width: 64px;
+const fetchUnreadCount = async () => {
+  try {
+    const res: any = await getUnreadCount();
+    if (res.data !== undefined) {
+      unreadCount.value = res.data;
+    }
+  } catch {
+    // ignore
   }
-}
+};
 
-.logo-area {
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 18px;
-  font-weight: bold;
-  color: #409EFF;
-  border-bottom: 1px solid #ebeef5;
-}
-
-.sidebar-menu {
-  border-right: none;
-}
-
-.layout-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.layout-navbar {
-  height: 56px;
-  background-color: #ffffff;
-  border-bottom: 1px solid #ebeef5;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-}
-
-.navbar-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.navbar-right {
-  display: flex;
-  align-items: center;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-}
-
-.layout-content {
-  flex: 1;
-  padding: 20px;
-  overflow-y: auto;
-}
-</style>
+onMounted(() => {
+  fetchUnreadCount();
+  setInterval(fetchUnreadCount, 60000);
+});
+</script>

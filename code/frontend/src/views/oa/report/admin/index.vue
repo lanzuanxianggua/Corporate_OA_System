@@ -1,265 +1,165 @@
 <template>
-  <div class="report-admin-container">
+  <div>
+    <div class="flex items-center justify-between mb-4">
+      <el-date-picker v-model="month" type="month" placeholder="选择月份" format="YYYY年MM月" value-format="YYYY-MM" @change="fetchAllData" />
+    </div>
+
+    <el-row :gutter="20" class="mb-5">
+      <el-col v-for="item in statsCards" :key="item.label" :span="6">
+        <div class="bg-white rounded-lg p-5 flex items-center gap-4" style="box-shadow:0 2px 12px rgba(0,0,0,.06)">
+          <div class="w-14 h-14 rounded-lg flex items-center justify-center" :style="{ backgroundColor: item.bg }">
+            <el-icon :size="24" :color="item.color"><component :is="item.icon" /></el-icon>
+          </div>
+          <div class="flex flex-col">
+            <span class="text-2xl font-bold text-[#303133]">{{ item.value }}</span>
+            <span class="text-sm text-[#909399] mt-1">{{ item.label }}</span>
+          </div>
+        </div>
+      </el-col>
+    </el-row>
+
+    <el-card class="mb-5">
+      <template #header><span class="font-medium">全员出勤趋势（近12个月）</span></template>
+      <div ref="trendChartRef" style="height: 300px"></div>
+    </el-card>
+
+    <el-row :gutter="20" class="mb-5">
+      <el-col :span="12">
+        <el-card>
+          <template #header><span class="font-medium">部门出勤对比</span></template>
+          <div ref="deptChartRef" style="height: 300px"></div>
+        </el-card>
+      </el-col>
+      <el-col :span="12">
+        <el-card>
+          <template #header><span class="font-medium">请假分析</span></template>
+          <div ref="leaveChartRef" style="height: 300px"></div>
+        </el-card>
+      </el-col>
+    </el-row>
+
     <el-card>
       <template #header>
-        <div class="card-header">
-          <span>管理员报表</span>
-          <el-date-picker v-model="month" type="month" placeholder="选择月份" style="width: 200px" />
-        </div>
-      </template>
-    </el-card>
-
-    <el-row :gutter="20" class="stats-row">
-      <el-col :span="6">
-        <div class="stat-card">
-          <div class="stat-icon" style="background-color: #e6f7ff">
-            <el-icon size="24" color="#409EFF"><User /></el-icon>
-          </div>
-          <div class="stat-info">
-            <span class="stat-value">156</span>
-            <span class="stat-label">总人数</span>
-          </div>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="stat-card">
-          <div class="stat-icon" style="background-color: #f6ffed">
-            <el-icon size="24" color="#67C23A"><DataLine /></el-icon>
-          </div>
-          <div class="stat-info">
-            <span class="stat-value">91%</span>
-            <span class="stat-label">平均出勤率</span>
-          </div>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="stat-card">
-          <div class="stat-icon" style="background-color: #fff7e6">
-            <el-icon size="24" color="#E6A23C"><Calendar /></el-icon>
-          </div>
-          <div class="stat-info">
-            <span class="stat-value">8</span>
-            <span class="stat-label">请假人数</span>
-          </div>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="stat-card">
-          <div class="stat-icon" style="background-color: #fff1f0">
-            <el-icon size="24" color="#F56C6C"><Clock /></el-icon>
-          </div>
-          <div class="stat-info">
-            <span class="stat-value">3</span>
-            <span class="stat-label">迟到人数</span>
-          </div>
-        </div>
-      </el-col>
-    </el-row>
-
-    <el-card class="chart-card">
-      <template #header>
-        <span>全员出勤趋势</span>
-      </template>
-      <div ref="trendChartRef" style="height: 250px"></div>
-    </el-card>
-
-    <el-row :gutter="20">
-      <el-col :span="12">
-        <el-card class="chart-card">
-          <template #header>
-            <span>部门出勤对比</span>
-          </template>
-          <div ref="deptChartRef" style="height: 250px"></div>
-        </el-card>
-      </el-col>
-      <el-col :span="12">
-        <el-card class="chart-card">
-          <template #header>
-            <span>请假分析</span>
-          </template>
-          <div ref="leaveChartRef" style="height: 250px"></div>
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <el-card class="chart-card">
-      <template #header>
-        <div class="card-header">
-          <span>员工出勤排名</span>
-          <el-radio-group v-model="rankType">
-            <el-radio-button label="best">最佳排名</el-radio-button>
-            <el-radio-button label="worst">最差排名</el-radio-button>
+        <div class="flex justify-between items-center">
+          <span class="font-medium">员工出勤排名</span>
+          <el-radio-group v-model="rankType" size="small" @change="fetchRanking">
+            <el-radio-button value="best">最佳排名</el-radio-button>
+            <el-radio-button value="worst">最差排名</el-radio-button>
           </el-radio-group>
         </div>
       </template>
-      <el-table :data="rankList" stripe>
-        <el-table-column prop="rank" label="排名" width="80">
+      <el-table :data="rankingList" stripe>
+        <el-table-column label="排名" width="80">
           <template #default="{ $index }">
-            <span :class="getRankClass($index)">{{ $index + 1 }}</span>
+            <span :style="{ color: rankColors[$index] || '#303133', fontWeight: $index < 3 ? 'bold' : 'normal' }">
+              {{ $index + 1 }}
+            </span>
           </template>
         </el-table-column>
-        <el-table-column prop="name" label="员工姓名" />
-        <el-table-column prop="dept" label="部门" />
-        <el-table-column prop="rate" label="出勤率" />
+        <el-table-column label="员工姓名" prop="empName" />
+        <el-table-column label="部门" prop="deptName" />
+        <el-table-column label="出勤率">
+          <template #default="{ row }">
+            <el-progress :percentage="Number(row.attendanceRate || 0)" :stroke-width="10" />
+          </template>
+        </el-table-column>
       </el-table>
     </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, reactive, onMounted, onUnmounted, nextTick } from "vue";
+import dayjs from "dayjs";
 import * as echarts from "echarts";
+import {
+  getAdminAttendanceSummary, getAdminAttendanceTrend,
+  getAdminDeptCompare, getAdminLeaveAnalysis, getAdminEmployeeRanking
+} from "@/api/report";
 
-const month = ref("");
+const month = ref(dayjs().format("YYYY-MM"));
+const trendChartRef = ref<HTMLDivElement>();
+const deptChartRef = ref<HTMLDivElement>();
+const leaveChartRef = ref<HTMLDivElement>();
+const charts: echarts.ECharts[] = [];
 const rankType = ref("best");
-const trendChartRef = ref<HTMLElement>();
-const deptChartRef = ref<HTMLElement>();
-const leaveChartRef = ref<HTMLElement>();
+const rankingList = ref<any[]>([]);
+const rankColors = ["#FFD700", "#C0C0C0", "#CD7F32"];
 
-const rankList = ref([
-  { rank: 1, name: "张三", dept: "技术部", rate: "100%" },
-  { rank: 2, name: "李四", dept: "人事部", rate: "98%" },
-  { rank: 3, name: "王五", dept: "财务部", rate: "97%" },
-  { rank: 4, name: "赵六", dept: "市场部", rate: "95%" },
-  { rank: 5, name: "钱七", dept: "技术部", rate: "93%" }
+const statsCards = reactive([
+  { label: "总记录数", value: "0", icon: "User", color: "#409EFF", bg: "#e6f7ff" },
+  { label: "平均出勤率", value: "0%", icon: "TrendCharts", color: "#67C23A", bg: "#f6ffed" },
+  { label: "迟到人次", value: "0", icon: "WarningFilled", color: "#E6A23C", bg: "#fff7e6" },
+  { label: "缺勤人次", value: "0", icon: "CircleClose", color: "#F56C6C", bg: "#fef0f0" }
 ]);
 
-const getRankClass = (index: number) => {
-  if (index === 0) return "rank-gold";
-  if (index === 1) return "rank-silver";
-  if (index === 2) return "rank-bronze";
-  return "";
-};
-
-onMounted(() => {
+const fetchAllData = async () => {
+  try {
+    const r: any = await getAdminAttendanceSummary(month.value);
+    if (r.data) {
+      statsCards[0].value = String(r.data.totalRecords || 0);
+      statsCards[1].value = (r.data.avgAttendanceRate != null ? r.data.avgAttendanceRate.toFixed(1) + "%" : "0%");
+      statsCards[2].value = String(r.data.lateCount || 0);
+      statsCards[3].value = String(r.data.absentCount || 0);
+    }
+  } catch {}
+  await nextTick();
   initTrendChart();
   initDeptChart();
   initLeaveChart();
-});
+  fetchRanking();
+};
 
-const initTrendChart = () => {
+const initTrendChart = async () => {
   if (!trendChartRef.value) return;
-  const chart = echarts.init(trendChartRef.value);
-  chart.setOption({
-    tooltip: { trigger: "axis" },
-    legend: { data: ["出勤率"] },
-    xAxis: { type: "category", data: ["1月", "2月", "3月", "4月", "5月"] },
-    yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
-    series: [{
-      name: "出勤率",
-      type: "line",
-      smooth: true,
-      data: [92, 89, 94, 91, 91],
-      areaStyle: { color: "rgba(103, 194, 58, 0.2)" },
-      lineStyle: { color: "#67C23A" },
-      itemStyle: { color: "#67C23A" }
-    }]
-  });
+  try {
+    const r: any = await getAdminAttendanceTrend(month.value, 12);
+    const chart = echarts.init(trendChartRef.value); charts.push(chart);
+    const data = r.data || [];
+    chart.setOption({
+      tooltip: { trigger: "axis" },
+      xAxis: { type: "category", data: data.map((d: any) => d.month || d.date || "") },
+      yAxis: { type: "value", name: "人数" },
+      series: [{ type: "line", data: data.map((d: any) => d.count || d.value || 0), areaStyle: { opacity: 0.3 }, smooth: true, itemStyle: { color: "#409EFF" } }]
+    });
+  } catch {}
 };
 
-const initDeptChart = () => {
+const initDeptChart = async () => {
   if (!deptChartRef.value) return;
-  const chart = echarts.init(deptChartRef.value);
-  chart.setOption({
-    tooltip: { trigger: "axis" },
-    xAxis: { type: "category", data: ["技术部", "市场部", "人事部", "财务部"] },
-    yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
-    series: [{
-      type: "bar",
-      data: [
-        { value: 92, itemStyle: { color: "#409EFF" } },
-        { value: 88, itemStyle: { color: "#E6A23C" } },
-        { value: 95, itemStyle: { color: "#67C23A" } },
-        { value: 90, itemStyle: { color: "#9254de" } }
-      ]
-    }]
-  });
+  try {
+    const r: any = await getAdminDeptCompare(month.value);
+    const chart = echarts.init(deptChartRef.value); charts.push(chart);
+    const data = r.data || [];
+    chart.setOption({
+      tooltip: { trigger: "axis" },
+      xAxis: { type: "category", data: data.map((d: any) => d.deptName || d.name || "") },
+      yAxis: { type: "value", name: "出勤率%", max: 100 },
+      series: [{ type: "bar", data: data.map((d: any) => d.rate || d.value || 0), itemStyle: { color: "#409EFF" } }]
+    });
+  } catch {}
 };
 
-const initLeaveChart = () => {
+const initLeaveChart = async () => {
   if (!leaveChartRef.value) return;
-  const chart = echarts.init(leaveChartRef.value);
-  chart.setOption({
-    tooltip: { trigger: "item" },
-    series: [{
-      type: "pie",
-      radius: ["40%", "70%"],
-      data: [
-        { value: 5, name: "事假", itemStyle: { color: "#E6A23C" } },
-        { value: 3, name: "病假", itemStyle: { color: "#67C23A" } },
-        { value: 8, name: "年假", itemStyle: { color: "#409EFF" } },
-        { value: 2, name: "其他", itemStyle: { color: "#909399" } }
-      ]
-    }]
-  });
+  try {
+    const r: any = await getAdminLeaveAnalysis(month.value);
+    const chart = echarts.init(leaveChartRef.value); charts.push(chart);
+    chart.setOption({
+      tooltip: { trigger: "item" },
+      series: [{ type: "pie", radius: "60%", data: (r.data || []).map((d: any) => ({ name: d.type || d.name || "", value: d.count || d.value || 0 })) }]
+    });
+  } catch {}
 };
+
+const fetchRanking = async () => {
+  try {
+    const r: any = await getAdminEmployeeRanking(month.value, rankType.value);
+    if (r.data) rankingList.value = r.data;
+  } catch {}
+};
+
+const handleResize = () => charts.forEach((c) => c.resize());
+onMounted(() => { fetchAllData(); window.addEventListener("resize", handleResize); });
+onUnmounted(() => { charts.forEach((c) => c.dispose()); window.removeEventListener("resize", handleResize); });
 </script>
-
-<style scoped lang="scss">
-.report-admin-container {
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .stats-row {
-    margin: 20px 0;
-  }
-
-  .stat-card {
-    background: #ffffff;
-    border-radius: 8px;
-    padding: 20px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  }
-
-  .stat-icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .stat-info {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .stat-value {
-    font-size: 24px;
-    font-weight: bold;
-    color: #303133;
-  }
-
-  .stat-label {
-    font-size: 14px;
-    color: #909399;
-    margin-top: 4px;
-  }
-
-  .chart-card {
-    margin-top: 20px;
-  }
-
-  .rank-gold {
-    color: #ffd700;
-    font-weight: bold;
-  }
-
-  .rank-silver {
-    color: #c0c0c0;
-    font-weight: bold;
-  }
-
-  .rank-bronze {
-    color: #cd7f32;
-    font-weight: bold;
-  }
-}
-</style>

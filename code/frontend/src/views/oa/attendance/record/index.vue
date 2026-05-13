@@ -1,82 +1,65 @@
 <template>
-  <div class="record-container">
+  <div>
+    <div class="flex items-center justify-between mb-4">
+      <el-date-picker v-model="month" type="month" placeholder="选择月份" format="YYYY年MM月" value-format="YYYY-MM" @change="fetchData" />
+    </div>
     <el-card>
-      <template #header>
-        <div class="card-header">
-          <span>考勤记录</span>
-          <el-date-picker
-            v-model="month"
-            type="month"
-            placeholder="选择月份"
-            style="width: 200px"
-          />
-        </div>
-      </template>
-      <el-table :data="tableData" stripe>
-        <el-table-column prop="date" label="日期" width="120" />
-        <el-table-column prop="morningIn" label="上班时间" width="120" />
-        <el-table-column prop="morningOut" label="下班时间" width="120" />
-        <el-table-column prop="workHours" label="工作时长" width="120" />
-        <el-table-column prop="status" label="状态">
+      <el-table :data="attendanceList" stripe>
+        <el-table-column label="日期" prop="workDate" />
+        <el-table-column label="上班时间">
+          <template #default="{ row }">{{ row.clockIn?.substring(11, 19) || "-" }}</template>
+        </el-table-column>
+        <el-table-column label="下班时间">
+          <template #default="{ row }">{{ row.clockOut?.substring(11, 19) || "-" }}</template>
+        </el-table-column>
+        <el-table-column label="工作时长">
+          <template #default="{ row }">{{ calcWorkHours(row.clockIn, row.clockOut) }}</template>
+        </el-table-column>
+        <el-table-column label="状态">
           <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)">{{ row.status }}</el-tag>
+            <el-tag :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="remark" label="备注" />
+        <el-table-column label="备注" prop="remark" />
       </el-table>
-      <div class="pagination">
-        <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :total="total"
-          :page-sizes="[10, 20, 50]"
-          layout="total, sizes, prev, pager, next"
-        />
-      </div>
+      <el-empty v-if="attendanceList.length === 0" description="暂无考勤记录" />
     </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
+import dayjs from "dayjs";
+import { getTodayAttendance } from "@/api/attendance";
 
-const month = ref("");
-const currentPage = ref(1);
-const pageSize = ref(10);
-const total = ref(30);
+const month = ref(dayjs().format("YYYY-MM"));
+const attendanceList = ref<any[]>([]);
 
-const tableData = ref([
-  { date: "2026-05-13", morningIn: "08:55", morningOut: "18:30", workHours: "9.5小时", status: "正常", remark: "-" },
-  { date: "2026-05-12", morningIn: "08:50", morningOut: "18:25", workHours: "9.5小时", status: "正常", remark: "-" },
-  { date: "2026-05-11", morningIn: "09:05", morningOut: "18:30", workHours: "9.4小时", status: "迟到", remark: "-" },
-  { date: "2026-05-10", morningIn: "-", morningOut: "-", workHours: "-", status: "休息", remark: "周末" },
-  { date: "2026-05-09", morningIn: "08:52", morningOut: "18:20", workHours: "9.5小时", status: "正常", remark: "-" },
-]);
-
-const getStatusType = (status: string) => {
-  const map: Record<string, string> = {
-    "正常": "success",
-    "迟到": "warning",
-    "早退": "warning",
-    "缺勤": "danger",
-    "休息": "info"
-  };
-  return map[status] || "info";
+const statusMap: Record<number, { text: string; type: string }> = {
+  0: { text: "正常", type: "success" },
+  1: { text: "迟到", type: "warning" },
+  2: { text: "早退", type: "warning" },
+  3: { text: "缺勤", type: "danger" }
 };
+const statusText = (s?: number) => statusMap[s ?? -1]?.text || "未打卡";
+const statusType = (s?: number) => (statusMap[s ?? -1]?.type || "info") as any;
+
+const calcWorkHours = (clockIn?: string, clockOut?: string) => {
+  if (!clockIn || !clockOut) return "-";
+  const diff = new Date(clockOut).getTime() - new Date(clockIn).getTime();
+  const hours = diff / (1000 * 60 * 60);
+  return hours.toFixed(1) + "小时";
+};
+
+const fetchData = async () => {
+  try {
+    const res: any = await getTodayAttendance();
+    if (res.data) attendanceList.value = [res.data];
+    else attendanceList.value = [];
+  } catch {
+    attendanceList.value = [];
+  }
+};
+
+onMounted(fetchData);
 </script>
-
-<style scoped lang="scss">
-.record-container {
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .pagination {
-    margin-top: 20px;
-    display: flex;
-    justify-content: flex-end;
-  }
-}
-</style>

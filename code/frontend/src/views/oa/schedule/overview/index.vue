@@ -1,26 +1,29 @@
 <template>
-  <div class="schedule-overview-container">
+  <div>
     <el-row :gutter="20">
       <el-col :span="16">
-        <el-card class="calendar-card">
-          <el-calendar v-model="currentDate">
+        <el-card>
+          <template #header><span class="font-medium">月历</span></template>
+          <el-calendar v-model="selectedDate">
             <template #date-cell="{ data }">
-              <div class="calendar-day">
-                <span>{{ data.day.split("-").slice(2).join("") }}</span>
-                <div v-if="hasSchedule(data.day)" class="schedule-dot"></div>
+              <div class="relative">
+                {{ data.day.split("-")[2] }}
+                <span v-if="hasSchedule(data.day)" class="absolute bottom-0 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[#409EFF] rounded-full"></span>
               </div>
             </template>
           </el-calendar>
         </el-card>
       </el-col>
       <el-col :span="8">
-        <el-card class="schedule-card">
+        <el-card>
           <template #header>
-            <span>{{ selectedDate }} 日程</span>
+            <span class="font-medium">{{ dayjs(selectedDate).format("YYYY年MM月DD日") }} 日程</span>
           </template>
-          <el-table :data="scheduleList" v-if="scheduleList.length > 0">
-            <el-table-column prop="title" label="日程标题" />
-            <el-table-column prop="time" label="时间范围" width="120" />
+          <el-table :data="daySchedules" v-if="daySchedules.length > 0" size="small">
+            <el-table-column label="日程标题" prop="title" />
+            <el-table-column label="时间范围" width="140">
+              <template #default="{ row }">{{ formatTime(row.startTime) }} - {{ formatTime(row.endTime) }}</template>
+            </el-table-column>
           </el-table>
           <el-empty v-else description="暂无日程" :image-size="60" />
         </el-card>
@@ -30,38 +33,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import dayjs from "dayjs";
+import { getSchedulePage } from "@/api/schedule";
 
-const currentDate = ref(new Date());
+const selectedDate = ref(new Date());
+const allSchedules = ref<any[]>([]);
 
-const selectedDate = computed(() => dayjs(currentDate.value).format("YYYY-MM-DD"));
+const daySchedules = computed(() => {
+  const day = dayjs(selectedDate.value).format("YYYY-MM-DD");
+  return allSchedules.value.filter((s) => dayjs(s.startTime).format("YYYY-MM-DD") === day);
+});
 
-const scheduleList = ref<any[]>([]);
+const hasSchedule = (day: string) => allSchedules.value.some((s) => dayjs(s.startTime).format("YYYY-MM-DD") === day);
+const formatTime = (t: string) => t ? dayjs(t).format("HH:mm") : "";
 
-const hasSchedule = (date: string) => {
-  return ["05", "13", "20"].includes(date.split("-")[2]);
-};
+onMounted(async () => {
+  try {
+    const res: any = await getSchedulePage({ pageNum: 1, pageSize: 200 });
+    if (res.data?.list) allSchedules.value = res.data.list;
+  } catch {}
+});
 </script>
-
-<style scoped lang="scss">
-.schedule-overview-container {
-  .calendar-day {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    position: relative;
-
-    .schedule-dot {
-      width: 4px;
-      height: 4px;
-      background-color: #409EFF;
-      border-radius: 50%;
-      position: absolute;
-      bottom: 4px;
-    }
-  }
-}
-</style>

@@ -23,11 +23,9 @@ public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAtt
 
     @Override
     public void clockIn(Long empId) {
-        String date = LocalDate.now().format(DateTimeFormatter.ISO_DATE);
-        String redisKey = "attendance:" + empId + ":" + date;
-        // 如果已存在则抛异常"今日已打卡"
-        Boolean exists = redisTemplate.hasKey(redisKey);
-        if (exists != null && exists) {
+        // 先查数据库是否已有今日记录
+        OaAttendance existing = getTodayAttendance(empId);
+        if (existing != null) {
             throw new BusinessException("今日已打卡");
         }
         // 保存打卡记录到数据库
@@ -37,18 +35,17 @@ public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAtt
         attendance.setClockIn(LocalDateTime.now());
         attendance.setStatus(1);
         this.save(attendance);
-        // 设置Redis标记，86400s过期
-        redisTemplate.opsForValue().set(redisKey, attendance.getId(), 86400, TimeUnit.SECONDS);
     }
 
     @Override
     public void clockOut(Long empId) {
-        // 获取今日打卡记录
         OaAttendance attendance = getTodayAttendance(empId);
         if (attendance == null) {
             throw new BusinessException("今日未打卡，请先签到");
         }
-        // 更新下班打卡时间
+        if (attendance.getClockOut() != null) {
+            throw new BusinessException("今日已签退");
+        }
         attendance.setClockOut(LocalDateTime.now());
         this.updateById(attendance);
     }
