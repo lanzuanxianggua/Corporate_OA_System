@@ -58,6 +58,35 @@ getPlatformConfig(app).then(async config => {
   setupStore(app);
   app.use(router);
   await router.isReady();
+  // 预写默认值到 localStorage，防止组件 setup 时读取到 null
+  const ns = config.ResponsiveStorageNameSpace ?? "responsive-";
+  const defaultLayout = {
+    layout: config.Layout ?? "vertical",
+    theme: config.Theme ?? "light",
+    darkMode: config.DarkMode ?? false,
+    sidebarStatus: config.SidebarStatus ?? true,
+    epThemeColor: config.EpThemeColor ?? "#409EFF",
+    themeColor: config.Theme ?? "light",
+    themeMode: config.ThemeMode ?? "light"
+  };
+  const defaultConfigure = {
+    grey: config.Grey ?? false,
+    weak: config.Weak ?? false,
+    hideTabs: config.HideTabs ?? false,
+    hideFooter: config.HideFooter ?? true,
+    showLogo: config.ShowLogo ?? true,
+    watermark: config.Watermark ?? false,
+    watermarkText: "",
+    tagsStyle: config.TagsStyle ?? "chrome",
+    multiTagsCache: config.MultiTagsCache ?? false,
+    stretch: config.Stretch ?? false
+  };
+  if (!localStorage.getItem(`${ns}layout`)) {
+    localStorage.setItem(`${ns}layout`, JSON.stringify(defaultLayout));
+  }
+  if (!localStorage.getItem(`${ns}configure`)) {
+    localStorage.setItem(`${ns}configure`, JSON.stringify(defaultConfigure));
+  }
   injectResponsiveStorage(app, config);
   app
     .use(MotionPlugin)
