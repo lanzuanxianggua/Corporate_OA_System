@@ -2,7 +2,6 @@
   <div>
     <div class="flex items-center gap-3 mb-4">
       <el-input v-model="searchName" placeholder="搜索员工姓名" clearable class="w-48" />
-      <el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" />
       <el-select v-model="statusFilter" placeholder="状态" clearable class="w-32">
         <el-option label="全部" value="" />
         <el-option label="正常" :value="0" />
@@ -32,24 +31,17 @@
           </template>
         </el-table-column>
       </el-table>
-      <div class="flex justify-end mt-4">
-        <el-pagination v-model:current-page="page" v-model:page-size="pageSize" :total="total" layout="total, prev, pager, next" @current-change="fetchData" />
-      </div>
+      <el-empty v-if="attendanceList.length === 0" description="暂无考勤数据（分页查询接口开发中）" />
     </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { getAttendancePage } from "@/api/attendance";
 
 const searchName = ref("");
-const dateRange = ref<[Date, Date] | null>(null);
 const statusFilter = ref<number | "">("");
 const attendanceList = ref<any[]>([]);
-const page = ref(1);
-const pageSize = ref(10);
-const total = ref(0);
 
 const statusMap: Record<number, { text: string; type: string }> = {
   0: { text: "正常", type: "success" },
@@ -66,15 +58,9 @@ const calcWorkHours = (clockIn?: string, clockOut?: string) => {
   return (diff / (1000 * 60 * 60)).toFixed(1) + "h";
 };
 
-const fetchData = async () => {
-  try {
-    const params: any = { pageNum: page.value, pageSize: pageSize.value };
-    if (statusFilter.value !== "") params.status = statusFilter.value;
-    const r: any = await getAttendancePage(params);
-    if (r.data?.list) { attendanceList.value = r.data.list; total.value = r.data.total || 0; }
-  } catch {
-    attendanceList.value = [];
-  }
+const fetchData = () => {
+  // 后端暂无考勤分页查询接口
+  attendanceList.value = [];
 };
 
 onMounted(fetchData);

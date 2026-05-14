@@ -14,7 +14,7 @@
         <el-table-column label="操作系统" prop="system" />
         <el-table-column label="状态" width="80">
           <template #default="{ row }">
-            <el-tag :type="row.status === '成功' ? 'success' : 'danger'" size="small">{{ row.status }}</el-tag>
+            <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">{{ row.status === 1 ? "成功" : "失败" }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="行为" prop="behavior" />

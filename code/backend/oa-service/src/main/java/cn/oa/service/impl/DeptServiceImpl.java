@@ -41,6 +41,12 @@ public class DeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept> impleme
     private List<SysDept> buildTree(List<SysDept> allDepts, Long parentId) {
         return allDepts.stream()
                 .filter(dept -> parentId.equals(dept.getParentId()))
+                .peek(dept -> {
+                    List<SysDept> children = buildTree(allDepts, dept.getId());
+                    if (children != null && !children.isEmpty()) {
+                        dept.setChildren(children);
+                    }
+                })
                 .collect(Collectors.toList());
     }
 

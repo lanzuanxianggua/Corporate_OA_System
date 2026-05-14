@@ -30,10 +30,10 @@ import type { FormInstance, FormRules } from "element-plus";
 const userStore = useUserStore();
 const formRef = ref<FormInstance>();
 const sending = ref(false);
-const form = reactive({ receiverId: "", title: "", content: "" });
+const form = reactive({ receiverId: undefined as number | undefined, title: "", content: "" });
 
 const rules: FormRules = {
-  receiverId: [{ required: true, message: "请输入接收人", trigger: "blur" }],
+  receiverId: [{ required: true, message: "请输入接收人ID", trigger: "blur", type: "number", min: 1 }],
   title: [{ required: true, message: "请输入标题", trigger: "blur" }],
   content: [{ required: true, message: "请输入内容", trigger: "blur" }]
 };
@@ -46,13 +46,13 @@ const handleSend = async () => {
     try {
       await sendMessage({
         senderId: userStore.userInfo?.empId,
-        receiverId: Number(form.receiverId),
+        receiverId: form.receiverId,
         msgType: 0,
         title: form.title,
         content: form.content
       });
       ElMessage.success("发送成功");
-      form.receiverId = "";
+      form.receiverId = undefined;
       form.title = "";
       form.content = "";
     } catch (e: any) { ElMessage.error(e.message || "发送失败"); }

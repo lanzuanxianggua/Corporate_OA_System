@@ -2,15 +2,14 @@ import request from "@/utils/request";
 
 export interface EmployeeVO {
   id?: number;
-  username?: string;
-  password?: string;
+  empCode?: string;
   empName?: string;
+  password?: string;
   phone?: string;
   email?: string;
   deptId?: number;
-  deptName?: string;
+  avatar?: string;
   status?: number;
-  roles?: Array<{ id: number; name: string; code: string }>;
   createTime?: string;
 }
 

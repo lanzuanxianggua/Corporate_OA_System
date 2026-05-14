@@ -3,13 +3,13 @@ import request from "@/utils/request";
 export interface DeptVO {
   id?: number;
   deptName?: string;
+  parentId?: number;
+  sort?: number;
   leader?: string;
   phone?: string;
-  orderNum?: number;
   status?: number;
   createTime?: string;
   children?: DeptVO[];
-  parentId?: number;
 }
 
 export const getDeptTree = () => {

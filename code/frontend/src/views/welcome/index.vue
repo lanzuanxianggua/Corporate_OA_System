@@ -22,9 +22,7 @@
             </el-icon>
           </div>
           <div class="flex flex-col">
-            <span class="text-2xl font-bold text-[#303133]">
-              {{ item.value }}
-            </span>
+            <span class="text-2xl font-bold text-[#303133]">{{ item.value }}</span>
             <span class="text-sm text-[#909399] mt-1">{{ item.label }}</span>
           </div>
         </div>
@@ -52,13 +50,7 @@
           <template #header>
             <div class="flex justify-between items-center">
               <span class="font-medium">最近公告</span>
-              <el-button
-                type="primary"
-                link
-                @click="$router.push('/oa/notice/list')"
-              >
-                查看更多
-              </el-button>
+              <el-button type="primary" link @click="$router.push('/oa/notice/list')">查看更多</el-button>
             </div>
           </template>
           <div v-if="noticeList.length > 0">
@@ -69,11 +61,10 @@
               @click="handleViewNotice(item)"
             >
               <div class="text-sm font-medium text-[#303133] flex items-center gap-2 mb-2">
-                <span
-                  v-if="!item.isRead"
-                  class="w-2 h-2 bg-[#409EFF] rounded-full"
-                ></span>
+                <span v-if="!item.isRead" class="w-2 h-2 bg-[#409EFF] rounded-full"></span>
                 {{ item.title }}
+                <el-tag v-if="item.noticeType === 2" type="danger" size="small">紧急</el-tag>
+                <el-tag v-else-if="item.noticeType === 1" type="warning" size="small">重要</el-tag>
               </div>
               <div class="text-xs text-[#909399] flex gap-4">
                 <span>{{ item.publisher || "系统" }}</span>
@@ -95,8 +86,8 @@
               :key="item.id"
               class="py-2 border-b border-[#ebeef5] last:border-b-0 flex gap-2"
             >
-              <span class="text-[#E6A23C] text-sm">{{ item.type }}</span>
-              <span class="text-[#606266] text-sm">{{ item.content }}</span>
+              <el-tag :type="item.tagType" size="small" effect="light">{{ item.type }}</el-tag>
+              <span class="text-[#606266] text-sm truncate">{{ item.content }}</span>
             </div>
           </div>
           <el-empty v-else description="暂无待办事项" :image-size="60" />
@@ -125,6 +116,7 @@ import { getDashboardStats } from "@/api/statistics";
 import { getNoticePage, getNoticeById, markNoticeAsRead } from "@/api/notice";
 import { getLeavePage } from "@/api/leave";
 import { getUnreadCount } from "@/api/message";
+import { getSchedulePage } from "@/api/schedule";
 
 const userStore = useUserStore();
 
@@ -138,33 +130,33 @@ const greeting = computed(() => {
 const currentDate = computed(() => dayjs().format("YYYY年MM月DD日 dddd"));
 
 const dashboardData = reactive({
-  monthAttendance: 0,
-  monthLeave: 0,
+  clockedIn: 0,
+  leaveTotal: 0,
   unreadMessage: 0,
   todaySchedule: 0
 });
 
 const statsCards = computed(() => [
   {
-    label: "本月出勤",
-    value: dashboardData.monthAttendance,
-    icon: "Calendar",
+    label: "今日出勤",
+    value: dashboardData.clockedIn,
+    icon: "CircleCheck",
     color: "#409EFF",
     bgColor: "#e6f7ff"
   },
   {
-    label: "请假次数",
-    value: dashboardData.monthLeave,
+    label: "待审请假",
+    value: dashboardData.leaveTotal,
     icon: "Document",
-    color: "#67C23A",
-    bgColor: "#f6ffed"
+    color: "#E6A23C",
+    bgColor: "#fff7e6"
   },
   {
     label: "未读消息",
     value: dashboardData.unreadMessage,
     icon: "Message",
-    color: "#E6A23C",
-    bgColor: "#fff7e6"
+    color: "#F56C6C",
+    bgColor: "#fef0f0"
   },
   {
     label: "今日日程",
@@ -176,10 +168,10 @@ const statsCards = computed(() => [
 ]);
 
 const quickEntries = [
-  { label: "考勤打卡", icon: "Clock", color: "#409EFF", path: "/oa/attendance/clock" },
-  { label: "请假申请", icon: "DocumentAdd", color: "#67C23A", path: "/oa/leave/apply" },
+  { label: "请假申请", icon: "DocumentAdd", color: "#409EFF", path: "/oa/leave/apply" },
   { label: "公告通知", icon: "Bell", color: "#E6A23C", path: "/oa/notice/list" },
-  { label: "消息中心", icon: "ChatDotRound", color: "#9254de", path: "/oa/message/list" }
+  { label: "消息中心", icon: "ChatDotRound", color: "#9254de", path: "/oa/message/list" },
+  { label: "我的日程", icon: "Calendar", color: "#67C23A", path: "/oa/schedule/index" }
 ];
 
 const noticeList = ref<any[]>([]);
@@ -209,8 +201,8 @@ onMounted(async () => {
     if (res.data) {
       const att = res.data.attendance || {};
       const lv = res.data.leave || {};
-      dashboardData.monthAttendance = att.clockedIn || 0;
-      dashboardData.monthLeave = lv.total || 0;
+      dashboardData.clockedIn = att.clockedIn || 0;
+      dashboardData.leaveTotal = lv.pending || 0;
     }
   } catch {
     // ignore
@@ -218,6 +210,12 @@ onMounted(async () => {
   try {
     const res: any = await getUnreadCount();
     if (res.data !== undefined) dashboardData.unreadMessage = res.data;
+  } catch {
+    // ignore
+  }
+  try {
+    const res: any = await getSchedulePage({ pageNum: 1, pageSize: 1 });
+    dashboardData.todaySchedule = res.data?.total || 0;
   } catch {
     // ignore
   }
@@ -231,6 +229,7 @@ onMounted(async () => {
     const res: any = await getLeavePage({ pageNum: 1, pageSize: 10, status: 0 });
     if (res.data?.list) {
       const leaveTypeMap: Record<number, string> = { 1: "事假", 2: "病假", 3: "年假", 4: "婚假", 5: "丧假", 6: "产假" };
+      const leaveTagMap: Record<number, string> = { 1: "warning", 2: "danger", 3: "success", 4: "", 5: "info", 6: "warning" };
       todoList.value = res.data.list.map((item: any) => {
         const start = item.startTime ? new Date(item.startTime) : null;
         const end = item.endTime ? new Date(item.endTime) : null;
@@ -238,7 +237,8 @@ onMounted(async () => {
         return {
           id: item.id,
           type: leaveTypeMap[item.leaveType] || "请假",
-          content: `请假 ${days} 天 - ${item.reason || "无原因"}`
+          tagType: leaveTagMap[item.leaveType] || "info",
+          content: `${item.empName || "员工"} 请假${days}天 - ${item.reason || "无原因"}`
         };
       });
     }

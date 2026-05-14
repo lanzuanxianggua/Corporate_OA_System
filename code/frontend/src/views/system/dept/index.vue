@@ -7,15 +7,11 @@
     <el-card>
       <el-table :data="deptList" row-key="id" :tree-props="{ children: 'children' }" default-expand-all stripe>
         <el-table-column label="部门名称" min-width="200">
-          <template #default="{ row }">{{ row.name || row.deptName }}</template>
+          <template #default="{ row }">{{ row.deptName }}</template>
         </el-table-column>
-        <el-table-column label="负责人">
-          <template #default="{ row }">{{ row.principal || row.leader || "-" }}</template>
-        </el-table-column>
+        <el-table-column label="负责人" prop="leader" />
         <el-table-column label="联系电话" prop="phone" />
-        <el-table-column label="排序" width="80">
-          <template #default="{ row }">{{ row.sort ?? row.orderNum ?? 0 }}</template>
-        </el-table-column>
+        <el-table-column label="排序" prop="sort" width="80" />
         <el-table-column label="状态" width="80">
           <template #default="{ row }">
             <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">{{ row.status === 1 ? "启用" : "禁用" }}</el-tag>
@@ -38,7 +34,7 @@
         <el-form-item label="联系电话"><el-input v-model="form.phone" /></el-form-item>
         <el-form-item label="排序"><el-input-number v-model="form.sort" :min="0" /></el-form-item>
         <el-form-item label="上级部门">
-          <el-tree-select v-model="form.parentId" :data="deptTreeData" :props="{ label: 'name', value: 'id', children: 'children' }" check-strictly clearable placeholder="无（顶级部门）" style="width: 100%" />
+          <el-tree-select v-model="form.parentId" :data="deptTreeData" :props="{ label: 'deptName', value: 'id', children: 'children' }" check-strictly clearable placeholder="无（顶级部门）" style="width: 100%" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -63,15 +59,25 @@ const form = reactive({ id: undefined as number | undefined, deptName: "", leade
 
 const deptTreeData = computed(() => deptList.value);
 
+// 后端 getDeptTree 返回扁平列表，前端构建树
+const buildTree = (list: any[], parentId = 0): any[] => {
+  return list
+    .filter(item => (item.parentId || 0) === parentId)
+    .map(item => {
+      const children = buildTree(list, item.id);
+      return children.length > 0 ? { ...item, children } : { ...item };
+    });
+};
+
 const openDialog = (row?: any) => {
   isEdit.value = !!row;
   if (row) {
     Object.assign(form, {
       id: row.id,
-      deptName: row.name || row.deptName || "",
-      leader: row.principal || row.leader || "",
+      deptName: row.deptName || "",
+      leader: row.leader || "",
       phone: row.phone || "",
-      sort: row.sort ?? row.orderNum ?? 0,
+      sort: row.sort ?? 0,
       parentId: row.parentId
     });
   } else {
@@ -83,7 +89,9 @@ const openDialog = (row?: any) => {
 const fetchData = async () => {
   try {
     const r: any = await getDeptTree();
-    if (r.data) deptList.value = Array.isArray(r.data) ? r.data : [];
+    if (r.data && Array.isArray(r.data)) {
+      deptList.value = buildTree(r.data);
+    }
   } catch {}
 };
 
