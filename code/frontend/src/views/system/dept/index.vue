@@ -90,7 +90,9 @@ const fetchData = async () => {
   try {
     const r: any = await getDeptTree();
     if (r.data && Array.isArray(r.data)) {
-      deptList.value = buildTree(r.data);
+      // 兼容：后端返回树结构直接使用，返回扁平列表则前端构建树
+      const hasChildren = r.data.some((item: any) => item.children && item.children.length > 0);
+      deptList.value = hasChildren ? r.data : buildTree(r.data);
     }
   } catch {}
 };

@@ -15,7 +15,11 @@
       "Bash(npx vite *)",
       "Bash(npx vue-tsc *)",
       "Bash(Select-String -Pattern \"error|✓ built\")",
-      "Bash(Select-Object -Last 5)"
+      "Bash(Select-Object -Last 5)",
+      "Bash(docker *)",
+      "PowerShell(docker --version)",
+      "PowerShell(Get-CimInstance *)",
+      "PowerShell(wsl --status 2>&1)"
     ]
   }
 }

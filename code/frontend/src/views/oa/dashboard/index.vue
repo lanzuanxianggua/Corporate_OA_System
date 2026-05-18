@@ -21,7 +21,7 @@
     <el-row :gutter="20" class="mb-5">
       <el-col :span="12">
         <el-card>
-          <template #header><span class="font-medium">近7天出勤率趋势</span></template>
+          <template #header><span class="font-medium">{{ trendTitle }}</span></template>
           <div ref="trendChartRef" style="height: 280px"></div>
         </el-card>
       </el-col>
@@ -57,7 +57,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from "vue";
 import * as echarts from "echarts";
 import { getDashboardStats } from "@/api/statistics";
 
@@ -69,6 +69,12 @@ const leaveTypeChartRef = ref<HTMLDivElement>();
 const clockInChartRef = ref<HTMLDivElement>();
 const charts: echarts.ECharts[] = [];
 let cachedData: any = null;
+
+const trendTitle = computed(() => {
+  if (period.value === "today") return "今日出勤率";
+  if (period.value === "week") return "本周出勤率趋势";
+  return "本月出勤率趋势";
+});
 
 const statsCards = reactive([
   { label: "总人数", value: "0", color: "#409EFF" },
@@ -199,7 +205,7 @@ const initClockInChart = () => {
       splitLine: { show: false },
       axisLabel: { show: false },
       pointer: { show: false },
-      detail: { valueAnimation: true, formatter: `{c}/${total}`, fontSize: 20, offsetCenter: [0, "0%"] },
+      detail: { valueAnimation: true, formatter: (val: number) => `${val}/${total}`, fontSize: 20, offsetCenter: [0, "0%"] },
       data: [{ value: clockedIn, name: "已打卡" }],
       title: { offsetCenter: [0, "30%"], fontSize: 14, color: "#909399" }
     }]

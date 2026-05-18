@@ -60,7 +60,7 @@
         <el-table-column label="部门" prop="deptName" />
         <el-table-column label="出勤率">
           <template #default="{ row }">
-            <el-progress :percentage="Number(row.attendanceRate || 0)" :stroke-width="10" />
+            <el-progress :percentage="Number(row.rate || 0)" :stroke-width="10" />
           </template>
         </el-table-column>
       </el-table>
@@ -116,11 +116,16 @@ const initTrendChart = async () => {
     const r: any = await getAdminAttendanceTrend(month.value, 12);
     const chart = echarts.init(trendChartRef.value); charts.push(chart);
     const data = r.data || [];
+    const normalCountMap: Record<string, number> = {};
+    (data as any[]).forEach((d: any) => { normalCountMap[d.month || d.date || ""] = d.normalCount || 0; });
     chart.setOption({
-      tooltip: { trigger: "axis" },
+      tooltip: { trigger: "axis", formatter: (params: any) => {
+        const p = params[0];
+        return `${p.name}<br/>出勤率: ${p.value}%<br/>正常次数: ${normalCountMap[p.name] || 0}`;
+      } },
       xAxis: { type: "category", data: data.map((d: any) => d.month || d.date || "") },
-      yAxis: { type: "value", name: "人数" },
-      series: [{ type: "line", data: data.map((d: any) => d.count || d.value || 0), areaStyle: { opacity: 0.3 }, smooth: true, itemStyle: { color: "#409EFF" } }]
+      yAxis: { type: "value", name: "出勤率(%)", max: 100 },
+      series: [{ type: "line", data: data.map((d: any) => d.rate || 0), areaStyle: { opacity: 0.3, color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "#409EFF" }, { offset: 1, color: "rgba(64,158,255,0.1)" }]) }, smooth: true, itemStyle: { color: "#409EFF" }, lineStyle: { width: 3 } }]
     });
   } catch {}
 };
@@ -146,8 +151,17 @@ const initLeaveChart = async () => {
     const r: any = await getAdminLeaveAnalysis(month.value);
     const chart = echarts.init(leaveChartRef.value); charts.push(chart);
     chart.setOption({
-      tooltip: { trigger: "item" },
-      series: [{ type: "pie", radius: "60%", data: (r.data || []).map((d: any) => ({ name: d.type || d.name || "", value: d.count || d.value || 0 })) }]
+      tooltip: { trigger: "item", formatter: "{b}: {c}次 ({d}%)" },
+      legend: { bottom: 0, type: "scroll" },
+      series: [{
+        type: "pie", radius: ["35%", "60%"],
+        label: { formatter: "{b}\n{c}次" },
+        data: (r.data || []).map((d: any) => {
+          const typeMap: Record<string, string> = { "0": "事假", "1": "病假", "2": "年假", "3": "婚假", "4": "产假", "5": "其他" };
+          return { name: typeMap[d.type] || d.type || "未知", value: d.count || d.value || 0 };
+        }),
+        emphasis: { itemStyle: { shadowBlur: 10, shadowColor: "rgba(0,0,0,0.2)" } }
+      }]
     });
   } catch {}
 };

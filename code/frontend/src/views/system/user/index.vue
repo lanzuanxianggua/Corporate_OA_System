@@ -11,16 +11,16 @@
     </div>
     <el-card>
       <el-table :data="userList" stripe>
-        <el-table-column label="工号" prop="username" width="120" />
-        <el-table-column label="姓名" prop="nickname" />
+        <el-table-column label="工号" prop="empCode" width="120" />
+        <el-table-column label="姓名" prop="empName" />
         <el-table-column label="部门">
-          <template #default="{ row }">{{ row.dept?.name || "-" }}</template>
+          <template #default="{ row }">{{ getDeptName(row.deptId) }}</template>
         </el-table-column>
         <el-table-column label="手机号" prop="phone" />
         <el-table-column label="邮箱" prop="email" />
         <el-table-column label="角色">
           <template #default="{ row }">
-            <el-tag v-for="role in (row.roles || [])" :key="role.id" size="small" class="mr-1">{{ role.name }}</el-tag>
+            <el-tag size="small" class="mr-1">{{ getRoleName(row) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="状态" width="80">
@@ -101,16 +101,26 @@ const flattenDepts = (list: any[]): any[] => {
   return result;
 };
 
+const getDeptName = (deptId: number | undefined) => {
+  if (!deptId) return "-";
+  return deptOptions.value.find((d: any) => d.id === deptId)?.deptName || "-";
+};
+
+const getRoleName = (row: any) => {
+  if (row.empCode === "ADMIN") return "管理员";
+  return "普通用户";
+};
+
 const openDialog = (row?: any) => {
   isEdit.value = !!row;
   if (row) {
     Object.assign(form, {
       id: row.id,
-      empCode: row.username || row.empCode || "",
-      empName: row.nickname || row.empName || "",
+      empCode: row.empCode || "",
+      empName: row.empName || "",
       phone: row.phone || "",
       email: row.email || "",
-      deptId: row.dept?.id || row.deptId,
+      deptId: row.deptId,
       password: ""
     });
   } else {

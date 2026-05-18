@@ -193,18 +193,19 @@ const initRateChart = async (qMonth: string) => {
       tooltip: { trigger: "item" },
       series: [{
         type: "gauge",
-        startAngle: 200,
-        endAngle: -20,
+        startAngle: 220,
+        endAngle: -40,
         min: 0,
         max: 100,
-        progress: { show: true, width: 18 },
-        axisLine: { lineStyle: { width: 18 } },
+        progress: { show: true, width: 14 },
+        axisLine: { lineStyle: { width: 14 } },
         axisTick: { show: false },
         splitLine: { show: false },
         axisLabel: { show: false },
-        detail: { valueAnimation: true, formatter: "{value}%", fontSize: 24, offsetCenter: [0, "0%"] },
+        pointer: { show: false },
+        detail: { valueAnimation: true, formatter: (val: number) => `${val.toFixed(1)}%`, fontSize: 22, fontWeight: "bold", offsetCenter: [0, "10%"], color: "#303133" },
         data: [{ value: Number(rate), name: "出勤率" }],
-        title: { offsetCenter: [0, "30%"], fontSize: 14 }
+        title: { show: true, offsetCenter: [0, "40%"], fontSize: 13, color: "#909399" }
       }]
     });
   } catch {}

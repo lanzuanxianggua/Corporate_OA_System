@@ -1,22 +1,22 @@
 package cn.oa.service;
 
 import cn.oa.entity.OaAttendance;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 
 public interface AttendanceService extends IService<OaAttendance> {
 
-    /**
-     * 上班打卡
-     */
     void clockIn(Long empId);
 
-    /**
-     * 下班打卡
-     */
     void clockOut(Long empId);
 
-    /**
-     * 获取今日考勤记录
-     */
     OaAttendance getTodayAttendance(Long empId);
+
+    List<OaAttendance> getAttendanceHistory(Long empId, LocalDate startDate, LocalDate endDate);
+
+    IPage<Map<String, Object>> adminPage(int pageNum, int pageSize, String empName, Integer status, LocalDate startDate, LocalDate endDate);
 }

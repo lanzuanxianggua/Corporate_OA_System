@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,29 +22,29 @@ public class DocumentServiceImpl extends ServiceImpl<OaDocumentMapper, OaDocumen
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
+    @Value("${oa.upload.path:uploads}")
+    private String uploadBasePath;
+
     @Override
     public void upload(MultipartFile file, Long uploaderId) {
-        // 获取文件信息
         String originalFilename = file.getOriginalFilename();
         String fileType = originalFilename != null ? originalFilename.substring(originalFilename.lastIndexOf(".")) : "";
         String fileName = UUID.randomUUID().toString() + fileType;
 
-        // 保存文件到服务器
-        String filePath = "uploads/" + fileName;
-        File dest = new File(filePath);
-        if (!dest.getParentFile().exists()) {
-            dest.getParentFile().mkdirs();
+        File uploadDir = new File(uploadBasePath);
+        if (!uploadDir.exists()) {
+            uploadDir.mkdirs();
         }
+        File dest = new File(uploadDir, fileName);
         try {
-            file.transferTo(dest);
+            file.transferTo(dest.getAbsoluteFile());
         } catch (IOException e) {
             throw new RuntimeException("文件上传失败", e);
         }
 
-        // 保存文档记录
         OaDocument document = new OaDocument();
         document.setDocName(originalFilename);
-        document.setFilePath(filePath);
+        document.setFilePath(fileName);
         document.setFileSize(file.getSize());
         document.setFileType(fileType);
         document.setUploaderId(uploaderId);

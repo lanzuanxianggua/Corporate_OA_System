@@ -7,6 +7,10 @@ spring:
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Shanghai
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
 
 mybatis-plus:
   mapper-locations: classpath*:mapper/**/*.xml
@@ -21,6 +25,10 @@ springdoc:
   group-configs:
     - group: default
       paths-to-match: /api/**
+
+oa:
+  upload:
+    path: uploads
 
 logging:
   level:
