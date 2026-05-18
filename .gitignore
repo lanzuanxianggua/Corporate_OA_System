@@ -96,3 +96,10 @@ Thumbs.db
 application-local.properties
 application-local.yml
 application-local.yaml
+
+######################################################################
+# Claude
+
+.claude/
+CLAUDE.md
+项目说明书.md
