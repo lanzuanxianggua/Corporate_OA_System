@@ -1,5 +1,6 @@
 package cn.oa.controller;
 
+import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
 import cn.oa.entity.OaDocument;
@@ -34,6 +35,7 @@ public class DocumentController {
     }
 
     @PostMapping("/upload")
+    @RequireAdmin
     @Operation(summary = "上传文档")
     public R<Void> upload(@RequestParam("file") MultipartFile file,
                           @RequestParam Long uploaderId) {
@@ -42,6 +44,7 @@ public class DocumentController {
     }
 
     @DeleteMapping("/{id}")
+    @RequireAdmin
     @Operation(summary = "删除文档")
     public R<Void> delete(@PathVariable Long id) {
         documentService.removeById(id);

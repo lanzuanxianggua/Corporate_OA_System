@@ -1,5 +1,6 @@
 import { createRouter, createWebHashHistory } from "vue-router";
 import type { RouteRecordRaw } from "vue-router";
+import { useUserStore } from "@/store/user";
 
 const Layout = () => import("@/layout/index.vue");
 
@@ -43,7 +44,7 @@ const staticRoutes: RouteRecordRaw[] = [
         path: "oa/attendance/manage",
         name: "AttendanceManage",
         component: () => import("@/views/oa/attendance/manage/index.vue"),
-        meta: { title: "考勤管理", roles: ["admin"] }
+        meta: { title: "考勤管理", roles: ["ADMIN"] }
       },
       {
         path: "oa/leave/apply",
@@ -55,7 +56,7 @@ const staticRoutes: RouteRecordRaw[] = [
         path: "oa/leave/approval",
         name: "LeaveApproval",
         component: () => import("@/views/oa/leave/approval/index.vue"),
-        meta: { title: "请假审批", roles: ["admin"] }
+        meta: { title: "请假审批", roles: ["ADMIN"] }
       },
       {
         path: "oa/notice/list",
@@ -67,7 +68,7 @@ const staticRoutes: RouteRecordRaw[] = [
         path: "oa/notice/manage",
         name: "NoticeManage",
         component: () => import("@/views/oa/notice/manage/index.vue"),
-        meta: { title: "公告管理", roles: ["admin"] }
+        meta: { title: "公告管理", roles: ["ADMIN"] }
       },
       {
         path: "oa/document/list",
@@ -79,7 +80,7 @@ const staticRoutes: RouteRecordRaw[] = [
         path: "oa/document/manage",
         name: "DocumentManage",
         component: () => import("@/views/oa/document/manage/index.vue"),
-        meta: { title: "文档管理", roles: ["admin"] }
+        meta: { title: "文档管理", roles: ["ADMIN"] }
       },
       {
         path: "oa/schedule/index",
@@ -91,7 +92,7 @@ const staticRoutes: RouteRecordRaw[] = [
         path: "oa/schedule/overview",
         name: "ScheduleOverview",
         component: () => import("@/views/oa/schedule/overview/index.vue"),
-        meta: { title: "日程总览", roles: ["admin"] }
+        meta: { title: "日程总览", roles: ["ADMIN"] }
       },
       {
         path: "oa/message/list",
@@ -103,7 +104,7 @@ const staticRoutes: RouteRecordRaw[] = [
         path: "oa/message/send",
         name: "MessageSend",
         component: () => import("@/views/oa/message/send/index.vue"),
-        meta: { title: "发送消息", roles: ["admin"] }
+        meta: { title: "发送消息", roles: ["ADMIN"] }
       },
       {
         path: "oa/report/personal",
@@ -115,61 +116,61 @@ const staticRoutes: RouteRecordRaw[] = [
         path: "oa/report/admin",
         name: "ReportAdmin",
         component: () => import("@/views/oa/report/admin/index.vue"),
-        meta: { title: "管理员报表", roles: ["admin"] }
+        meta: { title: "管理员报表", roles: ["ADMIN"] }
       },
       {
         path: "oa/dashboard",
         name: "Dashboard",
         component: () => import("@/views/oa/dashboard/index.vue"),
-        meta: { title: "数据看板", roles: ["admin"] }
+        meta: { title: "数据看板", roles: ["ADMIN"] }
       },
       {
         path: "system/user",
         name: "SystemUser",
         component: () => import("@/views/system/user/index.vue"),
-        meta: { title: "员工管理", roles: ["admin"] }
+        meta: { title: "员工管理", roles: ["ADMIN"] }
       },
       {
         path: "system/role",
         name: "SystemRole",
         component: () => import("@/views/system/role/index.vue"),
-        meta: { title: "角色管理", roles: ["admin"] }
+        meta: { title: "角色管理", roles: ["ADMIN"] }
       },
       {
         path: "system/menu",
         name: "SystemMenu",
         component: () => import("@/views/system/menu/index.vue"),
-        meta: { title: "菜单管理", roles: ["admin"] }
+        meta: { title: "菜单管理", roles: ["ADMIN"] }
       },
       {
         path: "system/dept",
         name: "SystemDept",
         component: () => import("@/views/system/dept/index.vue"),
-        meta: { title: "部门管理", roles: ["admin"] }
+        meta: { title: "部门管理", roles: ["ADMIN"] }
       },
       {
         path: "monitor/online",
         name: "MonitorOnline",
         component: () => import("@/views/monitor/online/index.vue"),
-        meta: { title: "在线用户", roles: ["admin"] }
+        meta: { title: "在线用户", roles: ["ADMIN"] }
       },
       {
         path: "monitor/logs/login",
         name: "LoginLogs",
         component: () => import("@/views/monitor/logs/login.vue"),
-        meta: { title: "登录日志", roles: ["admin"] }
+        meta: { title: "登录日志", roles: ["ADMIN"] }
       },
       {
         path: "monitor/logs/operation",
         name: "OperationLogs",
         component: () => import("@/views/monitor/logs/operation.vue"),
-        meta: { title: "操作日志", roles: ["admin"] }
+        meta: { title: "操作日志", roles: ["ADMIN"] }
       },
       {
         path: "monitor/logs/system",
         name: "SystemLogs",
         component: () => import("@/views/monitor/logs/system.vue"),
-        meta: { title: "系统日志", roles: ["admin"] }
+        meta: { title: "系统日志", roles: ["ADMIN"] }
       },
       {
         path: "account-settings",
@@ -219,6 +220,16 @@ router.beforeEach((to, _from, next) => {
   } else if (!token) {
     next("/login");
   } else {
+    const requiredRoles = to.meta?.roles as string[] | undefined;
+    if (requiredRoles?.length) {
+      const userStore = useUserStore();
+      const userRoles: string[] = userStore.userInfo?.roles || [];
+      const hasRole = requiredRoles.some(r => userRoles.includes(r));
+      if (!hasRole) {
+        next("/error/403");
+        return;
+      }
+    }
     next();
   }
 });

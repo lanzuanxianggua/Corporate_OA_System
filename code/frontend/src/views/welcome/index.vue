@@ -115,18 +115,6 @@
       </el-col>
     </el-row>
 
-    <!-- 待办事项 -->
-    <el-card>
-      <template #header><span class="font-medium">待办事项</span></template>
-      <div v-if="todoList.length > 0">
-        <div v-for="item in todoList" :key="item.id" class="py-2 border-b border-[#ebeef5] last:border-b-0 flex gap-2">
-          <el-tag :type="item.tagType" size="small" effect="light">{{ item.type }}</el-tag>
-          <span class="text-[#606266] text-sm truncate">{{ item.content }}</span>
-        </div>
-      </div>
-      <el-empty v-else description="暂无待办事项" :image-size="50" />
-    </el-card>
-
     <el-dialog v-model="noticeDialogVisible" :title="currentNotice?.title" width="600px">
       <div class="mb-4 text-sm text-[#909399]">{{ currentNotice?.createTime }}</div>
       <el-divider />
@@ -142,7 +130,6 @@ import { useUserStore } from "@/store/user";
 import { getDashboardStats } from "@/api/statistics";
 import { getTodayAttendance } from "@/api/attendance";
 import { getNoticePage } from "@/api/notice";
-import { getLeavePage } from "@/api/leave";
 import { getUnreadCount } from "@/api/message";
 import { getSchedulePage } from "@/api/schedule";
 import { getPersonalAttendanceSummary } from "@/api/report";
@@ -194,7 +181,6 @@ const quickEntries = [
 ];
 
 const noticeList = ref<any[]>([]);
-const todoList = ref<any[]>([]);
 const noticeDialogVisible = ref(false);
 const currentNotice = ref<any>(null);
 
@@ -235,24 +221,6 @@ onMounted(async () => {
   try {
     const res: any = await getNoticePage({ pageNum: 1, pageSize: 5 });
     if (res.data?.list) noticeList.value = res.data.list;
-  } catch {}
-  try {
-    const res: any = await getLeavePage({ pageNum: 1, pageSize: 10, status: 0 });
-    if (res.data?.list) {
-      const leaveTypeMap: Record<number, string> = { 0: "事假", 1: "病假", 2: "年假", 3: "婚假", 4: "产假", 5: "其他" };
-      const leaveTagMap: Record<number, string> = { 0: "warning", 1: "danger", 2: "success", 3: "", 4: "info", 5: "warning" };
-      todoList.value = res.data.list.map((item: any) => {
-        const start = item.startTime ? new Date(item.startTime) : null;
-        const end = item.endTime ? new Date(item.endTime) : null;
-        const days = start && end ? Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) : 0;
-        return {
-          id: item.id,
-          type: leaveTypeMap[item.leaveType] || "请假",
-          tagType: leaveTagMap[item.leaveType] || "info",
-          content: `${item.empName || "员工"} 请假${days}天 - ${item.reason || "无原因"}`
-        };
-      });
-    }
   } catch {}
 });
 </script>

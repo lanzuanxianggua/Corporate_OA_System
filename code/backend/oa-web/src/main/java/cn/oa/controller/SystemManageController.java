@@ -1,5 +1,6 @@
 package cn.oa.controller;
 
+import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.R;
 import cn.oa.entity.*;
 import cn.oa.mapper.*;
@@ -34,6 +35,7 @@ public class SystemManageController {
     private OperationLogService operationLogService;
 
     @PostMapping("/user")
+    @RequireAdmin
     public R<Map<String, Object>> userList(@RequestBody(required = false) Map<String, Object> params) {
         int pageNum = params != null && params.get("page") != null ? ((Number) params.get("page")).intValue() : 1;
         int pageSize = params != null && params.get("pageSize") != null ? ((Number) params.get("pageSize")).intValue() : 10;
@@ -97,6 +99,7 @@ public class SystemManageController {
     }
 
     @GetMapping("/list-all-role")
+    @RequireAdmin
     public R<List<Map<String, Object>>> listAllRole() {
         List<SysRole> roles = roleMapper.selectList(null);
         List<Map<String, Object>> list = roles.stream().map(r -> {
@@ -110,6 +113,7 @@ public class SystemManageController {
     }
 
     @PostMapping("/list-role-ids")
+    @RequireAdmin
     public R<List<Long>> listRoleIds(@RequestBody Map<String, Object> params) {
         Long userId = Long.valueOf(params.get("userId").toString());
         List<SysEmpRole> empRoles = empRoleMapper.selectList(
@@ -119,6 +123,7 @@ public class SystemManageController {
     }
 
     @PostMapping("/role")
+    @RequireAdmin
     public R<Map<String, Object>> roleList(@RequestBody(required = false) Map<String, Object> params) {
         List<SysRole> roles = roleMapper.selectList(null);
 
@@ -142,11 +147,13 @@ public class SystemManageController {
     }
 
     @PostMapping("/menu")
+    @RequireAdmin
     public R<List<Map<String, Object>>> menuList(@RequestBody(required = false) Map<String, Object> params) {
         return R.ok(buildMenuTree(0L));
     }
 
     @PostMapping("/dept")
+    @RequireAdmin
     public R<List<Map<String, Object>>> deptList(@RequestBody(required = false) Map<String, Object> params) {
         List<SysDept> allDepts = deptMapper.selectList(
                 new LambdaQueryWrapper<SysDept>().orderByAsc(SysDept::getSort));
@@ -161,11 +168,13 @@ public class SystemManageController {
     }
 
     @PostMapping("/role-menu")
+    @RequireAdmin
     public R<List<Map<String, Object>>> roleMenuList() {
         return R.ok(buildMenuTree(0L));
     }
 
     @PostMapping("/role-menu-ids")
+    @RequireAdmin
     public R<List<Long>> roleMenuIds(@RequestBody Map<String, Object> params) {
         return R.ok(List.of(1L, 2L, 3L, 4L));
     }

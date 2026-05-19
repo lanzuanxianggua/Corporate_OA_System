@@ -48,7 +48,7 @@
       </el-col>
       <el-col :span="8">
         <el-card>
-          <template #header><span class="font-medium">今日打卡概览</span></template>
+          <template #header><span class="font-medium">{{ periodLabel }}打卡概览</span></template>
           <div ref="clockInChartRef" style="height: 280px"></div>
         </el-card>
       </el-col>
@@ -57,7 +57,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import * as echarts from "echarts";
 import { getDashboardStats } from "@/api/statistics";
 
@@ -68,7 +68,7 @@ const attStatusChartRef = ref<HTMLDivElement>();
 const leaveTypeChartRef = ref<HTMLDivElement>();
 const clockInChartRef = ref<HTMLDivElement>();
 const charts: echarts.ECharts[] = [];
-let cachedData: any = null;
+const cachedData = ref<any>(null);
 
 const trendTitle = computed(() => {
   if (period.value === "today") return "今日出勤率";
@@ -76,14 +76,38 @@ const trendTitle = computed(() => {
   return "本月出勤率趋势";
 });
 
-const statsCards = reactive([
-  { label: "总人数", value: "0", color: "#409EFF" },
-  { label: "已打卡", value: "0", color: "#67C23A" },
-  { label: "未打卡", value: "0", color: "#909399" },
-  { label: "迟到", value: "0", color: "#E6A23C" },
-  { label: "早退", value: "0", color: "#F56C6C" },
-  { label: "请假", value: "0", color: "#9254de" }
-]);
+const periodLabel = computed(() => {
+  if (period.value === "today") return "今日";
+  if (period.value === "week") return "本周";
+  return "本月";
+});
+
+const statsCards = computed(() => {
+  const d = cachedData.value;
+  if (!d) {
+    return [
+      { label: "总人数", value: "0", color: "#409EFF" },
+      { label: "今日已打卡", value: "0", color: "#67C23A" },
+      { label: "未打卡", value: "0", color: "#909399" },
+      { label: "今日迟到", value: "0", color: "#E6A23C" },
+      { label: "今日早退", value: "0", color: "#F56C6C" },
+      { label: "今日请假", value: "0", color: "#9254de" }
+    ];
+  }
+  const pl = periodLabel.value;
+  const att = d.attendance || {};
+  const clockedIn = Number(att.clockedIn) || 0;
+  const total = Number(d.employeeTotal) || 0;
+  const notClocked = period.value === "today" ? Math.max(0, total - clockedIn) : (Number(att.absent) || 0);
+  return [
+    { label: "总人数", value: String(total), color: "#409EFF" },
+    { label: `${pl}已打卡`, value: String(clockedIn), color: "#67C23A" },
+    { label: period.value === "today" ? "未打卡" : `${pl}缺勤`, value: String(notClocked), color: "#909399" },
+    { label: `${pl}迟到`, value: String(Number(att.late) || 0), color: "#E6A23C" },
+    { label: `${pl}早退`, value: String(Number(att.earlyLeave) || 0), color: "#F56C6C" },
+    { label: `${pl}请假`, value: String(Number((d.leave || {}).total) || 0), color: "#9254de" }
+  ];
+});
 
 const destroyCharts = () => {
   charts.forEach((c) => c.dispose());
@@ -95,15 +119,7 @@ const fetchAllData = async () => {
   try {
     const r: any = await getDashboardStats(period.value);
     if (r.data) {
-      cachedData = r.data;
-      const att = r.data.attendance || {};
-      const lv = r.data.leave || {};
-      statsCards[0].value = String(r.data.employeeTotal || 0);
-      statsCards[1].value = String(att.clockedIn || 0);
-      statsCards[2].value = String(att.notClockedIn || 0);
-      statsCards[3].value = String(att.late || 0);
-      statsCards[4].value = String(att.earlyLeave || 0);
-      statsCards[5].value = String(lv.total || 0);
+      cachedData.value = r.data;
     }
   } catch {}
   await nextTick();
@@ -118,7 +134,7 @@ const initTrendChart = () => {
   if (!trendChartRef.value) return;
   const chart = echarts.init(trendChartRef.value);
   charts.push(chart);
-  const trend = cachedData?.attendanceTrend || [];
+  const trend = cachedData.value?.attendanceTrend || [];
   chart.setOption({
     tooltip: { trigger: "axis", formatter: "{b}: {c}%" },
     xAxis: { type: "category", data: trend.map((d: any) => d.date || "") },
@@ -135,7 +151,7 @@ const initDeptChart = () => {
   if (!deptChartRef.value) return;
   const chart = echarts.init(deptChartRef.value);
   charts.push(chart);
-  const dept = cachedData?.departmentDistribution || [];
+  const dept = cachedData.value?.departmentDistribution || [];
   chart.setOption({
     tooltip: { trigger: "item", formatter: "{b}: {c}人 ({d}%)" },
     legend: { bottom: 0, type: "scroll" },
@@ -152,18 +168,18 @@ const initAttStatusChart = () => {
   if (!attStatusChartRef.value) return;
   const chart = echarts.init(attStatusChartRef.value);
   charts.push(chart);
-  const att = cachedData?.attendance || {};
+  const att = cachedData.value?.attendance || {};
   chart.setOption({
-    tooltip: { trigger: "item", formatter: "{b}: {c}人 ({d}%)" },
+    tooltip: { trigger: "item", formatter: "{b}: {c}人次 ({d}%)" },
     legend: { bottom: 0 },
     color: ["#67C23A", "#E6A23C", "#F56C6C", "#909399"],
     series: [{
       type: "pie", radius: "60%",
       data: [
-        { value: att.clockedIn || 0, name: "正常出勤" },
-        { value: att.late || 0, name: "迟到" },
-        { value: att.earlyLeave || 0, name: "早退" },
-        { value: att.absent || 0, name: "缺勤" }
+        { value: Number(att.clockedIn) || 0, name: "正常出勤" },
+        { value: Number(att.late) || 0, name: "迟到" },
+        { value: Number(att.earlyLeave) || 0, name: "早退" },
+        { value: Number(att.absent) || 0, name: "缺勤" }
       ].filter(d => d.value > 0)
     }]
   });
@@ -173,9 +189,9 @@ const initLeaveTypeChart = () => {
   if (!leaveTypeChartRef.value) return;
   const chart = echarts.init(leaveTypeChartRef.value);
   charts.push(chart);
-  const lv = cachedData?.leave || {};
+  const lv = cachedData.value?.leave || {};
   const byType = lv.byType || {};
-  const data = Object.entries(byType).map(([name, value]) => ({ name, value: value as number }));
+  const data = Object.entries(byType).map(([name, value]) => ({ name, value: Number(value) || 0 }));
   chart.setOption({
     tooltip: { trigger: "item", formatter: "{b}: {c}次 ({d}%)" },
     legend: { bottom: 0 },
@@ -191,21 +207,22 @@ const initClockInChart = () => {
   if (!clockInChartRef.value) return;
   const chart = echarts.init(clockInChartRef.value);
   charts.push(chart);
-  const att = cachedData?.attendance || {};
-  const total = cachedData?.employeeTotal || 0;
-  const clockedIn = att.clockedIn || 0;
+  const att = cachedData.value?.attendance || {};
+  const clockedIn = Number(att.clockedIn) || 0;
+  const totalRequired = Number(att.totalRequired) || 100;
+  const unit = period.value === "today" ? "人" : "人次";
   chart.setOption({
-    tooltip: { trigger: "item", formatter: "{b}: {c}人" },
+    tooltip: { trigger: "item", formatter: `{b}: {c}${unit}` },
     series: [{
       type: "gauge", startAngle: 200, endAngle: -20,
-      min: 0, max: total || 100,
+      min: 0, max: totalRequired,
       progress: { show: true, width: 16 },
       axisLine: { lineStyle: { width: 16 } },
       axisTick: { show: false },
       splitLine: { show: false },
       axisLabel: { show: false },
       pointer: { show: false },
-      detail: { valueAnimation: true, formatter: (val: number) => `${val}/${total}`, fontSize: 20, offsetCenter: [0, "0%"] },
+      detail: { valueAnimation: true, formatter: (val: number) => `${val}/${totalRequired}`, fontSize: 20, offsetCenter: [0, "0%"] },
       data: [{ value: clockedIn, name: "已打卡" }],
       title: { offsetCenter: [0, "30%"], fontSize: 14, color: "#909399" }
     }]

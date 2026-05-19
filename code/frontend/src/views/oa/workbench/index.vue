@@ -153,9 +153,9 @@
       </div>
     </el-card>
 
-    <!-- 公告 + 日程 + 待办 -->
+    <!-- 公告 + 日程 -->
     <el-row :gutter="20">
-      <el-col :span="8">
+      <el-col :span="12">
         <el-card>
           <template #header>
             <div class="flex justify-between items-center">
@@ -178,7 +178,7 @@
           <el-empty v-else description="暂无公告" :image-size="50" />
         </el-card>
       </el-col>
-      <el-col :span="8">
+      <el-col :span="12">
         <el-card>
           <template #header>
             <div class="flex justify-between items-center">
@@ -199,24 +199,6 @@
             </div>
           </div>
           <el-empty v-else description="今日无日程" :image-size="50" />
-        </el-card>
-      </el-col>
-      <el-col :span="8">
-        <el-card>
-          <template #header>
-            <div class="flex justify-between items-center">
-              <span class="font-medium">待办事项</span>
-              <el-tag v-if="todoList.length > 0" type="danger" size="small">{{ todoList.length }}</el-tag>
-            </div>
-          </template>
-          <div v-if="todoList.length > 0">
-            <div v-for="item in todoList" :key="item.id"
-              class="py-3 border-b border-[#ebeef5] last:border-b-0 flex gap-2 items-start">
-              <el-tag :type="item.tagType" size="small" effect="light">{{ item.type }}</el-tag>
-              <span class="text-sm text-[#606266] leading-5">{{ item.content }}</span>
-            </div>
-          </div>
-          <el-empty v-else description="暂无待办事项" :image-size="50" />
         </el-card>
       </el-col>
     </el-row>
@@ -286,7 +268,6 @@ const quickEntries = [
 
 const noticeList = ref<any[]>([]);
 const scheduleList = ref<any[]>([]);
-const todoList = ref<any[]>([]);
 const noticeDialogVisible = ref(false);
 const currentNotice = ref<any>(null);
 
@@ -411,34 +392,12 @@ const fetchSchedule = async () => {
   } catch {}
 };
 
-const fetchTodo = async () => {
-  try {
-    const res: any = await getLeavePage({ pageNum: 1, pageSize: 10, status: 0 });
-    if (res.data?.list) {
-      const leaveTypeMap: Record<number, string> = { 0: "事假", 1: "病假", 2: "年假", 3: "婚假", 4: "产假", 5: "其他" };
-      const leaveTagMap: Record<number, string> = { 0: "warning", 1: "danger", 2: "success", 3: "", 4: "info", 5: "warning" };
-      todoList.value = res.data.list.map((item: any) => {
-        const start = item.startTime ? new Date(item.startTime) : null;
-        const end = item.endTime ? new Date(item.endTime) : null;
-        const days = start && end ? Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) : 0;
-        return {
-          id: item.id,
-          type: leaveTypeMap[item.leaveType] || "请假",
-          tagType: leaveTagMap[item.leaveType] || "info",
-          content: `${item.empName || "员工"} 请假${days}天 - ${item.reason || "无原因"}`
-        };
-      });
-    }
-  } catch {}
-};
-
 onMounted(() => {
   fetchToday();
   fetchStats();
   fetchMonthStats();
   fetchNotice();
   fetchSchedule();
-  fetchTodo();
   timer = window.setInterval(() => {
     currentTime.value = dayjs().format("HH:mm:ss");
   }, 1000);

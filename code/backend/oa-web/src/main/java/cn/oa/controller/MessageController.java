@@ -1,8 +1,11 @@
 package cn.oa.controller;
 
+import cn.oa.common.annotation.RequireAdmin;
+import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
 import cn.oa.entity.OaMessage;
 import cn.oa.service.MessageService;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,17 +35,34 @@ public class MessageController {
         return R.ok(count);
     }
 
+    @GetMapping("/page")
+    @Operation(summary = "分页查询消息列表")
+    public R<PageResult<OaMessage>> page(@RequestParam(defaultValue = "1") int pageNum,
+                                          @RequestParam(defaultValue = "10") int pageSize,
+                                          HttpServletRequest request) {
+        Long empId = (Long) request.getAttribute("empId");
+        IPage<OaMessage> page = messageService.pageList(pageNum, pageSize, empId);
+        return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
+    }
+
     @PostMapping("/send")
+    @RequireAdmin
     @Operation(summary = "发送消息")
-    public R<Void> send(@RequestBody OaMessage message) {
+    public R<Void> send(@RequestBody OaMessage message, HttpServletRequest request) {
+        Long empId = (Long) request.getAttribute("empId");
+        message.setSenderId(empId);
+        if (message.getReceiverId() == null) {
+            return R.fail("请输入接收人ID");
+        }
         messageService.send(message);
         return R.ok();
     }
 
     @PostMapping("/{id}/read")
     @Operation(summary = "标记消息已读")
-    public R<Void> markAsRead(@PathVariable Long id) {
-        messageService.markAsRead(id);
+    public R<Void> markAsRead(@PathVariable Long id, HttpServletRequest request) {
+        Long empId = (Long) request.getAttribute("empId");
+        messageService.markAsRead(id, empId);
         return R.ok();
     }
 }

@@ -21,9 +21,7 @@ public class ScheduleServiceImpl extends ServiceImpl<OaScheduleMapper, OaSchedul
     public IPage<OaSchedule> pageList(int pageNum, int pageSize, Long empId) {
         Page<OaSchedule> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<OaSchedule> wrapper = new LambdaQueryWrapper<>();
-        if (empId != null) {
-            wrapper.eq(OaSchedule::getEmpId, empId);
-        }
+        wrapper.eq(OaSchedule::getEmpId, empId);
         wrapper.orderByDesc(OaSchedule::getStartTime);
         return this.page(page, wrapper);
     }

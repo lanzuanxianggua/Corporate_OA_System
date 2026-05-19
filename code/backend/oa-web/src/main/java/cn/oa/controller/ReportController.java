@@ -1,5 +1,6 @@
 package cn.oa.controller;
 
+import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.R;
 import cn.oa.entity.*;
 import cn.oa.service.ReportService;
@@ -65,18 +66,21 @@ public class ReportController {
     // ===== 管理员报表 =====
 
     @GetMapping("/admin/attendance-summary")
+    @RequireAdmin
     @Operation(summary = "全员考勤汇总")
     public R<AdminReportVO.AttendanceSummary> adminAttendanceSummary(@RequestParam String month) {
         return R.ok(reportService.getAdminAttendanceSummary(month));
     }
 
     @GetMapping("/admin/dept-compare")
+    @RequireAdmin
     @Operation(summary = "部门出勤对比")
     public R<List<Map<String, Object>>> adminDeptCompare(@RequestParam String month) {
         return R.ok((List<Map<String, Object>>) reportService.getDeptCompare(month));
     }
 
     @GetMapping("/admin/attendance-trend")
+    @RequireAdmin
     @Operation(summary = "全员出勤趋势")
     public R<List<Map<String, Object>>> adminAttendanceTrend(
             @RequestParam(defaultValue = "12") int months,
@@ -86,12 +90,14 @@ public class ReportController {
     }
 
     @GetMapping("/admin/leave-analysis")
+    @RequireAdmin
     @Operation(summary = "请假分析")
     public R<List<Map<String, Object>>> adminLeaveAnalysis(@RequestParam String month) {
         return R.ok((List<Map<String, Object>>) reportService.getLeaveAnalysis(month));
     }
 
     @GetMapping("/admin/employee-ranking")
+    @RequireAdmin
     @Operation(summary = "员工出勤排名")
     public R<List<Map<String, Object>>> adminEmployeeRanking(
             @RequestParam String month,
@@ -100,6 +106,7 @@ public class ReportController {
     }
 
     @GetMapping("/admin/today-overview")
+    @RequireAdmin
     @Operation(summary = "今日打卡概览")
     public R<AdminReportVO.TodayOverview> adminTodayOverview() {
         return R.ok(reportService.getTodayOverview());

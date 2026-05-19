@@ -82,6 +82,10 @@ public class AuthServiceImpl implements AuthService {
         String token = JwtUtil.generateToken(employee.getId(), employee.getEmpName());
         redisTemplate.opsForValue().set("token:" + employee.getId(), token, 7200, TimeUnit.SECONDS);
 
+        // 将角色信息存入Redis，供权限校验使用
+        String rolesKey = "roles:" + employee.getId();
+        redisTemplate.opsForValue().set(rolesKey, roleKeys, 7200, TimeUnit.SECONDS);
+
         // 记录在线用户
         String ip = getClientIp(request);
         String browser = getBrowser(request);
@@ -105,6 +109,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void logout(Long empId) {
         redisTemplate.delete("token:" + empId);
+        redisTemplate.delete("roles:" + empId);
         onlineUserService.userLogout(empId);
     }
 
@@ -122,6 +127,8 @@ public class AuthServiceImpl implements AuthService {
             String empName = claims.get("empName", String.class);
             String newToken = JwtUtil.generateToken(empId, empName);
             redisTemplate.opsForValue().set("token:" + empId, newToken, 7200, TimeUnit.SECONDS);
+            // 续期角色信息
+            redisTemplate.expire("roles:" + empId, 7200, TimeUnit.SECONDS);
             LoginVO vo = new LoginVO();
             vo.setAccessToken(newToken);
             vo.setRefreshToken(newToken);

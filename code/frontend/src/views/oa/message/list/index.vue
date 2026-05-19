@@ -6,7 +6,7 @@
     <el-card>
       <template #header>
         <div class="flex items-center justify-between">
-          <span>未读消息</span>
+          <span>我的消息</span>
           <el-button type="primary" link @click="$router.push('/oa/message/send')">发送消息</el-button>
         </div>
       </template>
@@ -25,9 +25,11 @@
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-1">
                 <span class="font-medium text-sm text-[#303133]">{{ item.senderName || "系统" }}</span>
+                <el-tag v-if="!item.isRead" type="danger" size="small">未读</el-tag>
                 <span class="text-xs text-[#909399]">{{ formatTime(item.createTime) }}</span>
               </div>
-              <div class="text-sm text-[#606266] truncate">{{ item.content }}</div>
+              <div class="text-sm text-[#606266] font-medium">{{ item.title }}</div>
+              <div class="text-sm text-[#909399] truncate">{{ item.content }}</div>
             </div>
             <el-button v-if="!item.isRead" type="primary" link size="small" @click.stop="handleRead(item)">
               标记已读
@@ -36,6 +38,12 @@
         </div>
       </div>
       <el-empty v-else description="暂无消息" />
+
+      <div class="flex justify-end mt-4">
+        <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total"
+          :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next" @size-change="fetchMessages"
+          @current-change="fetchMessages" />
+      </div>
     </el-card>
 
     <el-dialog v-model="dialogVisible" :title="currentMsg?.title || '消息详情'" width="500px">
@@ -48,11 +56,14 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { ElMessage } from "element-plus";
-import { getUnreadCount, markAsRead } from "@/api/message";
+import { getMessagePage, markAsRead } from "@/api/message";
 
 const messages = ref<any[]>([]);
 const dialogVisible = ref(false);
 const currentMsg = ref<any>(null);
+const pageNum = ref(1);
+const pageSize = ref(10);
+const total = ref(0);
 
 const colors = ["#409EFF", "#67C23A", "#E6A23C", "#F56C6C", "#9254de"];
 const avatarColor = (name?: string) => colors[(name?.charCodeAt(0) || 0) % colors.length];
@@ -67,7 +78,9 @@ const handleRead = async (item: any) => {
     await markAsRead(item.id);
     item.isRead = 1;
     ElMessage.success("已标记为已读");
-  } catch {}
+  } catch {
+    ElMessage.error("标记已读失败");
+  }
 };
 
 const openDetail = (item: any) => {
@@ -76,11 +89,17 @@ const openDetail = (item: any) => {
   if (!item.isRead) handleRead(item);
 };
 
-onMounted(async () => {
-  // 后端暂无消息分页列表接口，仅展示提示
+const fetchMessages = async () => {
   try {
-    const res: any = await getUnreadCount();
-    // 如果有未读消息数但无法获取列表，显示空状态
-  } catch {}
-});
+    const res: any = await getMessagePage({ pageNum: pageNum.value, pageSize: pageSize.value });
+    if (res.data) {
+      messages.value = res.data.list || [];
+      total.value = res.data.total || 0;
+    }
+  } catch {
+    messages.value = [];
+  }
+};
+
+onMounted(fetchMessages);
 </script>

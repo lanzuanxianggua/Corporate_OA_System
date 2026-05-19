@@ -1,8 +1,8 @@
 import request from "@/utils/request";
 
 export interface MessageVO {
-  id?: number;
-  senderId?: number;
+  id?: string;
+  senderId?: string;
   senderName?: string;
   receiverId: number;
   receiverName?: string;
@@ -28,6 +28,6 @@ export const sendMessage = (data: Partial<MessageVO>) => {
   return request.post("/api/message/send", data);
 };
 
-export const markAsRead = (id: number) => {
+export const markAsRead = (id: string | number) => {
   return request.post(`/api/message/${id}/read`);
 };

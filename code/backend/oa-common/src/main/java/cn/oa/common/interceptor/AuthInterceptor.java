@@ -1,5 +1,6 @@
 package cn.oa.common.interceptor;
 
+import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.utils.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
@@ -8,8 +9,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -64,6 +67,24 @@ public class AuthInterceptor implements HandlerInterceptor {
         String empName = claims.get("empName", String.class);
         request.setAttribute("empId", empId);
         request.setAttribute("empName", empName);
+
+        // 管理员权限校验
+        if (handler instanceof HandlerMethod handlerMethod) {
+            RequireAdmin methodAnnotation = handlerMethod.getMethodAnnotation(RequireAdmin.class);
+            RequireAdmin classAnnotation = handlerMethod.getBeanType().getAnnotation(RequireAdmin.class);
+            if (methodAnnotation != null || classAnnotation != null) {
+                String rolesKey = "roles:" + empId;
+                @SuppressWarnings("unchecked")
+                List<String> roles = (List<String>) redisTemplate.opsForValue().get(rolesKey);
+                if (roles == null || roles.stream().noneMatch(r -> "ADMIN".equalsIgnoreCase(r))) {
+                    log.warn("用户 {} (empId={}) 尝试访问管理员接口被拒绝", empName, empId);
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.getWriter().write("{\"code\":403,\"message\":\"权限不足，需要管理员权限\",\"data\":null}");
+                    return false;
+                }
+            }
+        }
 
         // 续期在线用户 TTL
         String onlineKey = ONLINE_KEY_PREFIX + empId;

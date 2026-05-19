@@ -108,11 +108,14 @@
           </el-breadcrumb>
         </div>
         <div class="flex items-center gap-4">
-          <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99">
+          <el-badge v-if="unreadCount > 0" :value="unreadCount" :max="99">
             <el-button text @click="router.push('/oa/message/list')">
               <el-icon :size="20"><Bell /></el-icon>
             </el-button>
           </el-badge>
+          <el-button v-else text @click="router.push('/oa/message/list')">
+            <el-icon :size="20"><Bell /></el-icon>
+          </el-button>
           <el-dropdown @command="handleCommand">
             <span class="flex items-center cursor-pointer gap-1">
               <el-avatar :size="32">

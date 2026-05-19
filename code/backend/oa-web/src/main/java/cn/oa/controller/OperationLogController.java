@@ -1,5 +1,6 @@
 package cn.oa.controller;
 
+import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
 import cn.oa.entity.OaOperationLog;
@@ -18,6 +19,7 @@ public class OperationLogController {
     private OperationLogService operationLogService;
 
     @GetMapping("/page")
+    @RequireAdmin
     @Operation(summary = "分页查询操作日志")
     public R<PageResult<OaOperationLog>> page(
             @RequestParam(defaultValue = "1") int pageNum,

@@ -1,5 +1,6 @@
 package cn.oa.controller;
 
+import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
 import cn.oa.entity.OaNotice;
@@ -50,6 +51,7 @@ public class NoticeController {
     }
 
     @PostMapping
+    @RequireAdmin
     @Operation(summary = "新增公告")
     public R<Void> add(@RequestBody OaNotice notice, HttpServletRequest request) {
         Long empId = (Long) request.getAttribute("empId");
@@ -59,6 +61,7 @@ public class NoticeController {
     }
 
     @PutMapping
+    @RequireAdmin
     @Operation(summary = "修改公告")
     public R<Void> update(@RequestBody OaNotice notice) {
         noticeService.updateById(notice);
@@ -66,6 +69,7 @@ public class NoticeController {
     }
 
     @DeleteMapping("/{id}")
+    @RequireAdmin
     @Operation(summary = "删除公告")
     public R<Void> delete(@PathVariable Long id) {
         noticeService.removeById(id);

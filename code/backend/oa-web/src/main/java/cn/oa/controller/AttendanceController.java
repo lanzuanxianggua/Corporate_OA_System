@@ -1,5 +1,6 @@
 package cn.oa.controller;
 
+import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.R;
 import cn.oa.common.result.PageResult;
 import cn.oa.entity.OaAttendance;
@@ -64,6 +65,7 @@ public class AttendanceController {
     }
 
     @GetMapping("/admin/page")
+    @RequireAdmin
     @Operation(summary = "管理员考勤分页查询")
     public R<PageResult<Map<String, Object>>> adminPage(
             @RequestParam(defaultValue = "1") int pageNum,

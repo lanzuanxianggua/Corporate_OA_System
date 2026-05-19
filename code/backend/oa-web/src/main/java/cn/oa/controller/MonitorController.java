@@ -1,5 +1,6 @@
 package cn.oa.controller;
 
+import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
 import cn.oa.entity.OaLoginLog;
@@ -19,6 +20,7 @@ import java.util.*;
 @RestController
 @CrossOrigin
 @Tag(name = "系统监控")
+@RequireAdmin
 public class MonitorController {
 
     @Autowired

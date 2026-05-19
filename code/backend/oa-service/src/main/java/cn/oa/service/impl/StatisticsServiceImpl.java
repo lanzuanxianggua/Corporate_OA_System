@@ -48,36 +48,44 @@ public class StatisticsServiceImpl implements StatisticsService {
                 startDate = today;
         }
 
-        // 3. 考勤统计
+        // 3. 考勤统计（按日期范围统计）
         Map<String, Object> attendance = new LinkedHashMap<>();
 
-        // 今日打卡人数
+        // 范围内打卡总人次
         Long clockedIn = attendanceMapper.selectCount(
             new LambdaQueryWrapper<OaAttendance>()
-                .eq(OaAttendance::getWorkDate, today)
+                .between(OaAttendance::getWorkDate, startDate, endDate)
                 .isNotNull(OaAttendance::getClockIn));
         attendance.put("clockedIn", clockedIn);
-        attendance.put("notClockedIn", Math.max(0, employeeTotal - clockedIn));
 
-        // 迟到人数 (clockIn > 09:00)
-        LocalDateTime nineOClock = today.atTime(9, 0);
+        // 范围内迟到总人次
         Long late = attendanceMapper.selectCount(
             new LambdaQueryWrapper<OaAttendance>()
-                .eq(OaAttendance::getWorkDate, today)
-                .gt(OaAttendance::getClockIn, nineOClock));
+                .between(OaAttendance::getWorkDate, startDate, endDate)
+                .apply("TIME(clock_in) > '09:00:00'"));
         attendance.put("late", late);
 
-        // 早退人数 (clockOut < 18:00 且已打卡)
-        LocalDateTime sixOClock = today.atTime(18, 0);
+        // 范围内早退总人次
         Long earlyLeave = attendanceMapper.selectCount(
             new LambdaQueryWrapper<OaAttendance>()
-                .eq(OaAttendance::getWorkDate, today)
+                .between(OaAttendance::getWorkDate, startDate, endDate)
                 .isNotNull(OaAttendance::getClockOut)
-                .lt(OaAttendance::getClockOut, sixOClock));
+                .apply("TIME(clock_out) < '18:00:00'"));
         attendance.put("earlyLeave", earlyLeave);
 
-        // 缺勤人数
-        attendance.put("absent", Math.max(0, employeeTotal - clockedIn));
+        // 范围内已批准请假人次
+        Long onLeave = leaveApplyMapper.selectCount(
+            new LambdaQueryWrapper<OaLeaveApply>()
+                .eq(OaLeaveApply::getStatus, 1)
+                .le(OaLeaveApply::getStartTime, endDate.atTime(23, 59, 59))
+                .ge(OaLeaveApply::getEndTime, startDate.atTime(0, 0, 0)));
+
+        // 缺勤总人次 = 范围天数 × 员工总数 - 打卡总人次 - 请假人次
+        long rangeDays = startDate.until(endDate).getDays() + 1;
+        long totalRequired = employeeTotal * rangeDays;
+        long absent = Math.max(0, totalRequired - clockedIn - onLeave);
+        attendance.put("absent", absent);
+        attendance.put("totalRequired", totalRequired);
         result.put("attendance", attendance);
 
         // 4. 请假统计
@@ -121,11 +129,22 @@ public class StatisticsServiceImpl implements StatisticsService {
         }
         result.put("departmentDistribution", deptDistribution);
 
-        // 6. 出勤趋势（最近7天）
+        // 6. 出勤趋势
         List<Map<String, Object>> trend = new ArrayList<>();
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MM-dd");
-        for (int i = 6; i >= 0; i--) {
-            LocalDate date = today.minusDays(i);
+        LocalDate trendStart;
+        LocalDate trendEnd = today;
+        switch (period == null ? "today" : period) {
+            case "month":
+                trendStart = today.withDayOfMonth(1);
+                break;
+            case "week":
+                trendStart = today.minusDays(6);
+                break;
+            default:
+                trendStart = today;
+        }
+        for (LocalDate date = trendStart; !date.isAfter(trendEnd); date = date.plusDays(1)) {
             Long dayClocked = attendanceMapper.selectCount(
                 new LambdaQueryWrapper<OaAttendance>()
                     .eq(OaAttendance::getWorkDate, date)

@@ -1,5 +1,6 @@
 package cn.oa.controller;
 
+import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.R;
 import cn.oa.service.StatisticsService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,6 +19,7 @@ public class StatisticsController {
     private StatisticsService statisticsService;
 
     @GetMapping("/dashboard")
+    @RequireAdmin
     @Operation(summary = "获取仪表盘统计数据")
     public R<Map<String, Object>> dashboard(@RequestParam(defaultValue = "today") String period) {
         Map<String, Object> data = statisticsService.getDashboardStats(period);

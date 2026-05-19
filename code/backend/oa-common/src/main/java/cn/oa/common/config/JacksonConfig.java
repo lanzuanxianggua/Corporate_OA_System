@@ -2,6 +2,8 @@ package cn.oa.common.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +29,11 @@ public class JacksonConfig implements WebMvcConfigurer {
         for (HttpMessageConverter<?> converter : converters) {
             if (converter instanceof MappingJackson2HttpMessageConverter jacksonConverter) {
                 ObjectMapper mapper = jacksonConverter.getObjectMapper();
+                // Long → String 防止 JS 精度丢失
+                SimpleModule longModule = new SimpleModule();
+                longModule.addSerializer(Long.class, ToStringSerializer.instance);
+                longModule.addSerializer(Long.TYPE, ToStringSerializer.instance);
+                mapper.registerModule(longModule);
                 // 注册自定义的 JavaTimeModule
                 JavaTimeModule module = new JavaTimeModule();
                 module.addSerializer(LocalDateTime.class, new LocalDateTimeSerializer(OUTPUT_FORMAT));

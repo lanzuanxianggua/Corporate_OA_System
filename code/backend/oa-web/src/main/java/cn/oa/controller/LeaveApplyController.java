@@ -1,5 +1,6 @@
 package cn.oa.controller;
 
+import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
 import cn.oa.entity.OaLeaveApply;
@@ -34,6 +35,7 @@ public class LeaveApplyController {
     }
 
     @PostMapping("/approve")
+    @RequireAdmin
     @Operation(summary = "审批请假申请")
     public R<Void> approve(@RequestBody Map<String, Object> params, HttpServletRequest request) {
         Long applyId = Long.valueOf(params.get("id").toString());
