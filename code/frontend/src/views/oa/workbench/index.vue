@@ -3,7 +3,7 @@
     <!-- 问候 + 时间 -->
     <el-row :gutter="20" class="mb-5">
       <el-col :span="16">
-        <div class="bg-white rounded-lg p-6" style="box-shadow:0 2px 12px rgba(0,0,0,.06)">
+        <div class="bg-white rounded-lg p-6 h-full" style="box-shadow:0 2px 12px rgba(0,0,0,.06)">
           <h1 class="text-2xl font-bold text-[#303133] mb-2">
             {{ greeting }}，{{ userStore.userInfo?.empName || "用户" }}
           </h1>
@@ -22,7 +22,7 @@
         </div>
       </el-col>
       <el-col :span="8">
-        <div class="bg-white rounded-lg p-6 text-center" style="box-shadow:0 2px 12px rgba(0,0,0,.06)">
+        <div class="bg-white rounded-lg p-6 text-center h-full flex flex-col justify-center" style="box-shadow:0 2px 12px rgba(0,0,0,.06)">
           <div class="text-4xl font-bold text-[#303133] font-mono">{{ currentTime }}</div>
           <div class="text-sm text-[#909399] mt-2">{{ currentWeekday }}</div>
         </div>
@@ -47,7 +47,7 @@
     <!-- 今日考勤 + 考勤打卡 -->
     <el-row :gutter="20" class="mb-5">
       <el-col :span="12">
-        <el-card>
+        <el-card class="h-full">
           <template #header>
             <div class="flex justify-between items-center">
               <span class="font-medium">今日考勤</span>
@@ -101,7 +101,7 @@
         </el-card>
       </el-col>
       <el-col :span="12">
-        <el-card>
+        <el-card class="h-full">
           <template #header>
             <div class="flex justify-between items-center">
               <span class="font-medium">本月出勤概览</span>
@@ -156,7 +156,7 @@
     <!-- 公告 + 日程 -->
     <el-row :gutter="20">
       <el-col :span="12">
-        <el-card>
+        <el-card class="h-full">
           <template #header>
             <div class="flex justify-between items-center">
               <span class="font-medium">最新公告</span>
@@ -179,7 +179,7 @@
         </el-card>
       </el-col>
       <el-col :span="12">
-        <el-card>
+        <el-card class="h-full">
           <template #header>
             <div class="flex justify-between items-center">
               <span class="font-medium">今日日程</span>

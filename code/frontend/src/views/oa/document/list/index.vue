@@ -22,8 +22,9 @@
         <el-table-column label="文件大小" width="100">
           <template #default="{ row }">{{ formatSize(row.fileSize) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="100">
+        <el-table-column label="操作" width="120">
           <template #default="{ row }">
+            <el-button type="primary" link @click="handleDownload(row)">下载</el-button>
             <el-button type="danger" link @click="handleDelete(row.id)">删除</el-button>
           </template>
         </el-table-column>
@@ -50,7 +51,7 @@
 import { ref, computed, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Upload } from "@element-plus/icons-vue";
-import { getDocumentPage, uploadDocument, deleteDocument } from "@/api/document";
+import { getDocumentPage, uploadDocument, deleteDocument, downloadDocument } from "@/api/document";
 import { useUserStore } from "@/store/user";
 
 const userStore = useUserStore();
@@ -105,6 +106,21 @@ const handleDelete = async (id: number) => {
     ElMessage.success("删除成功");
     await fetchData();
   } catch {}
+};
+
+const handleDownload = async (row: any) => {
+  try {
+    const res: any = await downloadDocument(row.id);
+    const blob = new Blob([res]);
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = row.docName || "document";
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch {
+    ElMessage.error("下载失败");
+  }
 };
 
 onMounted(fetchData);

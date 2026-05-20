@@ -30,3 +30,7 @@ export const uploadDocument = (file: File, uploaderId: number) => {
 export const deleteDocument = (id: number) => {
   return request.delete(`/api/document/${id}`);
 };
+
+export const downloadDocument = (id: string | number) => {
+  return request.get(`/api/document/download/${id}`, { responseType: "blob" });
+};

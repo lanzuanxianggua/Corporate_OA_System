@@ -26,7 +26,7 @@
     <!-- 今日考勤状态 + 快捷入口 -->
     <el-row :gutter="20" class="mb-5">
       <el-col :span="12">
-        <el-card>
+        <el-card class="h-full">
           <template #header><span class="font-medium">今日考勤</span></template>
           <div v-if="todayAtt" class="flex items-center justify-around">
             <div class="text-center">
@@ -52,7 +52,7 @@
         </el-card>
       </el-col>
       <el-col :span="12">
-        <el-card>
+        <el-card class="h-full">
           <template #header><span class="font-medium">快捷入口</span></template>
           <div class="grid grid-cols-4 gap-4">
             <div v-for="item in quickEntries" :key="item.label"
@@ -69,7 +69,7 @@
     <!-- 本月个人统计 -->
     <el-row :gutter="20" class="mb-5">
       <el-col :span="8">
-        <el-card>
+        <el-card class="h-full">
           <template #header><span class="font-medium">本月出勤概览</span></template>
           <div class="grid grid-cols-2 gap-4 text-center">
             <div class="p-3 bg-[#f0f9ff] rounded-lg">
@@ -92,7 +92,7 @@
         </el-card>
       </el-col>
       <el-col :span="16">
-        <el-card>
+        <el-card class="h-full">
           <template #header>
             <div class="flex justify-between items-center">
               <span class="font-medium">最近公告</span>
@@ -206,8 +206,13 @@ onMounted(async () => {
     if (res.data !== undefined) dashboardData.unreadMessage = res.data;
   } catch {}
   try {
-    const res: any = await getSchedulePage({ pageNum: 1, pageSize: 1 });
-    dashboardData.todaySchedule = res.data?.total || 0;
+    const today = dayjs().format("YYYY-MM-DD");
+    const res: any = await getSchedulePage({ pageNum: 1, pageSize: 100 });
+    if (res.data?.list) {
+      dashboardData.todaySchedule = res.data.list.filter((s: any) =>
+        (s.startTime || "").startsWith(today)
+      ).length;
+    }
   } catch {}
   try {
     const res: any = await getPersonalAttendanceSummary(dayjs().format("YYYY-MM"));
