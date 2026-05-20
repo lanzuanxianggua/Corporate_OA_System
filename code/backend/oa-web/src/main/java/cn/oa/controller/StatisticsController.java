@@ -21,8 +21,10 @@ public class StatisticsController {
     @GetMapping("/dashboard")
     @RequireAdmin
     @Operation(summary = "获取仪表盘统计数据")
-    public R<Map<String, Object>> dashboard(@RequestParam(defaultValue = "today") String period) {
-        Map<String, Object> data = statisticsService.getDashboardStats(period);
+    public R<Map<String, Object>> dashboard(
+            @RequestParam(defaultValue = "today") String period,
+            @RequestParam(required = false) Integer year) {
+        Map<String, Object> data = statisticsService.getDashboardStats(period, year);
         return R.ok(data);
     }
 }

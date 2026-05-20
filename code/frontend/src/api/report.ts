@@ -1,14 +1,14 @@
 import request from "@/utils/request";
 
-export const getPersonalAttendanceSummary = (month: string) => {
+export const getPersonalAttendanceSummary = (month: string, period = "month") => {
   return request.get<any, any>("/api/report/personal/attendance-summary", {
-    params: { month }
+    params: { month, period }
   });
 };
 
-export const getPersonalAttendanceTrend = (months = 6) => {
+export const getPersonalAttendanceTrend = (months = 6, period = "month") => {
   return request.get<any, any>("/api/report/personal/attendance-trend", {
-    params: { months }
+    params: { months, period }
   });
 };
 

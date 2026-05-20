@@ -87,8 +87,7 @@ const statsCards = [
 ];
 
 const getQueryMonth = () => {
-  if (period.value === "today") return dayjs().format("YYYY-MM");
-  if (period.value === "week") return dayjs().format("YYYY-MM");
+  if (period.value === "today" || period.value === "week") return dayjs().format("YYYY-MM");
   if (period.value === "month") return month.value;
   if (period.value === "year") return year.value + "-01";
   return dayjs().format("YYYY-MM");
@@ -115,7 +114,7 @@ const destroyCharts = () => {
 const fetchAllData = async () => {
   const qMonth = getQueryMonth();
   try {
-    const r: any = await getPersonalAttendanceSummary(qMonth);
+    const r: any = await getPersonalAttendanceSummary(qMonth, period.value);
     if (r.data) {
       statsData.normalDays = r.data.normalDays || 0;
       statsData.lateDays = r.data.lateDays || 0;
@@ -133,14 +132,14 @@ const fetchAllData = async () => {
 const initTrendChart = async () => {
   if (!trendChartRef.value) return;
   try {
-    const r: any = await getPersonalAttendanceTrend(getTrendMonths());
+    const r: any = await getPersonalAttendanceTrend(getTrendMonths(), period.value);
     const chart = echarts.init(trendChartRef.value);
     charts.push(chart);
     chart.setOption({
       tooltip: { trigger: "axis" },
       xAxis: { type: "category", data: (r.data || []).map((d: any) => d.month || d.date || "") },
       yAxis: { type: "value", name: "天数" },
-      series: [{ type: "line", data: (r.data || []).map((d: any) => d.days || d.count || 0), areaStyle: { opacity: 0.3 }, smooth: true, itemStyle: { color: "#409EFF" } }]
+      series: [{ type: "line", data: (r.data || []).map((d: any) => d.normalDays || d.days || d.count || 0), areaStyle: { opacity: 0.3 }, smooth: true, itemStyle: { color: "#409EFF" } }]
     });
   } catch {}
 };
@@ -182,7 +181,7 @@ const initCompareChart = async (qMonth: string) => {
 const initRateChart = async (qMonth: string) => {
   if (!rateChartRef.value) return;
   try {
-    const r: any = await getPersonalAttendanceSummary(qMonth);
+    const r: any = await getPersonalAttendanceSummary(qMonth, period.value);
     const chart = echarts.init(rateChartRef.value);
     charts.push(chart);
     const data = r.data || {};

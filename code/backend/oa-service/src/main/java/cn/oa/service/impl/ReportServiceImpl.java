@@ -44,13 +44,15 @@ public class ReportServiceImpl implements ReportService {
 
     @Override
     public PersonalReportVO.AttendanceSummary getPersonalAttendanceSummary(Long empId, String month) {
-        String cacheKey = "cache:report:personal:" + empId + ":" + month;
+        YearMonth ym = YearMonth.parse(month, MONTH_FMT);
+        return getPersonalAttendanceSummary(empId, ym.atDay(1), ym.atEndOfMonth());
+    }
+
+    @Override
+    public PersonalReportVO.AttendanceSummary getPersonalAttendanceSummary(Long empId, LocalDate start, LocalDate end) {
+        String cacheKey = "cache:report:personal:" + empId + ":" + start + ":" + end;
         PersonalReportVO.AttendanceSummary cached = redisService.getJson(cacheKey, PersonalReportVO.AttendanceSummary.class);
         if (cached != null) return cached;
-
-        YearMonth ym = YearMonth.parse(month, MONTH_FMT);
-        LocalDate start = ym.atDay(1);
-        LocalDate end = ym.atEndOfMonth();
 
         LambdaQueryWrapper<OaAttendance> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(OaAttendance::getEmpId, empId)
@@ -68,7 +70,7 @@ public class ReportServiceImpl implements ReportService {
                 default -> normalDays++;
             }
         }
-        int totalDays = ym.lengthOfMonth();
+        int totalDays = (int) java.time.temporal.ChronoUnit.DAYS.between(start, end) + 1;
         summary.setNormalDays(normalDays);
         summary.setLateDays(lateDays);
         summary.setEarlyLeaveDays(earlyLeaveDays);

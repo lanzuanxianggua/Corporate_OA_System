@@ -3,8 +3,11 @@ package cn.oa.service;
 import cn.oa.entity.AdminReportVO;
 import cn.oa.entity.PersonalReportVO;
 
+import java.time.LocalDate;
+
 public interface ReportService {
     PersonalReportVO.AttendanceSummary getPersonalAttendanceSummary(Long empId, String month);
+    PersonalReportVO.AttendanceSummary getPersonalAttendanceSummary(Long empId, LocalDate start, LocalDate end);
     PersonalReportVO getPersonalReport(Long empId, String month, int months);
     AdminReportVO.AttendanceSummary getAdminAttendanceSummary(String month);
     AdminReportVO getAdminReport(String month, int months, Long deptId);

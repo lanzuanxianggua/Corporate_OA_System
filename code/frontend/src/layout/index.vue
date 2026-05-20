@@ -39,6 +39,10 @@
           <el-menu-item index="/oa/attendance/clock">考勤打卡</el-menu-item>
           <el-menu-item index="/oa/attendance/record">考勤记录</el-menu-item>
           <el-menu-item index="/oa/leave/apply">请假申请</el-menu-item>
+          <el-menu-item index="/oa/business-trip/apply">出差申请</el-menu-item>
+          <el-menu-item index="/oa/outing/apply">外出申请</el-menu-item>
+          <el-menu-item index="/oa/purchase/apply">采购申请</el-menu-item>
+          <el-menu-item index="/oa/expense/apply">经费申请</el-menu-item>
           <el-menu-item index="/oa/notice/list">公告通知</el-menu-item>
           <el-menu-item index="/oa/document/list">文档中心</el-menu-item>
           <el-menu-item index="/oa/schedule/index">我的日程</el-menu-item>
@@ -54,6 +58,10 @@
           <el-menu-item index="/oa/dashboard">数据看板</el-menu-item>
           <el-menu-item index="/oa/attendance/manage">考勤管理</el-menu-item>
           <el-menu-item index="/oa/leave/approval">请假审批</el-menu-item>
+          <el-menu-item index="/oa/business-trip/approval">出差审批</el-menu-item>
+          <el-menu-item index="/oa/outing/approval">外出审批</el-menu-item>
+          <el-menu-item index="/oa/purchase/approval">采购审批</el-menu-item>
+          <el-menu-item index="/oa/expense/approval">经费审批</el-menu-item>
           <el-menu-item index="/oa/notice/manage">公告管理</el-menu-item>
           <el-menu-item index="/oa/document/manage">文档管理</el-menu-item>
           <el-menu-item index="/oa/schedule/overview">日程总览</el-menu-item>

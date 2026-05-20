@@ -59,6 +59,54 @@ const staticRoutes: RouteRecordRaw[] = [
         meta: { title: "请假审批", roles: ["ADMIN"] }
       },
       {
+        path: "oa/business-trip/apply",
+        name: "BusinessTripApply",
+        component: () => import("@/views/oa/business-trip/apply/index.vue"),
+        meta: { title: "出差申请" }
+      },
+      {
+        path: "oa/business-trip/approval",
+        name: "BusinessTripApproval",
+        component: () => import("@/views/oa/business-trip/approval/index.vue"),
+        meta: { title: "出差审批", roles: ["ADMIN"] }
+      },
+      {
+        path: "oa/outing/apply",
+        name: "OutingApply",
+        component: () => import("@/views/oa/outing/apply/index.vue"),
+        meta: { title: "外出申请" }
+      },
+      {
+        path: "oa/outing/approval",
+        name: "OutingApproval",
+        component: () => import("@/views/oa/outing/approval/index.vue"),
+        meta: { title: "外出审批", roles: ["ADMIN"] }
+      },
+      {
+        path: "oa/purchase/apply",
+        name: "PurchaseApply",
+        component: () => import("@/views/oa/purchase/apply/index.vue"),
+        meta: { title: "采购申请" }
+      },
+      {
+        path: "oa/purchase/approval",
+        name: "PurchaseApproval",
+        component: () => import("@/views/oa/purchase/approval/index.vue"),
+        meta: { title: "采购审批", roles: ["ADMIN"] }
+      },
+      {
+        path: "oa/expense/apply",
+        name: "ExpenseApply",
+        component: () => import("@/views/oa/expense/apply/index.vue"),
+        meta: { title: "经费申请" }
+      },
+      {
+        path: "oa/expense/approval",
+        name: "ExpenseApproval",
+        component: () => import("@/views/oa/expense/approval/index.vue"),
+        meta: { title: "经费审批", roles: ["ADMIN"] }
+      },
+      {
         path: "oa/notice/list",
         name: "NoticeList",
         component: () => import("@/views/oa/notice/list/index.vue"),

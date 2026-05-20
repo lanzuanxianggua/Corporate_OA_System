@@ -127,11 +127,11 @@
 import { ref, reactive, onMounted, computed } from "vue";
 import dayjs from "dayjs";
 import { useUserStore } from "@/store/user";
-import { getDashboardStats } from "@/api/statistics";
 import { getTodayAttendance } from "@/api/attendance";
 import { getNoticePage } from "@/api/notice";
 import { getUnreadCount } from "@/api/message";
 import { getSchedulePage } from "@/api/schedule";
+import { getLeavePage } from "@/api/leave";
 import { getPersonalAttendanceSummary } from "@/api/report";
 
 const userStore = useUserStore();
@@ -191,15 +191,15 @@ const handleViewNotice = async (item: any) => {
 
 onMounted(async () => {
   try {
-    const res: any = await getDashboardStats("today");
+    const res: any = await getTodayAttendance();
     if (res.data) {
-      dashboardData.clockedIn = res.data.attendance?.clockedIn || 0;
-      dashboardData.leaveTotal = res.data.leave?.pending || 0;
+      todayAtt.value = res.data;
+      dashboardData.clockedIn = res.data.clockIn ? 1 : 0;
     }
   } catch {}
   try {
-    const res: any = await getTodayAttendance();
-    if (res.data) todayAtt.value = res.data;
+    const res: any = await getLeavePage({ pageNum: 1, pageSize: 1, status: 0 });
+    if (res.data?.total !== undefined) dashboardData.leaveTotal = res.data.total;
   } catch {}
   try {
     const res: any = await getUnreadCount();

@@ -25,7 +25,7 @@ public class StatisticsServiceImpl implements StatisticsService {
     private SysDeptMapper deptMapper;
 
     @Override
-    public Map<String, Object> getDashboardStats(String period) {
+    public Map<String, Object> getDashboardStats(String period, Integer year) {
         Map<String, Object> result = new LinkedHashMap<>();
 
         // 1. 员工总数
@@ -38,6 +38,11 @@ public class StatisticsServiceImpl implements StatisticsService {
         LocalDate startDate;
         LocalDate endDate = today;
         switch (period == null ? "today" : period) {
+            case "year":
+                int y = year != null ? year : LocalDate.now().getYear();
+                startDate = LocalDate.of(y, 1, 1);
+                endDate = LocalDate.of(y, 12, 31);
+                break;
             case "week":
                 startDate = today.minusDays(6); // 最近7天
                 break;
@@ -132,9 +137,28 @@ public class StatisticsServiceImpl implements StatisticsService {
         // 6. 出勤趋势
         List<Map<String, Object>> trend = new ArrayList<>();
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MM-dd");
-        LocalDate trendStart;
+        LocalDate trendStart = null;
         LocalDate trendEnd = today;
         switch (period == null ? "today" : period) {
+            case "year":
+                int y = year != null ? year : LocalDate.now().getYear();
+                List<Map<String, Object>> yearlyTrend = new ArrayList<>();
+                for (int m = 1; m <= 12; m++) {
+                    YearMonth ym = YearMonth.of(y, m);
+                    LocalDate mStart = ym.atDay(1);
+                    LocalDate mEnd = ym.atEndOfMonth();
+                    Long mClocked = attendanceMapper.selectCount(
+                        new LambdaQueryWrapper<OaAttendance>()
+                            .between(OaAttendance::getWorkDate, mStart, mEnd)
+                            .isNotNull(OaAttendance::getClockIn));
+                    int mRate = employeeTotal > 0 ? (int)(mClocked * 100 / employeeTotal) : 0;
+                    Map<String, Object> point = new LinkedHashMap<>();
+                    point.put("month", m + "月");
+                    point.put("rate", mRate);
+                    yearlyTrend.add(point);
+                }
+                result.put("yearlyAttendanceTrend", yearlyTrend);
+                break;
             case "month":
                 trendStart = today.withDayOfMonth(1);
                 break;
@@ -144,19 +168,82 @@ public class StatisticsServiceImpl implements StatisticsService {
             default:
                 trendStart = today;
         }
-        for (LocalDate date = trendStart; !date.isAfter(trendEnd); date = date.plusDays(1)) {
-            Long dayClocked = attendanceMapper.selectCount(
-                new LambdaQueryWrapper<OaAttendance>()
-                    .eq(OaAttendance::getWorkDate, date)
-                    .isNotNull(OaAttendance::getClockIn));
-            Map<String, Object> point = new LinkedHashMap<>();
-            point.put("date", date.format(fmt));
-            int rate = employeeTotal > 0 ? (int) (dayClocked * 100 / employeeTotal) : 0;
-            point.put("rate", rate);
-            trend.add(point);
+        if (trendStart != null) {
+            for (LocalDate date = trendStart; !date.isAfter(trendEnd); date = date.plusDays(1)) {
+                Long dayClocked = attendanceMapper.selectCount(
+                    new LambdaQueryWrapper<OaAttendance>()
+                        .eq(OaAttendance::getWorkDate, date)
+                        .isNotNull(OaAttendance::getClockIn));
+                Map<String, Object> point = new LinkedHashMap<>();
+                point.put("date", date.format(fmt));
+                int rate = employeeTotal > 0 ? (int) (dayClocked * 100 / employeeTotal) : 0;
+                point.put("rate", rate);
+                trend.add(point);
+            }
+            result.put("attendanceTrend", trend);
         }
-        result.put("attendanceTrend", trend);
+
+        // 7. 迟到排行榜
+        List<Map<String, Object>> lateRanking = buildLateRanking(startDate, endDate);
+        result.put("lateRanking", lateRanking);
+
+        // 8. 出勤排行榜
+        List<Map<String, Object>> attendanceRanking = buildAttendanceRanking(startDate, endDate);
+        result.put("attendanceRanking", attendanceRanking);
 
         return result;
+    }
+
+    private List<Map<String, Object>> buildLateRanking(LocalDate startDate, LocalDate endDate) {
+        List<OaAttendance> lateRecords = attendanceMapper.selectList(
+            new LambdaQueryWrapper<OaAttendance>()
+                .between(OaAttendance::getWorkDate, startDate, endDate)
+                .eq(OaAttendance::getStatus, 1));
+
+        Map<Long, Long> lateCountMap = lateRecords.stream()
+            .collect(Collectors.groupingBy(OaAttendance::getEmpId, Collectors.counting()));
+
+        List<Map<String, Object>> ranking = new ArrayList<>();
+        for (Map.Entry<Long, Long> entry : lateCountMap.entrySet()) {
+            SysEmployee emp = employeeMapper.selectById(entry.getKey());
+            if (emp != null) {
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("empName", emp.getEmpName());
+                item.put("lateCount", entry.getValue());
+                ranking.add(item);
+            }
+        }
+        ranking.sort((a, b) -> Long.compare((Long) b.get("lateCount"), (Long) a.get("lateCount")));
+        return ranking.size() > 10 ? ranking.subList(0, 10) : ranking;
+    }
+
+    private List<Map<String, Object>> buildAttendanceRanking(LocalDate startDate, LocalDate endDate) {
+        List<SysEmployee> activeEmployees = employeeMapper.selectList(
+            new LambdaQueryWrapper<SysEmployee>().eq(SysEmployee::getStatus, 1));
+
+        List<Map<String, Object>> ranking = new ArrayList<>();
+        for (SysEmployee emp : activeEmployees) {
+            Long totalDays = attendanceMapper.selectCount(
+                new LambdaQueryWrapper<OaAttendance>()
+                    .between(OaAttendance::getWorkDate, startDate, endDate)
+                    .eq(OaAttendance::getEmpId, emp.getId()));
+            if (totalDays == 0) continue;
+
+            Long normalDays = attendanceMapper.selectCount(
+                new LambdaQueryWrapper<OaAttendance>()
+                    .between(OaAttendance::getWorkDate, startDate, endDate)
+                    .eq(OaAttendance::getEmpId, emp.getId())
+                    .eq(OaAttendance::getStatus, 0));
+
+            double rate = Math.round(normalDays * 1000.0 / totalDays) / 10.0;
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("empName", emp.getEmpName());
+            item.put("rate", rate);
+            item.put("normalDays", normalDays);
+            item.put("totalDays", totalDays);
+            ranking.add(item);
+        }
+        ranking.sort((a, b) -> Double.compare((Double) b.get("rate"), (Double) a.get("rate")));
+        return ranking.size() > 10 ? ranking.subList(0, 10) : ranking;
     }
 }
