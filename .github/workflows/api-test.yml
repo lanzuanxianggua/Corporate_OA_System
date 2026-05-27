@@ -65,6 +65,10 @@ jobs:
           sed 's/oa_system/oa_system_test/g; s/CREATE DATABASE[^;]*;//g' \
             code/backend/sql/phase_all_ddl.sql | \
             mysql --force -h 127.0.0.1 -u root -ptest_password oa_system_test 2>&1 || true
+          # Workflow migration: wf_cc_record, wf_delegation, task ALTERs
+          sed 's/oa_system/oa_system_test/g' \
+            code/backend/workflow_migration.sql | \
+            mysql --force -h 127.0.0.1 -u root -ptest_password oa_system_test 2>&1 || true
           # Add missing columns that entities expect but init.sql didn't define
           mysql --force -h 127.0.0.1 -u root -ptest_password oa_system_test -e "
             ALTER TABLE sys_role ADD COLUMN remark VARCHAR(500) DEFAULT '' COMMENT '备注';
