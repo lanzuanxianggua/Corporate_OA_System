@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -52,11 +53,13 @@ class NoticeControllerTest extends BaseControllerTest {
         page.setTotal(2);
         page.setRecords(List.of(buildNotice(1L, "放假通知"), buildNotice(2L, "系统升级")));
 
-        when(noticeService.pageList(1, 10)).thenReturn(page);
+        when(noticeService.pageList(1, 10, null)).thenReturn(page);
+        when(noticeService.isRead(anyLong(), anyLong())).thenReturn(false);
 
-        mockMvc.perform(get("/api/notice/page").param("pageNum", "1").param("pageSize", "10"))
+        mockMvc.perform(get("/api/notice/page").param("pageNum", "1").param("pageSize", "10")
+                        .requestAttr("empId", 1L))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.total").value(2))
                 .andExpect(jsonPath("$.data.list[0].title").value("放假通知"));
     }
@@ -68,7 +71,7 @@ class NoticeControllerTest extends BaseControllerTest {
 
         mockMvc.perform(get("/api/notice/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.title").value("放假通知"));
     }
 
@@ -78,10 +81,11 @@ class NoticeControllerTest extends BaseControllerTest {
         when(noticeService.save(any(OaNotice.class))).thenReturn(true);
 
         mockMvc.perform(post("/api/notice")
+                        .requestAttr("empId", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(buildNotice(null, "新公告"))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
+                .andExpect(jsonPath("$.code").value(0));
 
         verify(noticeService, times(1)).save(any(OaNotice.class));
     }
@@ -95,7 +99,7 @@ class NoticeControllerTest extends BaseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(buildNotice(1L, "修改后"))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
+                .andExpect(jsonPath("$.code").value(0));
 
         verify(noticeService, times(1)).updateById(any(OaNotice.class));
     }
@@ -107,7 +111,7 @@ class NoticeControllerTest extends BaseControllerTest {
 
         mockMvc.perform(delete("/api/notice/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
+                .andExpect(jsonPath("$.code").value(0));
 
         verify(noticeService, times(1)).removeById(1L);
     }
@@ -117,9 +121,9 @@ class NoticeControllerTest extends BaseControllerTest {
     void markAsRead() throws Exception {
         doNothing().when(noticeService).markAsRead(1L, 1L);
 
-        mockMvc.perform(post("/api/notice/read/1").requestAttr("empId", 1L))
+        mockMvc.perform(post("/api/notice/1/read").requestAttr("empId", 1L))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
+                .andExpect(jsonPath("$.code").value(0));
 
         verify(noticeService, times(1)).markAsRead(1L, 1L);
     }

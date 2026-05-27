@@ -1,6 +1,7 @@
 package cn.oa.controller;
 
 import cn.oa.common.interceptor.AuthInterceptor;
+import cn.oa.common.interceptor.RateLimitInterceptor;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -18,9 +19,18 @@ public abstract class BaseControllerTest {
     @MockitoBean
     protected AuthInterceptor authInterceptor;
 
+    @MockitoBean
+    protected RateLimitInterceptor rateLimitInterceptor;
+
     @BeforeEach
     void setupInterceptor() throws Exception {
         when(authInterceptor.preHandle(
+                any(HttpServletRequest.class),
+                any(HttpServletResponse.class),
+                any(Object.class)
+        )).thenReturn(true);
+
+        when(rateLimitInterceptor.preHandle(
                 any(HttpServletRequest.class),
                 any(HttpServletResponse.class),
                 any(Object.class)

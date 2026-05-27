@@ -34,7 +34,7 @@
         <el-form-item label="联系电话"><el-input v-model="form.phone" /></el-form-item>
         <el-form-item label="排序"><el-input-number v-model="form.sort" :min="0" /></el-form-item>
         <el-form-item label="上级部门">
-          <el-tree-select v-model="form.parentId" :data="deptTreeData" :props="{ label: 'deptName', value: 'id', children: 'children' }" check-strictly clearable placeholder="无（顶级部门）" style="width: 100%" />
+          <el-tree-select v-model="form.parentId" :data="deptTreeData" :props="{ label: 'deptName', value: 'id', children: 'children' } as any" check-strictly clearable placeholder="无（顶级部门）" style="width: 100%" />
         </el-form-item>
       </el-form>
       <template #footer>

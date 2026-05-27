@@ -1,6 +1,7 @@
 package cn.oa.controller;
 
 import cn.oa.entity.OaAttendance;
+import cn.oa.mapper.SysEmployeeMapper;
 import cn.oa.service.AttendanceService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,9 @@ class AttendanceControllerTest extends BaseControllerTest {
     @MockitoBean
     private AttendanceService attendanceService;
 
+    @MockitoBean
+    private SysEmployeeMapper employeeMapper;
+
     @Test
     @DisplayName("上班打卡")
     void clockIn() throws Exception {
@@ -37,7 +41,7 @@ class AttendanceControllerTest extends BaseControllerTest {
         mockMvc.perform(post("/api/attendance/clock-in")
                         .requestAttr("empId", 1L))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
+                .andExpect(jsonPath("$.code").value(0));
 
         verify(attendanceService, times(1)).clockIn(1L);
     }
@@ -50,7 +54,7 @@ class AttendanceControllerTest extends BaseControllerTest {
         mockMvc.perform(post("/api/attendance/clock-out")
                         .requestAttr("empId", 1L))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
+                .andExpect(jsonPath("$.code").value(0));
 
         verify(attendanceService, times(1)).clockOut(1L);
     }
@@ -70,7 +74,7 @@ class AttendanceControllerTest extends BaseControllerTest {
         mockMvc.perform(get("/api/attendance/today")
                         .requestAttr("empId", 1L))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.status").value(1));
     }
 }

@@ -53,11 +53,11 @@ class DocumentControllerTest extends BaseControllerTest {
         page.setTotal(2);
         page.setRecords(List.of(buildDoc(1L, "测试文档.pdf"), buildDoc(2L, "需求文档.docx")));
 
-        when(documentService.pageList(1, 10)).thenReturn(page);
+        when(documentService.pageList(1, 10, null)).thenReturn(page);
 
         mockMvc.perform(get("/api/document/page").param("pageNum", "1").param("pageSize", "10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.total").value(2))
                 .andExpect(jsonPath("$.data.list[0].docName").value("测试文档.pdf"));
     }
@@ -74,7 +74,7 @@ class DocumentControllerTest extends BaseControllerTest {
                         .file(file)
                         .param("uploaderId", "1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
+                .andExpect(jsonPath("$.code").value(0));
 
         verify(documentService, times(1)).upload(any(), eq(1L));
     }
@@ -86,7 +86,7 @@ class DocumentControllerTest extends BaseControllerTest {
 
         mockMvc.perform(delete("/api/document/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
+                .andExpect(jsonPath("$.code").value(0));
 
         verify(documentService, times(1)).removeById(1L);
     }

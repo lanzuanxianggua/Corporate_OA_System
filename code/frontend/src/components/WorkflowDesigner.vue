@@ -82,7 +82,7 @@
           <el-divider content-position="left">多人审批</el-divider>
 
           <el-form-item label="启用多人">
-            <el-switch v-model="node.multiType" active-value="countersign" inactive-value="" @change="(val) => { if (!val) { node.multiType = null; node.multiAssigneeIds = []; } }" />
+            <el-switch v-model="node.multiType" active-value="countersign" inactive-value="" @change="(val: string | number | boolean) => { if (!val) { node.multiType = undefined; node.multiAssigneeIds = []; } }" />
           </el-form-item>
 
           <template v-if="node.multiType">
@@ -204,7 +204,7 @@ interface WorkflowNode {
   nodeName: string;
   assigneeType: string;
   assigneeValue: string;
-  multiType: string | null;
+  multiType: string | undefined;
   multiAssigneeIds: number[];
   ccList: number[];
   timeoutHours: number;
@@ -277,7 +277,7 @@ const parseModelValue = (val: string) => {
         nodeName: n.nodeName || "",
         assigneeType: n.assigneeType || "role",
         assigneeValue: n.assigneeValue || "",
-        multiType: n.multiType || null,
+        multiType: n.multiType || undefined,
         multiAssigneeIds: Array.isArray(n.multiAssigneeIds) ? n.multiAssigneeIds : [],
         ccList: Array.isArray(n.ccList) ? n.ccList : [],
         timeoutHours: n.timeoutHours ?? 0,
@@ -331,7 +331,7 @@ const createEmptyNode = (): WorkflowNode => ({
   nodeName: "",
   assigneeType: "role",
   assigneeValue: "",
-  multiType: null,
+  multiType: undefined,
   multiAssigneeIds: [],
   ccList: [],
   timeoutHours: 0,

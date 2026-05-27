@@ -41,7 +41,7 @@ class MessageControllerTest extends BaseControllerTest {
 
         mockMvc.perform(get("/api/message/unread-count").requestAttr("empId", 1L))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data").value(5));
     }
 
@@ -61,10 +61,11 @@ class MessageControllerTest extends BaseControllerTest {
         doNothing().when(messageService).send(any());
 
         mockMvc.perform(post("/api/message/send")
+                        .requestAttr("empId", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"receiverId\":2,\"content\":\"你好，这是测试消息\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
+                .andExpect(jsonPath("$.code").value(0));
 
         verify(messageService, times(1)).send(any());
     }
@@ -72,12 +73,13 @@ class MessageControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("标记消息已读")
     void markAsRead() throws Exception {
-        doNothing().when(messageService).markAsRead(1L);
+        doNothing().when(messageService).markAsRead(1L, 1L);
 
-        mockMvc.perform(post("/api/message/1/read"))
+        mockMvc.perform(post("/api/message/1/read")
+                        .requestAttr("empId", 1L))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
+                .andExpect(jsonPath("$.code").value(0));
 
-        verify(messageService, times(1)).markAsRead(1L);
+        verify(messageService, times(1)).markAsRead(1L, 1L);
     }
 }

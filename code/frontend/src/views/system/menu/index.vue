@@ -23,7 +23,7 @@
         <el-table-column prop="sort" label="排序" width="80" align="center" />
         <el-table-column label="类型" width="80" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.type === 0 ? '' : row.type === 1 ? 'success' : 'warning'" size="small">
+            <el-tag :type="(row.type === 0 ? 'info' : row.type === 1 ? 'success' : 'warning') as any" size="small">
               {{ row.type === 0 ? "目录" : row.type === 1 ? "菜单" : "按钮" }}
             </el-tag>
           </template>

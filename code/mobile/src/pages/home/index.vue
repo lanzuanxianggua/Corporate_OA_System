@@ -40,7 +40,7 @@
     </view>
 
     <!-- Todo stats -->
-    <view class="card" @click="uni.switchTab({ url: '/pages/todo/index' })">
+    <view class="card" @click="goTodo">
       <view class="flex-between">
         <text class="section-title" style="margin-bottom:0">待办事项</text>
         <text class="text-primary">{{ todoCount }} 项待处理 ></text>
@@ -86,6 +86,10 @@ const quickActions = [
 
 const navigate = (path: string) => {
   uni.navigateTo({ url: path });
+};
+
+const goTodo = () => {
+  uni.switchTab({ url: "/pages/todo/index" });
 };
 
 const fetchData = async () => {

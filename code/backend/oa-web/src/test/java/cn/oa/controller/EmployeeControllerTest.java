@@ -16,6 +16,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -59,7 +60,7 @@ class EmployeeControllerTest extends BaseControllerTest {
                         .param("pageNum", "1")
                         .param("pageSize", "10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.total").value(1))
                 .andExpect(jsonPath("$.data.list[0].empCode").value("admin"));
     }
@@ -79,7 +80,7 @@ class EmployeeControllerTest extends BaseControllerTest {
                         .param("empName", "张三")
                         .param("deptId", "2"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.total").value(0));
     }
 
@@ -90,23 +91,23 @@ class EmployeeControllerTest extends BaseControllerTest {
 
         mockMvc.perform(get("/api/employee/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.empCode").value("admin"));
     }
 
     @Test
     @DisplayName("新增员工")
     void addEmployee() throws Exception {
-        when(employeeService.save(any(SysEmployee.class))).thenReturn(true);
+        doNothing().when(employeeService).addEmployee(any(SysEmployee.class));
         SysEmployee emp = buildEmp(null, "TEST001", "新员工");
 
         mockMvc.perform(post("/api/employee")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(emp)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
+                .andExpect(jsonPath("$.code").value(0));
 
-        verify(employeeService, times(1)).save(any(SysEmployee.class));
+        verify(employeeService, times(1)).addEmployee(any(SysEmployee.class));
     }
 
     @Test
@@ -119,7 +120,7 @@ class EmployeeControllerTest extends BaseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(emp)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
+                .andExpect(jsonPath("$.code").value(0));
 
         verify(employeeService, times(1)).updateById(any(SysEmployee.class));
     }
@@ -131,7 +132,7 @@ class EmployeeControllerTest extends BaseControllerTest {
 
         mockMvc.perform(delete("/api/employee/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
+                .andExpect(jsonPath("$.code").value(0));
 
         verify(employeeService, times(1)).removeById(1L);
     }
@@ -146,7 +147,7 @@ class EmployeeControllerTest extends BaseControllerTest {
                         .param("oldPwd", "old123")
                         .param("newPwd", "new456"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
+                .andExpect(jsonPath("$.code").value(0));
 
         verify(employeeService, times(1)).updatePassword(1L, "old123", "new456");
     }

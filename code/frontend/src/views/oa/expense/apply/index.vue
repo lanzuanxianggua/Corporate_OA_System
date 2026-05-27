@@ -25,7 +25,7 @@
             <el-table-column prop="description" label="说明" min-width="120" show-overflow-tooltip />
             <el-table-column label="状态" width="160" align="center">
               <template #default="{ row }">
-                <el-tag :type="formatStatusTagType(row.status)" size="small" effect="light">{{ formatStatusText(row.status) }}</el-tag>
+                <el-tag :type="(formatStatusTagType(row.status) as any)" size="small" effect="light">{{ formatStatusText(row.status) }}</el-tag>
                 <el-button v-if="row.status !== 0" type="info" link size="small" class="ml-1" @click="showDetail(row)">详情</el-button>
                 <el-button v-if="row.status === 0" type="warning" link size="small" @click="handleWithdraw(row)">撤回</el-button>
                 <el-button v-if="row.status === 0" type="info" link size="small" @click="handleUrge(row)">催办</el-button>

@@ -9,6 +9,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -35,6 +37,9 @@ class ScheduleControllerTest extends BaseControllerTest {
     @MockitoBean
     private ScheduleService scheduleService;
 
+    @MockitoBean
+    private RedisTemplate<String, Object> redisTemplate;
+
     private OaSchedule buildSchedule(Long id, String title) {
         OaSchedule schedule = new OaSchedule();
         schedule.setId(id);
@@ -54,17 +59,19 @@ class ScheduleControllerTest extends BaseControllerTest {
         page.setTotal(2);
         page.setRecords(List.of(buildSchedule(1L, "部门会议"), buildSchedule(2L, "项目评审")));
 
-        when(scheduleService.pageList(1, 10, null)).thenReturn(page);
+        when(scheduleService.pageList(1, 10, 1L)).thenReturn(page);
 
-        mockMvc.perform(get("/api/schedule/page").param("pageNum", "1").param("pageSize", "10"))
+        mockMvc.perform(get("/api/schedule/page").param("pageNum", "1").param("pageSize", "10")
+                        .requestAttr("empId", 1L))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.total").value(2))
                 .andExpect(jsonPath("$.data.list[0].title").value("部门会议"));
     }
 
     @Test
     @DisplayName("分页查询日程 - 按员工")
+    @SuppressWarnings("unchecked")
     void pageScheduleByEmp() throws Exception {
         IPage<OaSchedule> page = new Page<>(1, 10);
         page.setTotal(1);
@@ -72,8 +79,13 @@ class ScheduleControllerTest extends BaseControllerTest {
 
         when(scheduleService.pageList(1, 10, 1L)).thenReturn(page);
 
+        ValueOperations<String, Object> valueOps = mock(ValueOperations.class);
+        when(redisTemplate.opsForValue()).thenReturn(valueOps);
+        when(valueOps.get("roles:1")).thenReturn(List.of("ADMIN"));
+
         mockMvc.perform(get("/api/schedule/page")
-                        .param("pageNum", "1").param("pageSize", "10").param("empId", "1"))
+                        .param("pageNum", "1").param("pageSize", "10").param("empId", "1")
+                        .requestAttr("empId", 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.total").value(1));
     }
@@ -87,7 +99,7 @@ class ScheduleControllerTest extends BaseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(buildSchedule(null, "新日程"))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
+                .andExpect(jsonPath("$.code").value(0));
 
         verify(scheduleService, times(1)).save(any(OaSchedule.class));
     }
@@ -101,7 +113,7 @@ class ScheduleControllerTest extends BaseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(buildSchedule(1L, "修改后"))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
+                .andExpect(jsonPath("$.code").value(0));
 
         verify(scheduleService, times(1)).updateById(any(OaSchedule.class));
     }
@@ -113,7 +125,7 @@ class ScheduleControllerTest extends BaseControllerTest {
 
         mockMvc.perform(delete("/api/schedule/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
+                .andExpect(jsonPath("$.code").value(0));
 
         verify(scheduleService, times(1)).removeById(1L);
     }

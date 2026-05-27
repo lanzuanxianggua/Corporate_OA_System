@@ -1,6 +1,7 @@
 package cn.oa.controller;
 
 import cn.oa.entity.OaLeaveApply;
+import cn.oa.mapper.SysEmployeeMapper;
 import cn.oa.service.LeaveApplyService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -15,6 +16,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -36,6 +38,9 @@ class LeaveApplyControllerTest extends BaseControllerTest {
     @MockitoBean
     private LeaveApplyService leaveApplyService;
 
+    @MockitoBean
+    private SysEmployeeMapper employeeMapper;
+
     private OaLeaveApply buildApply(Long id) {
         OaLeaveApply apply = new OaLeaveApply();
         apply.setId(id);
@@ -54,10 +59,11 @@ class LeaveApplyControllerTest extends BaseControllerTest {
         doNothing().when(leaveApplyService).submit(any(OaLeaveApply.class));
 
         mockMvc.perform(post("/api/leave/submit")
+                        .requestAttr("empId", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(buildApply(null))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
+                .andExpect(jsonPath("$.code").value(0));
 
         verify(leaveApplyService, times(1)).submit(any(OaLeaveApply.class));
     }
@@ -65,27 +71,33 @@ class LeaveApplyControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("审批请假申请 - 通过")
     void approveLeavePass() throws Exception {
-        doNothing().when(leaveApplyService).approve(1L, 2L, 1, "同意");
+        doNothing().when(leaveApplyService).approve(1L, 1L, 1, "同意");
+
+        Map<String, Object> params = Map.of("id", 1, "status", 1, "remark", "同意");
 
         mockMvc.perform(post("/api/leave/approve")
-                        .param("applyId", "1").param("approverId", "2")
-                        .param("status", "1").param("remark", "同意"))
+                        .requestAttr("empId", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(params)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
+                .andExpect(jsonPath("$.code").value(0));
 
-        verify(leaveApplyService, times(1)).approve(1L, 2L, 1, "同意");
+        verify(leaveApplyService, times(1)).approve(1L, 1L, 1, "同意");
     }
 
     @Test
     @DisplayName("审批请假申请 - 驳回")
     void approveLeaveReject() throws Exception {
-        doNothing().when(leaveApplyService).approve(1L, 2L, 2, "理由不充分");
+        doNothing().when(leaveApplyService).approve(1L, 1L, 2, "理由不充分");
+
+        Map<String, Object> params = Map.of("id", 1, "status", 2, "remark", "理由不充分");
 
         mockMvc.perform(post("/api/leave/approve")
-                        .param("applyId", "1").param("approverId", "2")
-                        .param("status", "2").param("remark", "理由不充分"))
+                        .requestAttr("empId", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(params)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
+                .andExpect(jsonPath("$.code").value(0));
     }
 
     @Test
@@ -99,7 +111,7 @@ class LeaveApplyControllerTest extends BaseControllerTest {
 
         mockMvc.perform(get("/api/leave/page").param("pageNum", "1").param("pageSize", "10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.total").value(1))
                 .andExpect(jsonPath("$.data.list[0].leaveType").value(1));
     }

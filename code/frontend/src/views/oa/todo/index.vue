@@ -19,7 +19,7 @@
         <el-table-column prop="source" label="来源" width="100" />
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
-            <el-tag :type="todoStatusType(row.status)" size="small" effect="light">{{ todoStatusText(row.status) }}</el-tag>
+            <el-tag :type="(todoStatusType(row.status) as any)" size="small" effect="light">{{ todoStatusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="创建时间" min-width="140">

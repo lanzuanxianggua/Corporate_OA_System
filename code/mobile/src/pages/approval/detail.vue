@@ -52,6 +52,7 @@ import { onLoad } from "@dcloudio/uni-app";
 import { getApprovalChain, handleTask, getPendingTasks } from "@/api/workflow";
 import { useUserStore } from "@/store/user";
 
+const rejectPopup = ref<any>(null);
 const userStore = useUserStore();
 const chain = ref<any[]>([]);
 const taskId = ref("");

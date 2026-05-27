@@ -27,7 +27,7 @@
         <el-table-column prop="description" label="说明" min-width="120" show-overflow-tooltip />
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
-            <el-tag :type="statusTagType(row.status)" size="small" effect="light">{{ statusText(row.status) }}</el-tag>
+            <el-tag :type="(statusTagType(row.status) as any)" size="small" effect="light">{{ statusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="160" align="center" fixed="right">

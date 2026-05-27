@@ -49,7 +49,7 @@ class DeptControllerTest extends BaseControllerTest {
 
         mockMvc.perform(get("/api/dept/tree"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data[0].deptName").value("总公司"));
     }
 
@@ -63,7 +63,7 @@ class DeptControllerTest extends BaseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dept)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
+                .andExpect(jsonPath("$.code").value(0));
 
         verify(deptService, times(1)).save(any(SysDept.class));
     }
@@ -78,7 +78,7 @@ class DeptControllerTest extends BaseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dept)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
+                .andExpect(jsonPath("$.code").value(0));
 
         verify(deptService, times(1)).updateById(any(SysDept.class));
     }
@@ -90,7 +90,7 @@ class DeptControllerTest extends BaseControllerTest {
 
         mockMvc.perform(delete("/api/dept/2"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200));
+                .andExpect(jsonPath("$.code").value(0));
 
         verify(deptService, times(1)).removeById(2L);
     }

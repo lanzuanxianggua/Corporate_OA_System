@@ -42,7 +42,7 @@
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
             <el-tag
-              :type="statusTagType(row.status)"
+              :type="(statusTagType(row.status) as any)"
               size="small"
               effect="light"
             >
@@ -102,10 +102,10 @@
             {{ currentRow.empName }}
           </el-descriptions-item>
           <el-descriptions-item label="部门">
-            {{ currentRow.deptName }}
+            {{ (currentRow as any).deptName ?? "-" }}
           </el-descriptions-item>
           <el-descriptions-item label="请假类型">
-            {{ leaveTypeMap[currentRow.leaveType] || "其他" }}
+            {{ leaveTypeMap[currentRow.leaveType!] || "其他" }}
           </el-descriptions-item>
           <el-descriptions-item label="请假天数">
             {{ calcDays(currentRow.startTime, currentRow.endTime) }} 天

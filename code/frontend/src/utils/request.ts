@@ -37,7 +37,7 @@ request.interceptors.request.use(
           const res = await axios.post("/refresh-token", { refreshToken });
           if (res.data?.code === 0 && res.data?.data?.accessToken) {
             token = res.data.data.accessToken;
-            localStorage.setItem("token", token);
+            localStorage.setItem("token", token!);
             if (res.data.data.refreshToken) {
               localStorage.setItem("refreshToken", res.data.data.refreshToken);
             }

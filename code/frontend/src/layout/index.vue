@@ -38,7 +38,7 @@
             <el-menu-item
               v-for="(child, cidx) in item.children"
               :key="'menu-' + idx + '-' + cidx"
-              :index="child.path"
+              :index="child.path ?? ''"
             >
               {{ child.title }}
             </el-menu-item>
@@ -46,7 +46,7 @@
           <el-menu-item
             v-else-if="!item.children && (!item.roles || userStore.isAdmin())"
             :key="'item-' + idx"
-            :index="item.path"
+            :index="item.path ?? ''"
           >
             <el-icon><component :is="item.icon" /></el-icon>
             <template #title>{{ item.title }}</template>

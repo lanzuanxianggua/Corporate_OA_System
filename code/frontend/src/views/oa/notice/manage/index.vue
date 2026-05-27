@@ -41,7 +41,7 @@
         <el-table-column label="紧急程度" width="100" align="center">
           <template #default="{ row }">
             <el-tag
-              :type="urgentTagType(row.noticeType)"
+              :type="(urgentTagType(row.noticeType) as any)"
               size="small"
               effect="light"
             >
