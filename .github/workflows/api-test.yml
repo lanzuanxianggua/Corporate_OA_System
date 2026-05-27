@@ -75,6 +75,9 @@ jobs:
             ALTER TABLE sys_role ADD COLUMN del_flag CHAR(1) DEFAULT '0' COMMENT '删除标志';
             ALTER TABLE sys_role ADD COLUMN update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间';
             ALTER TABLE sys_emp_role ADD COLUMN del_flag CHAR(1) DEFAULT '0' COMMENT '删除标志';
+            ALTER TABLE oa_attendance ADD COLUMN ip VARCHAR(50) DEFAULT '' COMMENT 'IP地址';
+            ALTER TABLE oa_attendance ADD COLUMN address VARCHAR(200) DEFAULT '' COMMENT '地址';
+            ALTER TABLE oa_leave_apply ADD COLUMN leave_period VARCHAR(20) DEFAULT 'full' COMMENT '请假时段';
           " 2>/dev/null || true
           # Seed: extra employees (wujiu etc.) + attendance history
           sed 's/oa_system/oa_system_test/g' \
@@ -88,6 +91,17 @@ jobs:
           sed 's/oa_system/oa_system_test/g' \
             code/backend/sql/seed_workflow_roles.sql | \
             mysql --force -h 127.0.0.1 -u root -ptest_password oa_system_test 2>&1 || true
+          # Seed: workflow definitions (leave/trip/outing/purchase/expense) + meeting rooms
+          sed 's/oa_system/oa_system_test/g' \
+            code/backend/init_workflow_meeting.sql | \
+            mysql --force -h 127.0.0.1 -u root -ptest_password oa_system_test 2>&1 || true
+          # Add missing overtime and loan workflow definitions
+          mysql --force -h 127.0.0.1 -u root -ptest_password oa_system_test -e "
+            INSERT IGNORE INTO wf_process_definition (id, process_type, process_name, node_config, version, status)
+            VALUES (100, 'overtime', '加班申请', '[{\"nodeIndex\":1,\"nodeName\":\"部门主管审批\",\"nodeType\":\"approval\",\"assigneeType\":\"dept_manager\"}]', 1, '0');
+            INSERT IGNORE INTO wf_process_definition (id, process_type, process_name, node_config, version, status)
+            VALUES (101, 'loan', '借支申请', '[{\"nodeIndex\":1,\"nodeName\":\"部门主管审批\",\"nodeType\":\"approval\",\"assigneeType\":\"dept_manager\"}]', 1, '0');
+          " 2>&1 || true
 
       - name: Verify database tables
         run: |
