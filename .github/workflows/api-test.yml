@@ -52,31 +52,40 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Initialize database schema
+      - name: Install redis-cli
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq redis-tools
+
+      - name: Initialize database
         run: |
-          # 1. Base tables (12 core tables: sys_dept, sys_employee, sys_role, etc.)
+          # Base tables (12 core tables + seed data for dept/employee/role)
           sed 's/oa_system/oa_system_test/g; s/CREATE DATABASE[^;]*;//g' \
             code/backend/oa-web/src/main/resources/sql/init.sql | \
-            mysql -h 127.0.0.1 -u root -ptest_password oa_system_test
-          # 2. All remaining tables + ALTER statements for base tables
+            mysql --force -h 127.0.0.1 -u root -ptest_password oa_system_test 2>&1
+          # All remaining tables + ALTER columns for base tables
           sed 's/oa_system/oa_system_test/g; s/CREATE DATABASE[^;]*;//g' \
             code/backend/sql/phase_all_ddl.sql | \
-            mysql -h 127.0.0.1 -u root -ptest_password oa_system_test 2>/dev/null || true
-
-      - name: Seed essential data
-        run: |
+            mysql --force -h 127.0.0.1 -u root -ptest_password oa_system_test 2>&1 || true
+          # Seed: extra employees (wujiu etc.) + attendance history
           sed 's/oa_system/oa_system_test/g' \
             code/backend/init_dashboard_data.sql | \
-            mysql -h 127.0.0.1 -u root -ptest_password oa_system_test
+            mysql --force -h 127.0.0.1 -u root -ptest_password oa_system_test 2>&1 || true
+          # Seed: dict types/data
           sed 's/oa_system/oa_system_test/g' \
             code/backend/sql/test_data.sql | \
-            mysql -h 127.0.0.1 -u root -ptest_password oa_system_test
+            mysql --force -h 127.0.0.1 -u root -ptest_password oa_system_test 2>&1 || true
+          # Seed: workflow roles
           sed 's/oa_system/oa_system_test/g' \
             code/backend/sql/seed_workflow_roles.sql | \
-            mysql -h 127.0.0.1 -u root -ptest_password oa_system_test
+            mysql --force -h 127.0.0.1 -u root -ptest_password oa_system_test 2>&1 || true
 
-      - name: Install redis-cli
-        run: sudo apt-get update && sudo apt-get install -y redis-tools
+      - name: Verify database tables
+        run: |
+          echo "=== Tables in oa_system_test ==="
+          mysql -h 127.0.0.1 -u root -ptest_password oa_system_test -e "SHOW TABLES;"
+          echo "=== sys_employee count ==="
+          mysql -h 127.0.0.1 -u root -ptest_password oa_system_test -e "SELECT COUNT(*) as cnt FROM sys_employee;"
+          echo "=== sys_employee columns ==="
+          mysql -h 127.0.0.1 -u root -ptest_password oa_system_test -e "DESCRIBE sys_employee;"
 
       - name: Build backend
         working-directory: code/backend
@@ -88,7 +97,7 @@ jobs:
           java -jar oa-web/target/oa-web-1.0.0.jar \
             --spring.datasource.url=jdbc:mysql://127.0.0.1:3306/oa_system_test?useSSL=false\&serverTimezone=Asia/Shanghai\&allowPublicKeyRetrieval=true \
             --spring.datasource.password=test_password \
-            --spring.data.redis.host=127.0.0.1 &
+            --spring.data.redis.host=127.0.0.1 > /tmp/backend.log 2>&1 &
           echo "Waiting for backend to start..."
           for i in $(seq 1 60); do
             if curl -s http://localhost:8080/api/auth/captcha > /dev/null 2>&1; then
@@ -99,7 +108,33 @@ jobs:
             sleep 2
           done
 
+      - name: Debug login
+        run: |
+          echo "=== Test captcha ==="
+          CR=$(curl -s http://localhost:8080/api/auth/captcha)
+          echo "$CR" | head -c 150
+          echo ""
+          UUID=$(echo "$CR" | grep -o '"uuid":"[^"]*"' | head -1 | cut -d'"' -f4)
+          echo "UUID=$UUID"
+          CAP_RAW=$(redis-cli GET "captcha:$UUID")
+          echo "Captcha raw=$CAP_RAW"
+          CAP=$(echo "$CAP_RAW" | tr -d '"' | tr -d '\r\n')
+          echo "Captcha clean=$CAP"
+          echo "=== Test login admin ==="
+          LR=$(curl -s -X POST http://localhost:8080/login \
+            -H "Content-Type: application/json" \
+            -d "{\"username\":\"admin\",\"password\":\"123456\",\"captchaCode\":\"$CAP\",\"captchaUuid\":\"$UUID\"}")
+          echo "Login response: $LR"
+          echo "=== Backend tail log ==="
+          tail -30 /tmp/backend.log 2>/dev/null || echo "No log file"
+
       - name: Run API tests
         run: bash tests/api-test.sh
         env:
           REDIS_CLI: redis-cli
+
+      - name: Print backend logs on failure
+        if: failure()
+        run: |
+          echo "=== Backend logs (last 100 lines) ==="
+          tail -100 /tmp/backend.log 2>/dev/null || echo "No log file"
