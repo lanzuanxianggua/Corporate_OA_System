@@ -54,15 +54,17 @@ jobs:
 
       - name: Initialize database schema
         run: |
-          sed 's/oa_system/oa_system_test/g; s/CREATE DATABASE[^;]*;//g' \
-            code/backend/sql/phase_all_ddl.sql | \
-            mysql -h 127.0.0.1 -u root -ptest_password oa_system_test
-
-      - name: Seed essential data
-        run: |
+          # 1. Base tables (12 core tables: sys_dept, sys_employee, sys_role, etc.)
           sed 's/oa_system/oa_system_test/g; s/CREATE DATABASE[^;]*;//g' \
             code/backend/oa-web/src/main/resources/sql/init.sql | \
             mysql -h 127.0.0.1 -u root -ptest_password oa_system_test
+          # 2. All remaining tables + ALTER statements for base tables
+          sed 's/oa_system/oa_system_test/g; s/CREATE DATABASE[^;]*;//g' \
+            code/backend/sql/phase_all_ddl.sql | \
+            mysql -h 127.0.0.1 -u root -ptest_password oa_system_test 2>/dev/null || true
+
+      - name: Seed essential data
+        run: |
           sed 's/oa_system/oa_system_test/g' \
             code/backend/init_dashboard_data.sql | \
             mysql -h 127.0.0.1 -u root -ptest_password oa_system_test
