@@ -75,6 +75,9 @@ jobs:
             code/backend/sql/seed_workflow_roles.sql | \
             mysql -h 127.0.0.1 -u root -ptest_password oa_system_test
 
+      - name: Install redis-cli
+        run: sudo apt-get update && sudo apt-get install -y redis-tools
+
       - name: Build backend
         working-directory: code/backend
         run: mvn clean package -Dmaven.test.skip=true -B -q
