@@ -23,10 +23,17 @@ login() {
     local username=$1
     local cr=$(curl -s "$BASE_URL/api/auth/captcha")
     local uuid=$(json_str "$cr" "uuid")
-    local cap=$("$REDIS_CLI" GET "captcha:$uuid" | tr -d '"' | tr -d '\r\n')
+    local cap=$("$REDIS_CLI" GET "captcha:$uuid" 2>/dev/null | tr -d '"' | tr -d '\r\n')
+    if [ -z "$cap" ]; then
+      echo "  [DEBUG] uuid=$uuid cap=EMPTY redis-cli failed or key not found" >&2
+    fi
     local lr=$(curl -s -X POST "$BASE_URL/login" -H "Content-Type: application/json" \
         -d "{\"username\":\"$username\",\"password\":\"123456\",\"captchaCode\":\"$cap\",\"captchaUuid\":\"$uuid\"}")
-    json_str "$lr" "accessToken"
+    local token=$(json_str "$lr" "accessToken")
+    if [ -z "$token" ]; then
+      echo "  [DEBUG] login=$username response=$(echo "$lr" | head -c 200)" >&2
+    fi
+    echo "$token"
 }
 
 check() {
