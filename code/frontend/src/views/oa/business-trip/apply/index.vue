@@ -23,9 +23,12 @@
             <el-table-column label="天数" width="60" align="center">
               <template #default="{ row }">{{ calcDays(row.startTime, row.endTime) }}</template>
             </el-table-column>
-            <el-table-column label="状态" width="80" align="center">
+            <el-table-column label="状态" width="160" align="center">
               <template #default="{ row }">
-                <el-tag :type="statusTagType(row.status)" size="small" effect="light">{{ statusText(row.status) }}</el-tag>
+                <el-tag :type="formatStatusTagType(row.status)" size="small" effect="light">{{ formatStatusText(row.status) }}</el-tag>
+                <el-button v-if="row.status !== 0" type="info" link size="small" class="ml-1" @click="showDetail(row)">详情</el-button>
+                <el-button v-if="row.status === 0" type="warning" link size="small" @click="handleWithdraw(row)">撤回</el-button>
+                <el-button v-if="row.status === 0" type="info" link size="small" @click="handleUrge(row)">催办</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -68,15 +71,22 @@
         </el-card>
       </el-col>
     </el-row>
+
+    <el-dialog v-model="detailVisible" title="审批详情" width="600px">
+      <ApprovalTimeline v-if="detailRow?.id" business-type="trip" :business-id="detailRow.id" />
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import type { FormInstance, FormRules } from "element-plus";
+import ApprovalTimeline from "@/components/ApprovalTimeline.vue";
+import { withdrawApplication, urgeTask } from "@/api/workflow";
 import { getBusinessTripPage, submitBusinessTrip } from "@/api/businessTrip";
 import { useUserStore } from "@/store/user";
+import { formatTime, formatStatusText, formatStatusTagType } from "@/utils/format";
 
 const userStore = useUserStore();
 
@@ -100,25 +110,18 @@ const fetchList = async () => {
   }
 };
 
-const statusText = (status?: number) => {
-  const map: Record<number, string> = { 0: "待审批", 1: "已通过", 2: "已拒绝" };
-  return map[status ?? -1] || "未知";
-};
-
-const statusTagType = (status?: number) => {
-  const map: Record<number, string> = { 0: "warning", 1: "success", 2: "danger" };
-  return map[status ?? -1] || "info";
-};
-
-const formatTime = (time?: string) => {
-  if (!time) return "-";
-  return time.replace("T", " ").substring(0, 16);
-};
-
 const calcDays = (startTime?: string, endTime?: string) => {
   if (!startTime || !endTime) return "-";
   const diff = new Date(endTime).getTime() - new Date(startTime).getTime();
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
+};
+
+// --- 详情 ---
+const detailVisible = ref(false);
+const detailRow = ref<any>(null);
+const showDetail = (row: any) => {
+  detailRow.value = row;
+  detailVisible.value = true;
 };
 
 // --- 表单 ---
@@ -175,6 +178,22 @@ const handleSubmit = async () => {
 
 const resetForm = () => {
   formRef.value?.resetFields();
+};
+
+const handleWithdraw = async (row: any) => {
+  try {
+    await ElMessageBox.confirm("确定要撤回此申请吗？", "撤回确认", { type: "warning" });
+    await withdrawApplication({ businessType: "trip", businessId: row.id });
+    ElMessage.success("申请已撤回");
+    fetchList();
+  } catch {}
+};
+
+const handleUrge = async (row: any) => {
+  try {
+    await urgeTask({ businessType: "trip", businessId: row.id });
+    ElMessage.success("已发送催办提醒");
+  } catch {}
 };
 
 onMounted(() => {

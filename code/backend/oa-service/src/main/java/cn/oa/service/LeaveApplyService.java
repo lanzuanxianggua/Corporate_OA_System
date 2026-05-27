@@ -20,4 +20,6 @@ public interface LeaveApplyService extends IService<OaLeaveApply> {
      * 分页查询请假申请
      */
     IPage<OaLeaveApply> pageList(int pageNum, int pageSize, Long empId, Integer status);
+
+    void updateStatus(Long id, Integer status);
 }

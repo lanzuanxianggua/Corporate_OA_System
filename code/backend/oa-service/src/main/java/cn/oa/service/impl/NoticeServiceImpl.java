@@ -5,6 +5,7 @@ import cn.oa.entity.SysEmployee;
 import cn.oa.mapper.OaNoticeMapper;
 import cn.oa.mapper.SysEmployeeMapper;
 import cn.oa.service.NoticeService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -26,9 +27,14 @@ public class NoticeServiceImpl extends ServiceImpl<OaNoticeMapper, OaNotice> imp
     private SysEmployeeMapper employeeMapper;
 
     @Override
-    public IPage<OaNotice> pageList(int pageNum, int pageSize) {
+    public IPage<OaNotice> pageList(int pageNum, int pageSize, String title) {
         Page<OaNotice> page = new Page<>(pageNum, pageSize);
-        IPage<OaNotice> result = this.page(page);
+        LambdaQueryWrapper<OaNotice> wrapper = new LambdaQueryWrapper<>();
+        if (title != null && !title.isEmpty()) {
+            wrapper.like(OaNotice::getTitle, title);
+        }
+        wrapper.orderByDesc(OaNotice::getCreateTime);
+        IPage<OaNotice> result = this.page(page, wrapper);
 
         // 填充 publisher 名称
         fillPublisherNames(result.getRecords());

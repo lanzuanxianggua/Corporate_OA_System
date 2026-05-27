@@ -19,4 +19,12 @@ public interface AttendanceService extends IService<OaAttendance> {
     List<OaAttendance> getAttendanceHistory(Long empId, LocalDate startDate, LocalDate endDate);
 
     IPage<Map<String, Object>> adminPage(int pageNum, int pageSize, String empName, Integer status, LocalDate startDate, LocalDate endDate);
+
+    void markLeaveAttendance(Long empId, LocalDate startDate, LocalDate endDate);
+
+    void markTripAttendance(Long empId, LocalDate startDate, LocalDate endDate);
+
+    void removeMarkedAttendance(Long empId, LocalDate startDate, LocalDate endDate, Integer status);
+
+    List<OaAttendance> getHistoryByDateRange(LocalDate startDate, LocalDate endDate);
 }

@@ -5,7 +5,7 @@
       <el-button type="primary" :icon="Upload" @click="uploadDialogVisible = true">上传文档</el-button>
     </div>
     <el-card>
-      <el-table :data="filteredDocs" stripe>
+      <el-table :data="docList" stripe>
         <el-table-column label="文档名称">
           <template #default="{ row }">
             <div class="flex items-center gap-2">
@@ -48,7 +48,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Upload } from "@element-plus/icons-vue";
 import { getDocumentPage, uploadDocument, deleteDocument, downloadDocument } from "@/api/document";
@@ -64,11 +64,6 @@ const uploadDialogVisible = ref(false);
 const uploading = ref(false);
 const selectedFile = ref<File | null>(null);
 
-const filteredDocs = computed(() => {
-  if (!keyword.value) return docList.value;
-  return docList.value.filter((d: any) => d.docName?.includes(keyword.value));
-});
-
 const formatSize = (bytes?: number) => {
   if (!bytes) return "-";
   if (bytes < 1024) return bytes + "B";
@@ -78,7 +73,9 @@ const formatSize = (bytes?: number) => {
 
 const fetchData = async () => {
   try {
-    const res: any = await getDocumentPage({ pageNum: page.value, pageSize: pageSize.value });
+    const params: any = { pageNum: page.value, pageSize: pageSize.value };
+    if (keyword.value) params.keyword = keyword.value;
+    const res: any = await getDocumentPage(params);
     if (res.data?.list) { docList.value = res.data.list; total.value = res.data.total || 0; }
   } catch {}
 };
@@ -111,12 +108,18 @@ const handleDelete = async (id: number) => {
 const handleDownload = async (row: any) => {
   try {
     const res: any = await downloadDocument(row.id);
+    if (!res || res.type?.includes("json")) {
+      ElMessage.error("下载失败，文件不存在或已被删除");
+      return;
+    }
     const blob = new Blob([res]);
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = row.docName || "document";
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
   } catch {
     ElMessage.error("下载失败");

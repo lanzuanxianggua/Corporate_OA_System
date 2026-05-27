@@ -1,5 +1,6 @@
 package cn.oa.controller;
 
+import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.R;
 import cn.oa.entity.*;
@@ -146,6 +147,76 @@ public class SystemManageController {
         return R.ok(result);
     }
 
+    @PostMapping("/role/add")
+    @RequireAdmin
+    @OperationLog(module = "角色管理", operation = "新增角色")
+    public R<Void> addRole(@RequestBody Map<String, Object> params) {
+        String roleName = (String) params.get("roleName");
+        String roleKey = (String) params.get("roleKey");
+        if (roleName == null || roleName.isBlank() || roleKey == null || roleKey.isBlank()) {
+            return R.fail("角色名称和角色标识不能为空");
+        }
+        SysRole role = new SysRole();
+        role.setRoleName(roleName);
+        role.setRoleKey(roleKey);
+        if (params.get("remark") != null) {
+            role.setRemark((String) params.get("remark"));
+        }
+        if (params.get("status") != null) {
+            role.setStatus(((Number) params.get("status")).intValue());
+        }
+        if (params.get("sort") != null) {
+            role.setSort(((Number) params.get("sort")).intValue());
+        }
+        roleMapper.insert(role);
+        return R.ok();
+    }
+
+    @PutMapping("/role/update")
+    @RequireAdmin
+    @OperationLog(module = "角色管理", operation = "修改角色")
+    public R<Void> updateRole(@RequestBody Map<String, Object> params) {
+        if (params.get("id") == null) {
+            return R.fail("角色ID不能为空");
+        }
+        Long id = Long.valueOf(params.get("id").toString());
+        SysRole role = roleMapper.selectById(id);
+        if (role == null) {
+            return R.fail("角色不存在");
+        }
+        if (params.get("roleName") != null) {
+            role.setRoleName((String) params.get("roleName"));
+        }
+        if (params.get("roleKey") != null) {
+            role.setRoleKey((String) params.get("roleKey"));
+        }
+        if (params.get("remark") != null) {
+            role.setRemark((String) params.get("remark"));
+        }
+        if (params.get("status") != null) {
+            role.setStatus(((Number) params.get("status")).intValue());
+        }
+        if (params.get("sort") != null) {
+            role.setSort(((Number) params.get("sort")).intValue());
+        }
+        roleMapper.updateById(role);
+        return R.ok();
+    }
+
+    @DeleteMapping("/role/{id}")
+    @RequireAdmin
+    @OperationLog(module = "角色管理", operation = "删除角色")
+    public R<Void> deleteRole(@PathVariable Long id) {
+        SysRole role = roleMapper.selectById(id);
+        if (role == null) {
+            return R.fail("角色不存在");
+        }
+        empRoleMapper.delete(new LambdaQueryWrapper<SysEmpRole>()
+                .eq(SysEmpRole::getRoleId, id));
+        roleMapper.deleteById(id);
+        return R.ok();
+    }
+
     @PostMapping("/menu")
     @RequireAdmin
     public R<List<Map<String, Object>>> menuList(@RequestBody(required = false) Map<String, Object> params) {
@@ -171,6 +242,37 @@ public class SystemManageController {
     @RequireAdmin
     public R<List<Map<String, Object>>> roleMenuList() {
         return R.ok(buildMenuTree(0L));
+    }
+
+    @GetMapping("/roles")
+    public R<List<SysRole>> getAllRoles() {
+        return R.ok(roleMapper.selectList(null));
+    }
+
+    @PostMapping("/assign-roles")
+    @RequireAdmin
+    public R<Void> assignRoles(@RequestBody Map<String, Object> params) {
+        Long empId = Long.valueOf(params.get("empId").toString());
+        List<Long> roleIds = ((List<Number>) params.get("roleIds")).stream()
+            .map(Number::longValue).collect(Collectors.toList());
+
+        empRoleMapper.delete(new LambdaQueryWrapper<SysEmpRole>()
+            .eq(SysEmpRole::getEmpId, empId));
+
+        for (Long roleId : roleIds) {
+            SysEmpRole er = new SysEmpRole();
+            er.setEmpId(empId);
+            er.setRoleId(roleId);
+            empRoleMapper.insert(er);
+        }
+        return R.ok();
+    }
+
+    @GetMapping("/emp-roles")
+    public R<List<Long>> getEmpRoles(@RequestParam Long empId) {
+        List<SysEmpRole> list = empRoleMapper.selectList(
+            new LambdaQueryWrapper<SysEmpRole>().eq(SysEmpRole::getEmpId, empId));
+        return R.ok(list.stream().map(SysEmpRole::getRoleId).collect(Collectors.toList()));
     }
 
     @PostMapping("/role-menu-ids")

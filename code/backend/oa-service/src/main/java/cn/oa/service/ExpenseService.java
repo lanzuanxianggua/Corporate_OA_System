@@ -11,4 +11,6 @@ public interface ExpenseService extends IService<OaExpense> {
     void approve(Long applyId, Long approverId, Integer status, String remark);
 
     IPage<OaExpense> pageList(int pageNum, int pageSize, Long empId, Integer status);
+
+    void updateStatus(Long id, Integer status);
 }

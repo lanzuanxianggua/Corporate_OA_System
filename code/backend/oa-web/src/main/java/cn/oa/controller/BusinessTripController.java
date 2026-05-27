@@ -1,5 +1,6 @@
 package cn.oa.controller;
 
+import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
@@ -29,14 +30,16 @@ public class BusinessTripController {
 
     @PostMapping("/submit")
     @Operation(summary = "提交出差申请")
-    public R<Void> submit(@RequestBody OaBusinessTrip trip) {
+    @OperationLog(module = "出差管理", operation = "提交出差申请")
+    public R<Void> submit(@RequestBody OaBusinessTrip trip, HttpServletRequest request) {
+        trip.setEmpId((Long) request.getAttribute("empId"));
         businessTripService.submit(trip);
         return R.ok();
     }
 
     @PostMapping("/approve")
-    @RequireAdmin
     @Operation(summary = "审批出差申请")
+    @OperationLog(module = "出差管理", operation = "审批出差申请")
     public R<Void> approve(@RequestBody Map<String, Object> params, HttpServletRequest request) {
         Long applyId = Long.valueOf(params.get("id").toString());
         Integer status = Integer.valueOf(params.get("status").toString());

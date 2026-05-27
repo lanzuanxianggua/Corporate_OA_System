@@ -64,6 +64,9 @@
           <el-descriptions-item label="出差事由" :span="2">{{ currentRow.purpose }}</el-descriptions-item>
         </el-descriptions>
 
+        <el-divider content-position="left">审批进度</el-divider>
+        <ApprovalTimeline v-if="currentRow?.id" business-type="trip" :business-id="currentRow.id" />
+
         <el-form label-position="top">
           <el-form-item label="审批备注">
             <el-input v-model="approveRemark" type="textarea" :rows="3" placeholder="请输入审批备注（可选）" maxlength="200" show-word-limit />
@@ -82,6 +85,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { ElMessage } from "element-plus";
+import ApprovalTimeline from "@/components/ApprovalTimeline.vue";
 import { getBusinessTripPage, approveBusinessTrip } from "@/api/businessTrip";
 
 const calcDays = (startTime?: string, endTime?: string) => {
@@ -134,6 +138,10 @@ const openApproveDialog = (row: any, action: number) => {
 
 const handleApprove = async () => {
   if (!currentRow.value?.id) return;
+  if (approveAction.value === 2 && (!approveRemark.value || !approveRemark.value.trim())) {
+    ElMessage.warning("驳回时必须填写原因");
+    return;
+  }
   approving.value = true;
   try {
     await approveBusinessTrip({

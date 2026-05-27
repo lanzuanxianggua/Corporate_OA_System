@@ -6,7 +6,7 @@
     </div>
     <el-card>
       <template #header><span class="font-medium">登录日志</span></template>
-      <el-table :data="logList" stripe>
+      <el-table :data="logList" stripe style="width: 100%">
         <el-table-column label="用户名" prop="username" />
         <el-table-column label="IP地址" prop="ip" />
         <el-table-column label="登录地点" prop="address" />

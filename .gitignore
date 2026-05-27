@@ -90,6 +90,13 @@ build/
 .DS_Store
 Thumbs.db
 
+__pycache__/
+*.pyc
+tsconfig.tsbuildinfo
+tsconfig.node.tsbuildinfo
+test_screenshots/
+test_ui.py
+
 ######################################################################
 # Local Configuration
 

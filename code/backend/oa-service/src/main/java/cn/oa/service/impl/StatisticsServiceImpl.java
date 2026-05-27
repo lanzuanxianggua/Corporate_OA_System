@@ -23,6 +23,22 @@ public class StatisticsServiceImpl implements StatisticsService {
     private OaLeaveApplyMapper leaveApplyMapper;
     @Autowired
     private SysDeptMapper deptMapper;
+    @Autowired
+    private OaBusinessTripMapper businessTripMapper;
+    @Autowired
+    private OaApprovalRecordMapper approvalRecordMapper;
+
+    /** 计算一个月内的工作日数 (周一至周五) */
+    private int countWorkdays(LocalDate start, LocalDate end) {
+        int workdays = 0;
+        for (LocalDate d = start; !d.isAfter(end); d = d.plusDays(1)) {
+            DayOfWeek dow = d.getDayOfWeek();
+            if (dow != DayOfWeek.SATURDAY && dow != DayOfWeek.SUNDAY) {
+                workdays++;
+            }
+        }
+        return workdays;
+    }
 
     @Override
     public Map<String, Object> getDashboardStats(String period, Integer year) {
@@ -53,7 +69,39 @@ public class StatisticsServiceImpl implements StatisticsService {
                 startDate = today;
         }
 
-        // 3. 考勤统计（按日期范围统计）
+        // 3. 新增统计数据（本月维度）
+        LocalDate monthStart = today.withDayOfMonth(1);
+        LocalDate monthEnd = today;
+
+        // 本月请假人数（去重）
+        Long leaveCountThisMonth = leaveApplyMapper.selectCount(
+            new LambdaQueryWrapper<OaLeaveApply>()
+                .ge(OaLeaveApply::getStartTime, monthStart.atTime(0, 0, 0))
+                .le(OaLeaveApply::getEndTime, monthEnd.atTime(23, 59, 59)));
+        result.put("leaveCountThisMonth", leaveCountThisMonth);
+
+        // 本月出差人数（去重）
+        Long businessTripCountThisMonth = businessTripMapper.selectCount(
+            new LambdaQueryWrapper<OaBusinessTrip>()
+                .ge(OaBusinessTrip::getStartTime, monthStart.atTime(0, 0, 0))
+                .le(OaBusinessTrip::getEndTime, monthEnd.atTime(23, 59, 59)));
+        result.put("businessTripCountThisMonth", businessTripCountThisMonth);
+
+        // 待审批数量
+        Long pendingApprovals = approvalRecordMapper.selectCount(
+            new LambdaQueryWrapper<OaApprovalRecord>()
+                .eq(OaApprovalRecord::getApproveStatus, 0));
+        result.put("pendingApprovals", pendingApprovals);
+
+        // 本月新员工
+        Long newEmployeesThisMonth = employeeMapper.selectCount(
+            new LambdaQueryWrapper<SysEmployee>()
+                .eq(SysEmployee::getStatus, 1)
+                .ge(SysEmployee::getCreateTime, monthStart.atTime(0, 0, 0))
+                .le(SysEmployee::getCreateTime, monthEnd.atTime(23, 59, 59)));
+        result.put("newEmployeesThisMonth", newEmployeesThisMonth);
+
+        // 4. 考勤统计（按日期范围统计）
         Map<String, Object> attendance = new LinkedHashMap<>();
 
         // 范围内打卡总人次
@@ -93,7 +141,7 @@ public class StatisticsServiceImpl implements StatisticsService {
         attendance.put("totalRequired", totalRequired);
         result.put("attendance", attendance);
 
-        // 4. 请假统计
+        // 5. 请假统计
         Map<String, Object> leave = new LinkedHashMap<>();
 
         LambdaQueryWrapper<OaLeaveApply> leaveWrapper = new LambdaQueryWrapper<>();
@@ -115,7 +163,7 @@ public class StatisticsServiceImpl implements StatisticsService {
         leave.put("byType", byType);
         result.put("leave", leave);
 
-        // 5. 部门人数分布
+        // 6. 部门人数分布
         List<SysDept> depts = deptMapper.selectList(null);
         List<SysEmployee> employees = employeeMapper.selectList(
             new LambdaQueryWrapper<SysEmployee>().eq(SysEmployee::getStatus, 1));
@@ -134,7 +182,7 @@ public class StatisticsServiceImpl implements StatisticsService {
         }
         result.put("departmentDistribution", deptDistribution);
 
-        // 6. 出勤趋势
+        // 7. 出勤趋势
         List<Map<String, Object>> trend = new ArrayList<>();
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MM-dd");
         LocalDate trendStart = null;
@@ -151,7 +199,10 @@ public class StatisticsServiceImpl implements StatisticsService {
                         new LambdaQueryWrapper<OaAttendance>()
                             .between(OaAttendance::getWorkDate, mStart, mEnd)
                             .isNotNull(OaAttendance::getClockIn));
-                    int mRate = employeeTotal > 0 ? (int)(mClocked * 100 / employeeTotal) : 0;
+                    // 修正：用 (员工总数 × 当月工作日数) 作为分母
+                    int workdaysInMonth = countWorkdays(mStart, mEnd);
+                    int mRate = (employeeTotal > 0 && workdaysInMonth > 0)
+                        ? (int)(mClocked * 100 / (employeeTotal * workdaysInMonth)) : 0;
                     Map<String, Object> point = new LinkedHashMap<>();
                     point.put("month", m + "月");
                     point.put("rate", mRate);
@@ -183,11 +234,11 @@ public class StatisticsServiceImpl implements StatisticsService {
             result.put("attendanceTrend", trend);
         }
 
-        // 7. 迟到排行榜
+        // 8. 迟到排行榜
         List<Map<String, Object>> lateRanking = buildLateRanking(startDate, endDate);
         result.put("lateRanking", lateRanking);
 
-        // 8. 出勤排行榜
+        // 9. 出勤排行榜
         List<Map<String, Object>> attendanceRanking = buildAttendanceRanking(startDate, endDate);
         result.put("attendanceRanking", attendanceRanking);
 

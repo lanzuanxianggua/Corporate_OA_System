@@ -1,0 +1,33 @@
+{
+  "name": "oa-mobile",
+  "appid": "",
+  "description": "OA办公系统移动端",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "h5": {
+    "devServer": {
+      "proxy": {
+        "/api": {
+          "target": "http://localhost:8080",
+          "changeOrigin": true
+        },
+        "/login": {
+          "target": "http://localhost:8080",
+          "changeOrigin": true
+        },
+        "/refresh-token": {
+          "target": "http://localhost:8080",
+          "changeOrigin": true
+        }
+      }
+    },
+    "title": "OA办公系统"
+  },
+  "mp-weixin": {
+    "appid": "",
+    "setting": {
+      "urlCheck": false
+    }
+  }
+}

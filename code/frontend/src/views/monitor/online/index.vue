@@ -2,7 +2,7 @@
   <div>
     <el-card>
       <template #header><span class="font-medium">在线用户</span></template>
-      <el-table :data="userList" stripe>
+      <el-table :data="userList" stripe style="width: 100%">
         <el-table-column label="用户名" prop="empName" />
         <el-table-column label="登录IP" prop="ip" />
         <el-table-column label="部门" prop="deptName" />

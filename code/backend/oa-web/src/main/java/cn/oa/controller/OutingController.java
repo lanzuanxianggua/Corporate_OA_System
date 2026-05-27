@@ -1,5 +1,6 @@
 package cn.oa.controller;
 
+import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
@@ -29,14 +30,16 @@ public class OutingController {
 
     @PostMapping("/submit")
     @Operation(summary = "提交外出申请")
-    public R<Void> submit(@RequestBody OaOuting outing) {
+    @OperationLog(module = "外出管理", operation = "提交外出申请")
+    public R<Void> submit(@RequestBody OaOuting outing, HttpServletRequest request) {
+        outing.setEmpId((Long) request.getAttribute("empId"));
         outingService.submit(outing);
         return R.ok();
     }
 
     @PostMapping("/approve")
-    @RequireAdmin
     @Operation(summary = "审批外出申请")
+    @OperationLog(module = "外出管理", operation = "审批外出申请")
     public R<Void> approve(@RequestBody Map<String, Object> params, HttpServletRequest request) {
         Long applyId = Long.valueOf(params.get("id").toString());
         Integer status = Integer.valueOf(params.get("status").toString());

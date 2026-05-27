@@ -1,0 +1,64 @@
+package cn.oa.controller;
+
+import cn.oa.common.annotation.RequireAdmin;
+import cn.oa.common.result.PageResult;
+import cn.oa.common.result.R;
+import cn.oa.entity.OaLoan;
+import cn.oa.service.LoanService;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/loan")
+@Tag(name = "借支管理")
+public class LoanController {
+
+    @Autowired
+    private LoanService loanService;
+
+    @PostMapping("/submit")
+    @Operation(summary = "提交借支申请")
+    public R<Void> submit(@RequestBody OaLoan loan, HttpServletRequest request) {
+        loan.setEmpId((Long) request.getAttribute("empId"));
+        loanService.submit(loan);
+        return R.ok();
+    }
+
+    @PostMapping("/approve")
+    @Operation(summary = "审批借支申请")
+    public R<Void> approve(@RequestBody Map<String, Object> params, HttpServletRequest request) {
+        Long loanId = Long.valueOf(params.get("id").toString());
+        Integer status = Integer.valueOf(params.get("status").toString());
+        String remark = params.get("remark") != null ? params.get("remark").toString() : null;
+        Long approverId = (Long) request.getAttribute("empId");
+        loanService.approve(loanId, approverId, status, remark);
+        return R.ok();
+    }
+
+    @GetMapping("/page")
+    @Operation(summary = "分页查询借支申请")
+    public R<PageResult<OaLoan>> page(@RequestParam int pageNum,
+                                       @RequestParam int pageSize,
+                                       @RequestParam(required = false) Long empId,
+                                       @RequestParam(required = false) Integer status) {
+        IPage<OaLoan> page = loanService.pageList(pageNum, pageSize, empId, status);
+        return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
+    }
+
+    @PostMapping("/repayment")
+    @RequireAdmin
+    @Operation(summary = "添加还款记录")
+    public R<Void> repayment(@RequestBody Map<String, Object> params) {
+        Long loanId = Long.valueOf(params.get("loanId").toString());
+        java.math.BigDecimal amount = new java.math.BigDecimal(params.get("amount").toString());
+        String remark = params.get("remark") != null ? params.get("remark").toString() : null;
+        loanService.addRepayment(loanId, amount, remark);
+        return R.ok();
+    }
+}

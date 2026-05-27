@@ -12,7 +12,7 @@
           </template>
 
           <el-table :data="tableData" v-loading="loading" stripe style="width: 100%" size="small" :header-cell-style="{ background: '#f5f7fa', color: '#606266' }">
-            <el-table-column prop="location" label="外出地点" min-width="100" show-overflow-tooltip />
+            <el-table-column prop="destination" label="外出地点" min-width="100" show-overflow-tooltip />
             <el-table-column prop="reason" label="事由" min-width="120" show-overflow-tooltip />
             <el-table-column label="开始时间" min-width="140">
               <template #default="{ row }">{{ formatTime(row.startTime) }}</template>
@@ -20,9 +20,12 @@
             <el-table-column label="结束时间" min-width="140">
               <template #default="{ row }">{{ formatTime(row.endTime) }}</template>
             </el-table-column>
-            <el-table-column label="状态" width="80" align="center">
+            <el-table-column label="状态" width="160" align="center">
               <template #default="{ row }">
-                <el-tag :type="statusTagType(row.status)" size="small" effect="light">{{ statusText(row.status) }}</el-tag>
+                <el-tag :type="formatStatusTagType(row.status)" size="small" effect="light">{{ formatStatusText(row.status) }}</el-tag>
+                <el-button v-if="row.status !== 0" type="info" link size="small" class="ml-1" @click="showDetail(row)">详情</el-button>
+                <el-button v-if="row.status === 0" type="warning" link size="small" @click="handleWithdraw(row)">撤回</el-button>
+                <el-button v-if="row.status === 0" type="info" link size="small" @click="handleUrge(row)">催办</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -45,8 +48,8 @@
               <el-input v-model="form.reason" type="textarea" :rows="4" placeholder="请输入外出事由" maxlength="200" show-word-limit />
             </el-form-item>
 
-            <el-form-item label="外出地点" prop="location">
-              <el-input v-model="form.location" placeholder="请输入外出地点" maxlength="50" />
+            <el-form-item label="外出地点" prop="destination">
+              <el-input v-model="form.destination" placeholder="请输入外出地点" maxlength="50" />
             </el-form-item>
 
             <el-form-item label="开始时间" prop="startTime">
@@ -65,15 +68,22 @@
         </el-card>
       </el-col>
     </el-row>
+
+    <el-dialog v-model="detailVisible" title="审批详情" width="600px">
+      <ApprovalTimeline v-if="detailRow?.id" business-type="outing" :business-id="detailRow.id" />
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import type { FormInstance, FormRules } from "element-plus";
+import ApprovalTimeline from "@/components/ApprovalTimeline.vue";
+import { withdrawApplication, urgeTask } from "@/api/workflow";
 import { getOutingPage, submitOuting } from "@/api/outing";
 import { useUserStore } from "@/store/user";
+import { formatTime, formatStatusText, formatStatusTagType } from "@/utils/format";
 
 const userStore = useUserStore();
 
@@ -97,19 +107,12 @@ const fetchList = async () => {
   }
 };
 
-const statusText = (status?: number) => {
-  const map: Record<number, string> = { 0: "待审批", 1: "已通过", 2: "已拒绝" };
-  return map[status ?? -1] || "未知";
-};
-
-const statusTagType = (status?: number) => {
-  const map: Record<number, string> = { 0: "warning", 1: "success", 2: "danger" };
-  return map[status ?? -1] || "info";
-};
-
-const formatTime = (time?: string) => {
-  if (!time) return "-";
-  return time.replace("T", " ").substring(0, 16);
+// --- 详情 ---
+const detailVisible = ref(false);
+const detailRow = ref<any>(null);
+const showDetail = (row: any) => {
+  detailRow.value = row;
+  detailVisible.value = true;
 };
 
 // --- 表单 ---
@@ -118,14 +121,14 @@ const submitting = ref(false);
 
 const form = reactive({
   reason: "",
-  location: "",
+  destination: "",
   startTime: "",
   endTime: ""
 });
 
 const rules = reactive<FormRules>({
   reason: [{ required: true, message: "请输入外出事由", trigger: "blur" }],
-  location: [{ required: true, message: "请输入外出地点", trigger: "blur" }],
+  destination: [{ required: true, message: "请输入外出地点", trigger: "blur" }],
   startTime: [{ required: true, message: "请选择开始时间", trigger: "change" }],
   endTime: [{ required: true, message: "请选择结束时间", trigger: "change" }]
 });
@@ -149,7 +152,7 @@ const handleSubmit = async () => {
     await submitOuting({
       empId: userStore.userInfo?.empId,
       reason: form.reason,
-      location: form.location,
+      destination: form.destination,
       startTime: form.startTime,
       endTime: form.endTime
     });
@@ -166,6 +169,22 @@ const handleSubmit = async () => {
 
 const resetForm = () => {
   formRef.value?.resetFields();
+};
+
+const handleWithdraw = async (row: any) => {
+  try {
+    await ElMessageBox.confirm("确定要撤回此申请吗？", "撤回确认", { type: "warning" });
+    await withdrawApplication({ businessType: "outing", businessId: row.id });
+    ElMessage.success("申请已撤回");
+    fetchList();
+  } catch {}
+};
+
+const handleUrge = async (row: any) => {
+  try {
+    await urgeTask({ businessType: "outing", businessId: row.id });
+    ElMessage.success("已发送催办提醒");
+  } catch {}
 };
 
 onMounted(() => {

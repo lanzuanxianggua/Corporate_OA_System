@@ -1,10 +1,15 @@
 package cn.oa.controller;
 
+import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.R;
 import cn.oa.common.result.PageResult;
+import cn.oa.common.utils.ExcelExportUtil;
 import cn.oa.entity.OaAttendance;
+import cn.oa.entity.SysEmployee;
+import cn.oa.mapper.SysEmployeeMapper;
 import cn.oa.service.AttendanceService;
+import cn.oa.vo.AttendanceExportVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,20 +23,35 @@ import org.springframework.web.bind.annotation.RestController;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/attendance")
 @Tag(name = "考勤管理")
 public class AttendanceController {
 
+    private static final String[] STATUS_TEXT = {"正常", "迟到", "早退", "缺勤", "休息", "请假", "出差"};
+    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final DateTimeFormatter DATETIME_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     @Autowired
     private AttendanceService attendanceService;
 
+    @Autowired
+    private SysEmployeeMapper employeeMapper;
+
     @PostMapping("/clock-in")
     @Operation(summary = "上班打卡")
+    @OperationLog(module = "考勤管理", operation = "上班打卡")
     public R<Void> clockIn(HttpServletRequest request) {
         Long empId = (Long) request.getAttribute("empId");
         attendanceService.clockIn(empId);
@@ -40,6 +60,7 @@ public class AttendanceController {
 
     @PostMapping("/clock-out")
     @Operation(summary = "下班打卡")
+    @OperationLog(module = "考勤管理", operation = "下班打卡")
     public R<Void> clockOut(HttpServletRequest request) {
         Long empId = (Long) request.getAttribute("empId");
         attendanceService.clockOut(empId);
@@ -76,5 +97,41 @@ public class AttendanceController {
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
         IPage<Map<String, Object>> page = attendanceService.adminPage(pageNum, pageSize, empName, status, startDate, endDate);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
+    }
+
+    @GetMapping("/admin/export")
+    @RequireAdmin
+    @Operation(summary = "导出考勤数据")
+    public void exportAttendance(
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
+            HttpServletResponse response) throws IOException {
+        List<OaAttendance> records = attendanceService.getHistoryByDateRange(startDate, endDate);
+        if (records.size() > 10000) {
+            records = records.subList(0, 10000);
+        }
+
+        // Build empId -> employee map
+        Set<Long> empIds = records.stream().map(OaAttendance::getEmpId).collect(Collectors.toSet());
+        Map<Long, SysEmployee> empMap = empIds.isEmpty() ? Map.of() :
+                employeeMapper.selectBatchIds(empIds).stream()
+                        .collect(Collectors.toMap(SysEmployee::getId, Function.identity()));
+
+        List<AttendanceExportVO> exportList = new ArrayList<>();
+        for (OaAttendance att : records) {
+            AttendanceExportVO vo = new AttendanceExportVO();
+            SysEmployee emp = empMap.get(att.getEmpId());
+            vo.setEmpCode(emp != null ? emp.getEmpCode() : "");
+            vo.setEmpName(emp != null ? emp.getEmpName() : "");
+            vo.setWorkDate(att.getWorkDate() != null ? att.getWorkDate().format(DATE_FMT) : "");
+            vo.setClockIn(att.getClockIn() != null ? att.getClockIn().format(DATETIME_FMT) : "");
+            vo.setClockOut(att.getClockOut() != null ? att.getClockOut().format(DATETIME_FMT) : "");
+            vo.setStatusText(att.getStatus() != null && att.getStatus() < STATUS_TEXT.length
+                    ? STATUS_TEXT[att.getStatus()] : "未知");
+            vo.setRemark(att.getRemark() != null ? att.getRemark() : "");
+            exportList.add(vo);
+        }
+
+        ExcelExportUtil.export(response, "考勤数据", AttendanceExportVO.class, exportList);
     }
 }

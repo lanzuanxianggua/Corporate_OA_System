@@ -64,7 +64,7 @@ const selectedFile = ref<File | null>(null);
 
 const formatSize = (b?: number) => { if (!b) return "-"; return b < 1024 ? b + "B" : b < 1048576 ? (b / 1024).toFixed(1) + "KB" : (b / 1048576).toFixed(1) + "MB"; };
 
-const fetchData = async () => { try { const r: any = await getDocumentPage({ pageNum: page.value, pageSize: pageSize.value }); if (r.data?.list) { docList.value = r.data.list; total.value = r.data.total || 0; } } catch {} };
+const fetchData = async () => { try { const params: any = { pageNum: page.value, pageSize: pageSize.value }; if (keyword.value) params.keyword = keyword.value; const r: any = await getDocumentPage(params); if (r.data?.list) { docList.value = r.data.list; total.value = r.data.total || 0; } } catch {} };
 
 const handleUpload = async () => {
   if (!selectedFile.value) { ElMessage.warning("请选择文件"); return; }
@@ -80,12 +80,18 @@ const handleDelete = async (id: number) => {
 const handleDownload = async (row: any) => {
   try {
     const res: any = await downloadDocument(row.id);
+    if (!res || res.type?.includes("json")) {
+      ElMessage.error("下载失败，文件不存在或已被删除");
+      return;
+    }
     const blob = new Blob([res]);
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = row.docName || "document";
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
   } catch {
     ElMessage.error("下载失败");

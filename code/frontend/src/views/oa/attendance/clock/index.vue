@@ -61,7 +61,7 @@
           </div>
         </div>
       </template>
-      <el-table :data="historyList" stripe>
+      <el-table :data="historyList" stripe style="width: 100%">
         <el-table-column label="日期" prop="workDate" width="120" />
         <el-table-column label="上班时间">
           <template #default="{ row }">{{ row.clockIn ? row.clockIn.substring(11, 19) : "-" }}</template>

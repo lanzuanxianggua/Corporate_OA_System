@@ -1,5 +1,6 @@
 package cn.oa.controller;
 
+import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
@@ -33,9 +34,10 @@ public class NoticeController {
     @Operation(summary = "分页查询公告")
     public R<PageResult<OaNotice>> page(@RequestParam int pageNum,
                                         @RequestParam int pageSize,
+                                        @RequestParam(required = false) String title,
                                         HttpServletRequest request) {
         Long empId = (Long) request.getAttribute("empId");
-        IPage<OaNotice> page = noticeService.pageList(pageNum, pageSize);
+        IPage<OaNotice> page = noticeService.pageList(pageNum, pageSize, title);
         // 填充 isRead 状态
         for (OaNotice notice : page.getRecords()) {
             notice.setIsRead(noticeService.isRead(notice.getId(), empId));
@@ -53,6 +55,7 @@ public class NoticeController {
     @PostMapping
     @RequireAdmin
     @Operation(summary = "新增公告")
+    @OperationLog(module = "公告管理", operation = "新增公告")
     public R<Void> add(@RequestBody OaNotice notice, HttpServletRequest request) {
         Long empId = (Long) request.getAttribute("empId");
         notice.setPublisherId(empId);
@@ -63,6 +66,7 @@ public class NoticeController {
     @PutMapping
     @RequireAdmin
     @Operation(summary = "修改公告")
+    @OperationLog(module = "公告管理", operation = "修改公告")
     public R<Void> update(@RequestBody OaNotice notice) {
         noticeService.updateById(notice);
         return R.ok();
@@ -71,6 +75,7 @@ public class NoticeController {
     @DeleteMapping("/{id}")
     @RequireAdmin
     @Operation(summary = "删除公告")
+    @OperationLog(module = "公告管理", operation = "删除公告")
     public R<Void> delete(@PathVariable Long id) {
         noticeService.removeById(id);
         return R.ok();

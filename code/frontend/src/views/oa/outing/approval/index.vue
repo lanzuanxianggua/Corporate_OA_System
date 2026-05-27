@@ -17,7 +17,7 @@
       <!-- 审批列表 -->
       <el-table :data="tableData" v-loading="loading" stripe style="width: 100%" :header-cell-style="{ background: '#f5f7fa', color: '#606266' }">
         <el-table-column prop="empName" label="申请人" width="90" />
-        <el-table-column prop="location" label="外出地点" min-width="100" show-overflow-tooltip />
+        <el-table-column prop="destination" label="外出地点" min-width="100" show-overflow-tooltip />
         <el-table-column prop="reason" label="事由" min-width="120" show-overflow-tooltip />
         <el-table-column label="时间范围" min-width="180">
           <template #default="{ row }">
@@ -54,11 +54,14 @@
       <template v-if="currentRow">
         <el-descriptions :column="2" border size="small" class="mb-4">
           <el-descriptions-item label="申请人">{{ currentRow.empName }}</el-descriptions-item>
-          <el-descriptions-item label="外出地点">{{ currentRow.location }}</el-descriptions-item>
+          <el-descriptions-item label="外出地点">{{ currentRow.destination }}</el-descriptions-item>
           <el-descriptions-item label="开始时间">{{ formatTime(currentRow.startTime) }}</el-descriptions-item>
           <el-descriptions-item label="结束时间">{{ formatTime(currentRow.endTime) }}</el-descriptions-item>
           <el-descriptions-item label="外出事由" :span="2">{{ currentRow.reason }}</el-descriptions-item>
         </el-descriptions>
+
+        <el-divider content-position="left">审批进度</el-divider>
+        <ApprovalTimeline v-if="currentRow?.id" business-type="outing" :business-id="currentRow.id" />
 
         <el-form label-position="top">
           <el-form-item label="审批备注">
@@ -78,6 +81,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { ElMessage } from "element-plus";
+import ApprovalTimeline from "@/components/ApprovalTimeline.vue";
 import { getOutingPage, approveOuting } from "@/api/outing";
 
 // --- 列表 ---
@@ -124,6 +128,10 @@ const openApproveDialog = (row: any, action: number) => {
 
 const handleApprove = async () => {
   if (!currentRow.value?.id) return;
+  if (approveAction.value === 2 && (!approveRemark.value || !approveRemark.value.trim())) {
+    ElMessage.warning("驳回时必须填写原因");
+    return;
+  }
   approving.value = true;
   try {
     await approveOuting({

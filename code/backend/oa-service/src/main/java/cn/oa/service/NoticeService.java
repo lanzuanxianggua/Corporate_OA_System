@@ -9,7 +9,7 @@ public interface NoticeService extends IService<OaNotice> {
     /**
      * 分页查询公告列表
      */
-    IPage<OaNotice> pageList(int pageNum, int pageSize);
+    IPage<OaNotice> pageList(int pageNum, int pageSize, String title);
 
     /**
      * 标记公告为已读

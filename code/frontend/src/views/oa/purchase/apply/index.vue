@@ -17,12 +17,15 @@
               <template #default="{ row }">{{ row.quantity || "-" }}</template>
             </el-table-column>
             <el-table-column label="预估金额" width="100" align="right">
-              <template #default="{ row }">{{ formatAmount(row.estimatedAmount) }}</template>
+              <template #default="{ row }">{{ formatAmount(row.amount) }}</template>
             </el-table-column>
             <el-table-column prop="reason" label="原因" min-width="120" show-overflow-tooltip />
-            <el-table-column label="状态" width="80" align="center">
+            <el-table-column label="状态" width="160" align="center">
               <template #default="{ row }">
-                <el-tag :type="statusTagType(row.status)" size="small" effect="light">{{ statusText(row.status) }}</el-tag>
+                <el-tag :type="formatStatusTagType(row.status)" size="small" effect="light">{{ formatStatusText(row.status) }}</el-tag>
+                <el-button v-if="row.status !== 0" type="info" link size="small" class="ml-1" @click="showDetail(row)">详情</el-button>
+                <el-button v-if="row.status === 0" type="warning" link size="small" @click="handleWithdraw(row)">撤回</el-button>
+                <el-button v-if="row.status === 0" type="info" link size="small" @click="handleUrge(row)">催办</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -49,8 +52,8 @@
               <el-input-number v-model="form.quantity" :min="1" :max="9999" placeholder="请输入数量" style="width: 100%" />
             </el-form-item>
 
-            <el-form-item label="预估金额" prop="estimatedAmount">
-              <el-input v-model.number="form.estimatedAmount" type="number" placeholder="请输入预估金额">
+            <el-form-item label="预估金额" prop="amount">
+              <el-input v-model.number="form.amount" type="number" placeholder="请输入预估金额">
                 <template #prepend>￥</template>
               </el-input>
             </el-form-item>
@@ -67,15 +70,22 @@
         </el-card>
       </el-col>
     </el-row>
+
+    <el-dialog v-model="detailVisible" title="审批详情" width="600px">
+      <ApprovalTimeline v-if="detailRow?.id" business-type="purchase" :business-id="detailRow.id" />
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import type { FormInstance, FormRules } from "element-plus";
+import ApprovalTimeline from "@/components/ApprovalTimeline.vue";
+import { withdrawApplication, urgeTask } from "@/api/workflow";
 import { getPurchasePage, submitPurchase } from "@/api/purchase";
 import { useUserStore } from "@/store/user";
+import { formatStatusText, formatStatusTagType } from "@/utils/format";
 
 const userStore = useUserStore();
 
@@ -99,19 +109,17 @@ const fetchList = async () => {
   }
 };
 
-const statusText = (status?: number) => {
-  const map: Record<number, string> = { 0: "待审批", 1: "已通过", 2: "已拒绝" };
-  return map[status ?? -1] || "未知";
-};
-
-const statusTagType = (status?: number) => {
-  const map: Record<number, string> = { 0: "warning", 1: "success", 2: "danger" };
-  return map[status ?? -1] || "info";
-};
-
 const formatAmount = (amount?: number) => {
   if (amount == null) return "-";
   return `￥${amount.toFixed(2)}`;
+};
+
+// --- 详情 ---
+const detailVisible = ref(false);
+const detailRow = ref<any>(null);
+const showDetail = (row: any) => {
+  detailRow.value = row;
+  detailVisible.value = true;
 };
 
 // --- 表单 ---
@@ -121,14 +129,14 @@ const submitting = ref(false);
 const form = reactive({
   itemName: "",
   quantity: 1,
-  estimatedAmount: undefined as number | undefined,
+  amount: undefined as number | undefined,
   reason: ""
 });
 
 const rules = reactive<FormRules>({
   itemName: [{ required: true, message: "请输入采购物品名称", trigger: "blur" }],
   quantity: [{ required: true, message: "请输入数量", trigger: "change" }],
-  estimatedAmount: [{ required: true, message: "请输入预估金额", trigger: "blur" }],
+  amount: [{ required: true, message: "请输入预估金额", trigger: "blur" }],
   reason: [{ required: true, message: "请输入采购原因", trigger: "blur" }]
 });
 
@@ -142,7 +150,7 @@ const handleSubmit = async () => {
       empId: userStore.userInfo?.empId,
       itemName: form.itemName,
       quantity: form.quantity,
-      estimatedAmount: form.estimatedAmount,
+      amount: form.amount,
       reason: form.reason
     });
     ElMessage.success("采购申请已提交");
@@ -158,6 +166,22 @@ const handleSubmit = async () => {
 
 const resetForm = () => {
   formRef.value?.resetFields();
+};
+
+const handleWithdraw = async (row: any) => {
+  try {
+    await ElMessageBox.confirm("确定要撤回此申请吗？", "撤回确认", { type: "warning" });
+    await withdrawApplication({ businessType: "purchase", businessId: row.id });
+    ElMessage.success("申请已撤回");
+    fetchList();
+  } catch {}
+};
+
+const handleUrge = async (row: any) => {
+  try {
+    await urgeTask({ businessType: "purchase", businessId: row.id });
+    ElMessage.success("已发送催办提醒");
+  } catch {}
 };
 
 onMounted(() => {

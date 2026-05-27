@@ -22,7 +22,7 @@
           <template #default="{ row }">{{ row.quantity || "-" }}</template>
         </el-table-column>
         <el-table-column label="预估金额" width="110" align="right">
-          <template #default="{ row }">{{ formatAmount(row.estimatedAmount) }}</template>
+          <template #default="{ row }">{{ formatAmount(row.amount) }}</template>
         </el-table-column>
         <el-table-column prop="reason" label="原因" min-width="120" show-overflow-tooltip />
         <el-table-column label="状态" width="90" align="center">
@@ -54,9 +54,12 @@
           <el-descriptions-item label="申请人">{{ currentRow.empName }}</el-descriptions-item>
           <el-descriptions-item label="采购物品">{{ currentRow.itemName }}</el-descriptions-item>
           <el-descriptions-item label="数量">{{ currentRow.quantity }}</el-descriptions-item>
-          <el-descriptions-item label="预估金额">{{ formatAmount(currentRow.estimatedAmount) }}</el-descriptions-item>
+          <el-descriptions-item label="预估金额">{{ formatAmount(currentRow.amount) }}</el-descriptions-item>
           <el-descriptions-item label="采购原因" :span="2">{{ currentRow.reason }}</el-descriptions-item>
         </el-descriptions>
+
+        <el-divider content-position="left">审批进度</el-divider>
+        <ApprovalTimeline v-if="currentRow?.id" business-type="purchase" :business-id="currentRow.id" />
 
         <el-form label-position="top">
           <el-form-item label="审批备注">
@@ -76,6 +79,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { ElMessage } from "element-plus";
+import ApprovalTimeline from "@/components/ApprovalTimeline.vue";
 import { getPurchasePage, approvePurchase } from "@/api/purchase";
 
 // --- 列表 ---
@@ -122,6 +126,10 @@ const openApproveDialog = (row: any, action: number) => {
 
 const handleApprove = async () => {
   if (!currentRow.value?.id) return;
+  if (approveAction.value === 2 && (!approveRemark.value || !approveRemark.value.trim())) {
+    ElMessage.warning("驳回时必须填写原因");
+    return;
+  }
   approving.value = true;
   try {
     await approvePurchase({

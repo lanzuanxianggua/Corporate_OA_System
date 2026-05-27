@@ -1,5 +1,6 @@
 package cn.oa.controller;
 
+import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
@@ -27,6 +28,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/document")
@@ -42,14 +44,16 @@ public class DocumentController {
     @GetMapping("/page")
     @Operation(summary = "分页查询文档")
     public R<PageResult<OaDocument>> page(@RequestParam int pageNum,
-                                          @RequestParam int pageSize) {
-        IPage<OaDocument> page = documentService.pageList(pageNum, pageSize);
+                                          @RequestParam int pageSize,
+                                          @RequestParam(required = false) String keyword) {
+        IPage<OaDocument> page = documentService.pageList(pageNum, pageSize, keyword);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 
     @PostMapping("/upload")
     @RequireAdmin
     @Operation(summary = "上传文档")
+    @OperationLog(module = "文档管理", operation = "上传文档")
     public R<Void> upload(@RequestParam("file") MultipartFile file,
                           @RequestParam Long uploaderId) {
         documentService.upload(file, uploaderId);
@@ -59,6 +63,7 @@ public class DocumentController {
     @DeleteMapping("/{id}")
     @RequireAdmin
     @Operation(summary = "删除文档")
+    @OperationLog(module = "文档管理", operation = "删除文档")
     public R<Void> delete(@PathVariable Long id) {
         documentService.removeById(id);
         return R.ok();
@@ -66,20 +71,24 @@ public class DocumentController {
 
     @GetMapping("/download/{id}")
     @Operation(summary = "下载文档")
-    public ResponseEntity<Resource> download(@PathVariable Long id) {
-        OaDocument doc = documentService.getById(id);
-        if (doc == null) {
-            return ResponseEntity.notFound().build();
+    public ResponseEntity<?> download(@PathVariable Long id) {
+        try {
+            OaDocument doc = documentService.getById(id);
+            if (doc == null) {
+                return ResponseEntity.status(404).body(Map.of("code", -1, "message", "文档不存在", "data", ""));
+            }
+            File file = new File(uploadPath, doc.getFilePath());
+            if (!file.exists()) {
+                return ResponseEntity.status(404).body(Map.of("code", -1, "message", "文件不存在或已被删除", "data", ""));
+            }
+            String encodedName = URLEncoder.encode(doc.getDocName(), StandardCharsets.UTF_8).replace("+", "%20");
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedName)
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .contentLength(file.length())
+                    .body(new FileSystemResource(file));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("code", -1, "message", "下载失败: " + e.getMessage(), "data", ""));
         }
-        File file = new File(uploadPath, doc.getFilePath());
-        if (!file.exists()) {
-            return ResponseEntity.notFound().build();
-        }
-        String encodedName = URLEncoder.encode(doc.getDocName(), StandardCharsets.UTF_8).replace("+", "%20");
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedName)
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .contentLength(file.length())
-                .body(new FileSystemResource(file));
     }
 }

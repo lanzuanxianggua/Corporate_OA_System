@@ -1,0 +1,73 @@
+package cn.oa.controller;
+
+import cn.oa.common.annotation.RequireAdmin;
+import cn.oa.common.result.PageResult;
+import cn.oa.common.result.R;
+import cn.oa.entity.OaSalaryRecord;
+import cn.oa.entity.OaSalaryStructure;
+import cn.oa.service.SalaryRecordService;
+import cn.oa.service.SalaryStructureService;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/salary")
+@Tag(name = "薪资管理")
+public class SalaryController {
+
+    @Autowired
+    private SalaryStructureService salaryStructureService;
+
+    @Autowired
+    private SalaryRecordService salaryRecordService;
+
+    @GetMapping("/structure/page")
+    @RequireAdmin
+    @Operation(summary = "分页查询薪资结构")
+    public R<PageResult<OaSalaryStructure>> structurePage(@RequestParam int pageNum,
+                                                           @RequestParam int pageSize,
+                                                           @RequestParam(required = false) Long empId,
+                                                           @RequestParam(required = false) String searchKey) {
+        IPage<OaSalaryStructure> page = salaryStructureService.pageList(pageNum, pageSize, empId, searchKey);
+        return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
+    }
+
+    @PostMapping("/structure")
+    @RequireAdmin
+    @Operation(summary = "新增薪资结构")
+    public R<Void> addStructure(@RequestBody OaSalaryStructure structure) {
+        salaryStructureService.save(structure);
+        return R.ok();
+    }
+
+    @PutMapping("/structure")
+    @RequireAdmin
+    @Operation(summary = "修改薪资结构")
+    public R<Void> updateStructure(@RequestBody OaSalaryStructure structure) {
+        salaryStructureService.updateById(structure);
+        return R.ok();
+    }
+
+    @GetMapping("/record/page")
+    @RequireAdmin
+    @Operation(summary = "分页查询薪资记录")
+    public R<PageResult<OaSalaryRecord>> recordPage(@RequestParam int pageNum,
+                                                      @RequestParam int pageSize,
+                                                      @RequestParam(required = false) Long empId,
+                                                      @RequestParam(required = false) String salaryMonth,
+                                                      @RequestParam(required = false) String searchKey) {
+        IPage<OaSalaryRecord> page = salaryRecordService.pageList(pageNum, pageSize, empId, salaryMonth, searchKey);
+        return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
+    }
+
+    @GetMapping("/my")
+    @Operation(summary = "查询当前用户最新薪资记录")
+    public R<OaSalaryRecord> my(HttpServletRequest request) {
+        Long empId = (Long) request.getAttribute("empId");
+        return R.ok(salaryRecordService.myLatestRecord(empId));
+    }
+}

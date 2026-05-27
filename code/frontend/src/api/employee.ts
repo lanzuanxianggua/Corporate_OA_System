@@ -38,12 +38,5 @@ export const deleteEmployee = (id: number) => {
   return request.delete(`/api/employee/${id}`);
 };
 
-export const updatePassword = (
-  empId: number,
-  oldPwd: string,
-  newPwd: string
-) => {
-  return request.put("/api/employee/password", null, {
-    params: { empId, oldPwd, newPwd }
-  });
-};
+export const updatePassword = (oldPwd: string, newPwd: string) =>
+  request.post("/api/auth/change-password", { oldPassword: oldPwd, newPassword: newPwd });

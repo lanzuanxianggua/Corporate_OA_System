@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import { login as loginApi, logout as logoutApi } from "@/api/auth";
+import { login as loginApi, logout as logoutApi, getCaptcha } from "@/api/auth";
 import router from "@/router";
 
 function parseJwtPayload(token: string) {
@@ -27,8 +27,8 @@ export const useUserStore = defineStore("user", () => {
     );
   };
 
-  const loginAction = async (username: string, password: string) => {
-    const res: any = await loginApi({ username, password });
+  const loginAction = async (username: string, password: string, captchaUuid: string, captchaCode: string) => {
+    const res: any = await loginApi({ username, password, captchaUuid, captchaCode });
     if (res.data) {
       const data = res.data;
       const claims = parseJwtPayload(data.accessToken);
@@ -39,6 +39,9 @@ export const useUserStore = defineStore("user", () => {
         empId: claims?.empId
       };
       localStorage.setItem("token", data.accessToken);
+      if (data.refreshToken) {
+        localStorage.setItem("refreshToken", data.refreshToken);
+      }
       localStorage.setItem("userInfo", JSON.stringify(userInfo.value));
     }
     return res;
@@ -53,6 +56,7 @@ export const useUserStore = defineStore("user", () => {
     token.value = "";
     userInfo.value = null;
     localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
     localStorage.removeItem("userInfo");
     router.push("/login");
   };

@@ -16,6 +16,11 @@ mybatis-plus:
   mapper-locations: classpath*:mapper/**/*.xml
   configuration:
     map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      logic-delete-field: delFlag
+      logic-delete-value: "1"
+      logic-not-delete-value: "0"
 
 springdoc:
   swagger-ui:
@@ -29,6 +34,9 @@ springdoc:
 oa:
   upload:
     path: uploads
+
+jwt:
+  secret: "oa-system-jwt-secret-key-2024-secure!!"
 
 logging:
   level:

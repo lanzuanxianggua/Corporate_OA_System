@@ -35,23 +35,38 @@
       </el-col>
     </el-row>
 
-    <el-row :gutter="20">
-      <el-col :span="8">
+    <el-row :gutter="20" class="mb-5">
+      <el-col :span="12">
         <el-card>
           <template #header><span class="font-medium">考勤状态分布</span></template>
           <div ref="attStatusChartRef" style="height: 280px"></div>
         </el-card>
       </el-col>
-      <el-col :span="8">
+      <el-col :span="12">
         <el-card>
           <template #header><span class="font-medium">请假统计</span></template>
           <div ref="leaveTypeChartRef" style="height: 280px"></div>
         </el-card>
       </el-col>
+    </el-row>
+
+    <el-row :gutter="20">
       <el-col :span="8">
         <el-card>
-          <template #header><span class="font-medium">{{ periodLabel }}打卡概览</span></template>
-          <div ref="clockInChartRef" style="height: 280px"></div>
+          <template #header><span class="font-medium">本月请假人数</span></template>
+          <div ref="leaveCountChartRef" style="height: 280px"></div>
+        </el-card>
+      </el-col>
+      <el-col :span="8">
+        <el-card>
+          <template #header><span class="font-medium">本月出差人数</span></template>
+          <div ref="tripCountChartRef" style="height: 280px"></div>
+        </el-card>
+      </el-col>
+      <el-col :span="8">
+        <el-card>
+          <template #header><span class="font-medium">待审批 / 本月新员工</span></template>
+          <div ref="approvalNewChartRef" style="height: 280px"></div>
         </el-card>
       </el-col>
     </el-row>
@@ -84,7 +99,9 @@ const trendChartRef = ref<HTMLDivElement>();
 const deptChartRef = ref<HTMLDivElement>();
 const attStatusChartRef = ref<HTMLDivElement>();
 const leaveTypeChartRef = ref<HTMLDivElement>();
-const clockInChartRef = ref<HTMLDivElement>();
+const leaveCountChartRef = ref<HTMLDivElement>();
+const tripCountChartRef = ref<HTMLDivElement>();
+const approvalNewChartRef = ref<HTMLDivElement>();
 const lateRankChartRef = ref<HTMLDivElement>();
 const attendanceRankChartRef = ref<HTMLDivElement>();
 const charts: echarts.ECharts[] = [];
@@ -112,22 +129,21 @@ const statsCards = computed(() => {
       { label: "今日已打卡", value: "0", color: "#67C23A" },
       { label: "未打卡", value: "0", color: "#909399" },
       { label: "今日迟到", value: "0", color: "#E6A23C" },
-      { label: "今日早退", value: "0", color: "#F56C6C" },
-      { label: "今日请假", value: "0", color: "#9254de" }
+      { label: "本月请假", value: "0", color: "#9254de" },
+      { label: "待审批", value: "0", color: "#F56C6C" }
     ];
   }
-  const pl = periodLabel.value;
   const att = d.attendance || {};
   const clockedIn = Number(att.clockedIn) || 0;
   const total = Number(d.employeeTotal) || 0;
   const notClocked = period.value === "today" ? Math.max(0, total - clockedIn) : (Number(att.absent) || 0);
   return [
     { label: "总人数", value: String(total), color: "#409EFF" },
-    { label: `${pl}已打卡`, value: String(clockedIn), color: "#67C23A" },
-    { label: period.value === "today" ? "未打卡" : `${pl}缺勤`, value: String(notClocked), color: "#909399" },
-    { label: `${pl}迟到`, value: String(Number(att.late) || 0), color: "#E6A23C" },
-    { label: `${pl}早退`, value: String(Number(att.earlyLeave) || 0), color: "#F56C6C" },
-    { label: `${pl}请假`, value: String(Number((d.leave || {}).total) || 0), color: "#9254de" }
+    { label: `${periodLabel.value}已打卡`, value: String(clockedIn), color: "#67C23A" },
+    { label: period.value === "today" ? "未打卡" : `${periodLabel.value}缺勤`, value: String(notClocked), color: "#909399" },
+    { label: `${periodLabel.value}迟到`, value: String(Number(att.late) || 0), color: "#E6A23C" },
+    { label: "本月请假", value: String(Number(d.leaveCountThisMonth) || 0), color: "#9254de" },
+    { label: "待审批", value: String(Number(d.pendingApprovals) || 0), color: "#F56C6C" }
   ];
 });
 
@@ -150,7 +166,9 @@ const fetchAllData = async () => {
   initDeptChart();
   initAttStatusChart();
   initLeaveTypeChart();
-  initClockInChart();
+  initLeaveCountChart();
+  initTripCountChart();
+  initApprovalNewChart();
   initLateRankChart();
   initAttendanceRankChart();
 };
@@ -266,28 +284,74 @@ const initLeaveTypeChart = () => {
   });
 };
 
-const initClockInChart = () => {
-  if (!clockInChartRef.value) return;
-  const chart = echarts.init(clockInChartRef.value);
+const initLeaveCountChart = () => {
+  if (!leaveCountChartRef.value) return;
+  const chart = echarts.init(leaveCountChartRef.value);
   charts.push(chart);
-  const att = cachedData.value?.attendance || {};
-  const clockedIn = Number(att.clockedIn) || 0;
-  const totalRequired = Number(att.totalRequired) || 100;
-  const unit = period.value === "today" ? "人" : "人次";
+  const d = cachedData.value || {};
+  const leaveCount = Number(d.leaveCountThisMonth) || 0;
   chart.setOption({
-    tooltip: { trigger: "item", formatter: `{b}: {c}${unit}` },
+    tooltip: { trigger: "item" },
     series: [{
       type: "gauge", startAngle: 200, endAngle: -20,
-      min: 0, max: totalRequired,
-      progress: { show: true, width: 16 },
+      min: 0, max: Math.max(leaveCount * 2, 10),
+      progress: { show: true, width: 16, itemStyle: { color: "#9254de" } },
       axisLine: { lineStyle: { width: 16 } },
       axisTick: { show: false },
       splitLine: { show: false },
       axisLabel: { show: false },
       pointer: { show: false },
-      detail: { valueAnimation: true, formatter: (val: number) => `${val}/${totalRequired}`, fontSize: 20, offsetCenter: [0, "0%"] },
-      data: [{ value: clockedIn, name: "已打卡" }],
+      detail: { valueAnimation: true, formatter: (val: number) => `${Math.round(val)}人`, fontSize: 22, fontWeight: "bold", offsetCenter: [0, "0%"], color: "#9254de" },
+      data: [{ value: leaveCount, name: "本月请假人数" }],
       title: { offsetCenter: [0, "30%"], fontSize: 14, color: "#909399" }
+    }]
+  });
+};
+
+const initTripCountChart = () => {
+  if (!tripCountChartRef.value) return;
+  const chart = echarts.init(tripCountChartRef.value);
+  charts.push(chart);
+  const d = cachedData.value || {};
+  const tripCount = Number(d.businessTripCountThisMonth) || 0;
+  chart.setOption({
+    tooltip: { trigger: "item" },
+    series: [{
+      type: "gauge", startAngle: 200, endAngle: -20,
+      min: 0, max: Math.max(tripCount * 2, 10),
+      progress: { show: true, width: 16, itemStyle: { color: "#409EFF" } },
+      axisLine: { lineStyle: { width: 16 } },
+      axisTick: { show: false },
+      splitLine: { show: false },
+      axisLabel: { show: false },
+      pointer: { show: false },
+      detail: { valueAnimation: true, formatter: (val: number) => `${Math.round(val)}人`, fontSize: 22, fontWeight: "bold", offsetCenter: [0, "0%"], color: "#409EFF" },
+      data: [{ value: tripCount, name: "本月出差人数" }],
+      title: { offsetCenter: [0, "30%"], fontSize: 14, color: "#909399" }
+    }]
+  });
+};
+
+const initApprovalNewChart = () => {
+  if (!approvalNewChartRef.value) return;
+  const chart = echarts.init(approvalNewChartRef.value);
+  charts.push(chart);
+  const d = cachedData.value || {};
+  const pendingApprovals = Number(d.pendingApprovals) || 0;
+  const newEmployees = Number(d.newEmployeesThisMonth) || 0;
+  chart.setOption({
+    tooltip: { trigger: "axis" },
+    grid: { left: 60, right: 30, top: 30, bottom: 30 },
+    xAxis: { type: "category", data: ["待审批", "本月新员工"] },
+    yAxis: { type: "value", name: "数量", minInterval: 1 },
+    series: [{
+      type: "bar",
+      data: [
+        { value: pendingApprovals, itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "#F56C6C" }, { offset: 1, color: "#fab6b6" }]) } },
+        { value: newEmployees, itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "#67C23A" }, { offset: 1, color: "#b3e19d" }]) } }
+      ],
+      barWidth: "40%",
+      label: { show: true, position: "top", formatter: "{c}", fontSize: 16, fontWeight: "bold" }
     }]
   });
 };

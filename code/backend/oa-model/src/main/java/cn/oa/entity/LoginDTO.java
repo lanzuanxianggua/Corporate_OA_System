@@ -17,4 +17,10 @@ public class LoginDTO implements Serializable {
 
     /** 密码 */
     private String password;
+
+    /** 验证码UUID */
+    private String captchaUuid;
+
+    /** 验证码 */
+    private String captchaCode;
 }

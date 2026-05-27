@@ -43,6 +43,9 @@ public class AuthServiceImpl implements AuthService {
     @Autowired
     private OaLoginLogMapper loginLogMapper;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
     @Override
     public LoginVO login(String username, String password) {
         return login(username, password, null);
@@ -79,7 +82,7 @@ public class AuthServiceImpl implements AuthService {
             roleKeys.add("USER");
         }
 
-        String token = JwtUtil.generateToken(employee.getId(), employee.getEmpName());
+        String token = jwtUtil.generateToken(employee.getId(), employee.getEmpName());
         redisTemplate.opsForValue().set("token:" + employee.getId(), token, 7200, TimeUnit.SECONDS);
 
         // 将角色信息存入Redis，供权限校验使用
@@ -122,10 +125,10 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public LoginVO refreshToken(String refreshToken) {
         try {
-            io.jsonwebtoken.Claims claims = JwtUtil.parseToken(refreshToken);
+            io.jsonwebtoken.Claims claims = jwtUtil.parseToken(refreshToken);
             Long empId = claims.get("empId", Long.class);
             String empName = claims.get("empName", String.class);
-            String newToken = JwtUtil.generateToken(empId, empName);
+            String newToken = jwtUtil.generateToken(empId, empName);
             redisTemplate.opsForValue().set("token:" + empId, newToken, 7200, TimeUnit.SECONDS);
             // 续期角色信息
             redisTemplate.expire("roles:" + empId, 7200, TimeUnit.SECONDS);

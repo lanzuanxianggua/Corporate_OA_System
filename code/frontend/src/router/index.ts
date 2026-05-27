@@ -29,6 +29,12 @@ const staticRoutes: RouteRecordRaw[] = [
         meta: { title: "工作台" }
       },
       {
+        path: "oa/approval-center",
+        name: "ApprovalCenter",
+        component: () => import("@/views/oa/approval-center/index.vue"),
+        meta: { title: "审批中心", roles: ["ADMIN"] }
+      },
+      {
         path: "oa/attendance/clock",
         name: "AttendanceClock",
         component: () => import("@/views/oa/attendance/clock/index.vue"),
@@ -188,13 +194,163 @@ const staticRoutes: RouteRecordRaw[] = [
         path: "system/menu",
         name: "SystemMenu",
         component: () => import("@/views/system/menu/index.vue"),
-        meta: { title: "菜单管理", roles: ["ADMIN"] }
+        meta: { title: "菜单权限", roles: ["ADMIN"] }
       },
       {
         path: "system/dept",
         name: "SystemDept",
         component: () => import("@/views/system/dept/index.vue"),
         meta: { title: "部门管理", roles: ["ADMIN"] }
+      },
+      {
+        path: "system/dict",
+        name: "SystemDict",
+        component: () => import("@/views/system/dict/index.vue"),
+        meta: { title: "字典管理", roles: ["ADMIN"] }
+      },
+      {
+        path: "system/config",
+        name: "SystemConfig",
+        component: () => import("@/views/system/config/index.vue"),
+        meta: { title: "参数配置", roles: ["ADMIN"] }
+      },
+      {
+        path: "system/post",
+        name: "SystemPost",
+        component: () => import("@/views/system/post/index.vue"),
+        meta: { title: "岗位管理", roles: ["ADMIN"] }
+      },
+      {
+        path: "oa/workflow-definition",
+        name: "WorkflowDefinition",
+        component: () => import("@/views/oa/workflow/definition/index.vue"),
+        meta: { title: "工作流定义", roles: ["ADMIN"] }
+      },
+      {
+        path: "oa/workflow-todo",
+        name: "WorkflowTodo",
+        component: () => import("@/views/oa/workflow/todo/index.vue"),
+        meta: { title: "工作流任务" }
+      },
+      {
+        path: "oa/workflow/cc",
+        name: "WorkflowCc",
+        component: () => import("@/views/oa/workflow/cc/index.vue"),
+        meta: { title: "抄送记录" }
+      },
+      {
+        path: "oa/workflow/delegation",
+        name: "WorkflowDelegation",
+        component: () => import("@/views/oa/workflow/delegation/index.vue"),
+        meta: { title: "审批委托" }
+      },
+      {
+        path: "oa/todo",
+        name: "TodoCenter",
+        component: () => import("@/views/oa/todo/index.vue"),
+        meta: { title: "我的待办" }
+      },
+      {
+        path: "oa/attendance-group",
+        name: "AttendanceGroup",
+        component: () => import("@/views/oa/attendance-group/index.vue"),
+        meta: { title: "考勤组管理", roles: ["ADMIN"] }
+      },
+      {
+        path: "oa/leave-balance",
+        name: "LeaveBalance",
+        component: () => import("@/views/oa/leave-balance/index.vue"),
+        meta: { title: "假期余额" }
+      },
+      {
+        path: "oa/overtime-apply",
+        name: "OvertimeApply",
+        component: () => import("@/views/oa/overtime/apply/index.vue"),
+        meta: { title: "加班申请" }
+      },
+      {
+        path: "oa/overtime-approval",
+        name: "OvertimeApproval",
+        component: () => import("@/views/oa/overtime/approval/index.vue"),
+        meta: { title: "加班审批", roles: ["ADMIN"] }
+      },
+      {
+        path: "oa/salary",
+        name: "SalaryManage",
+        component: () => import("@/views/oa/salary/index.vue"),
+        meta: { title: "薪资管理", roles: ["ADMIN"] }
+      },
+      {
+        path: "oa/salary-my",
+        name: "MySalary",
+        component: () => import("@/views/oa/salary/my/index.vue"),
+        meta: { title: "我的薪资" }
+      },
+      {
+        path: "oa/archive",
+        name: "EmpArchive",
+        component: () => import("@/views/oa/archive/index.vue"),
+        meta: { title: "员工档案", roles: ["ADMIN"] }
+      },
+      {
+        path: "oa/meeting-room",
+        name: "MeetingRoom",
+        component: () => import("@/views/oa/meeting/room/index.vue"),
+        meta: { title: "会议室管理", roles: ["ADMIN"] }
+      },
+      {
+        path: "oa/meeting",
+        name: "Meeting",
+        component: () => import("@/views/oa/meeting/index.vue"),
+        meta: { title: "会议管理" }
+      },
+      {
+        path: "oa/asset",
+        name: "AssetManage",
+        component: () => import("@/views/oa/asset/index.vue"),
+        meta: { title: "资产管理", roles: ["ADMIN"] }
+      },
+      {
+        path: "oa/asset-borrow",
+        name: "AssetBorrow",
+        component: () => import("@/views/oa/asset/borrow/index.vue"),
+        meta: { title: "资产借用" }
+      },
+      {
+        path: "oa/contract",
+        name: "ContractManage",
+        component: () => import("@/views/oa/contract/index.vue"),
+        meta: { title: "合同管理", roles: ["ADMIN"] }
+      },
+      {
+        path: "oa/budget",
+        name: "BudgetManage",
+        component: () => import("@/views/oa/budget/index.vue"),
+        meta: { title: "预算管理", roles: ["ADMIN"] }
+      },
+      {
+        path: "oa/loan-apply",
+        name: "LoanApply",
+        component: () => import("@/views/oa/loan/apply/index.vue"),
+        meta: { title: "借支申请" }
+      },
+      {
+        path: "oa/loan-approval",
+        name: "LoanApproval",
+        component: () => import("@/views/oa/loan/approval/index.vue"),
+        meta: { title: "借支审批", roles: ["ADMIN"] }
+      },
+      {
+        path: "oa/alert-rule",
+        name: "AlertRule",
+        component: () => import("@/views/oa/alert/rule/index.vue"),
+        meta: { title: "预警规则", roles: ["ADMIN"] }
+      },
+      {
+        path: "oa/alert-log",
+        name: "AlertLog",
+        component: () => import("@/views/oa/alert/log/index.vue"),
+        meta: { title: "预警记录" }
       },
       {
         path: "monitor/online",
@@ -268,6 +424,25 @@ router.beforeEach((to, _from, next) => {
   } else if (!token) {
     next("/login");
   } else {
+    // Check token expiry
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+      if (payload.exp && Date.now() / 1000 > payload.exp) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("userInfo");
+        next("/login");
+        return;
+      }
+    } catch {
+      // malformed token
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("userInfo");
+      next("/login");
+      return;
+    }
+
     const requiredRoles = to.meta?.roles as string[] | undefined;
     if (requiredRoles?.length) {
       const userStore = useUserStore();

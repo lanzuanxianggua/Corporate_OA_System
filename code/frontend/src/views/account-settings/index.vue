@@ -82,8 +82,7 @@ const handleChangePwd = async () => {
     if (!valid) return;
     pwdLoading.value = true;
     try {
-      const empId = userStore.userInfo?.empId || userStore.userInfo?.id;
-      await updatePassword(empId, pwdForm.oldPwd, pwdForm.newPwd);
+      await updatePassword(pwdForm.oldPwd, pwdForm.newPwd);
       ElMessage.success("密码修改成功");
       pwdForm.oldPwd = "";
       pwdForm.newPwd = "";

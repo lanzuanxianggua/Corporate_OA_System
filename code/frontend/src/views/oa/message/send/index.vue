@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-card class="max-w-2xl">
+    <el-card>
       <template #header><span class="font-medium">发送消息</span></template>
       <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="接收人" prop="receiverId">

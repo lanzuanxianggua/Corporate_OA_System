@@ -1,12 +1,16 @@
 package cn.oa.service.impl;
 
+import cn.oa.common.constant.BusinessType;
+import cn.oa.common.exception.BusinessException;
 import cn.oa.entity.OaApprovalRecord;
 import cn.oa.entity.OaOuting;
+import cn.oa.entity.WfTask;
 import cn.oa.entity.SysEmployee;
 import cn.oa.mapper.OaApprovalRecordMapper;
 import cn.oa.mapper.OaOutingMapper;
 import cn.oa.mapper.SysEmployeeMapper;
 import cn.oa.service.OutingService;
+import cn.oa.service.WorkflowService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -28,29 +32,37 @@ public class OutingServiceImpl extends ServiceImpl<OaOutingMapper, OaOuting> imp
     @Autowired
     private SysEmployeeMapper employeeMapper;
 
+    @Autowired
+    private WorkflowService workflowService;
+
     @Override
-    @Transactional
     public void submit(OaOuting outing) {
         outing.setStatus(0);
         this.save(outing);
+        long days = java.time.temporal.ChronoUnit.DAYS.between(outing.getStartTime().toLocalDate(), outing.getEndTime().toLocalDate()) + 1;
+        Map<String, Object> ctx = new HashMap<>();
+        ctx.put("days", days);
+        workflowService.startProcess(BusinessType.OUTING, outing.getId(), outing.getEmpId(), ctx);
     }
 
     @Override
     @Transactional
     public void approve(Long applyId, Long approverId, Integer status, String remark) {
-        OaOuting outing = this.getById(applyId);
-        if (outing == null) {
-            throw new RuntimeException("外出申请不存在");
+        WfTask task = workflowService.findPendingTask(BusinessType.OUTING, applyId, approverId);
+        if (task != null) {
+            workflowService.handleTask(task.getId(), approverId, status, remark);
+        } else {
+            throw new BusinessException("未找到待审批的任务");
         }
-        OaApprovalRecord record = new OaApprovalRecord();
-        record.setApplyId(applyId);
-        record.setApproverId(approverId);
-        record.setApproveStatus(status);
-        record.setRemark(remark);
-        record.setApproveTime(LocalDateTime.now());
-        approvalRecordMapper.insert(record);
-        outing.setStatus(status);
-        this.updateById(outing);
+    }
+
+    @Override
+    public void updateStatus(Long id, Integer status) {
+        OaOuting outing = this.getById(id);
+        if (outing != null) {
+            outing.setStatus(status);
+            this.updateById(outing);
+        }
     }
 
     @Override

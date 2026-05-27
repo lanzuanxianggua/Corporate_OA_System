@@ -10,7 +10,7 @@
       <el-button type="primary" :icon="Plus" @click="openDialog()">新增员工</el-button>
     </div>
     <el-card>
-      <el-table :data="userList" stripe>
+      <el-table :data="userList" stripe style="width: 100%">
         <el-table-column label="工号" prop="empCode" width="120" />
         <el-table-column label="姓名" prop="empName" />
         <el-table-column label="部门">
@@ -20,7 +20,10 @@
         <el-table-column label="邮箱" prop="email" />
         <el-table-column label="角色">
           <template #default="{ row }">
-            <el-tag size="small" class="mr-1">{{ getRoleName(row) }}</el-tag>
+            <template v-if="row.roles && row.roles.length">
+              <el-tag v-for="role in row.roles" :key="role.id" size="small" class="mr-1">{{ role.roleName }}</el-tag>
+            </template>
+            <el-tag v-else size="small" type="info">未分配</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="状态" width="80">
@@ -52,6 +55,11 @@
             <el-option v-for="d in deptOptions" :key="d.id" :label="d.deptName" :value="d.id" />
           </el-select>
         </el-form-item>
+        <el-form-item label="角色">
+          <el-select v-model="editRoleIds" multiple placeholder="请选择角色" class="w-full">
+            <el-option v-for="role in roleList" :key="role.id" :label="role.roleName" :value="role.id" />
+          </el-select>
+        </el-form-item>
         <el-form-item v-if="!isEdit" label="初始密码">
           <el-input v-model="form.password" type="password" show-password placeholder="默认123456" />
         </el-form-item>
@@ -69,7 +77,7 @@ import { ref, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Plus } from "@element-plus/icons-vue";
 import { getEmployeePage, addEmployee, updateEmployee, deleteEmployee } from "@/api/employee";
-import { getDeptList } from "@/api/system";
+import { getDeptList, getRoles, getEmpRoles, assignRoles } from "@/api/system";
 
 const searchName = ref("");
 const searchStatus = ref<number | undefined>(undefined);
@@ -81,6 +89,8 @@ const dialogVisible = ref(false);
 const isEdit = ref(false);
 const submitting = ref(false);
 const deptOptions = ref<any[]>([]);
+const roleList = ref<any[]>([]);
+const editRoleIds = ref<number[]>([]);
 
 const form = reactive({
   id: undefined as number | undefined,
@@ -106,13 +116,18 @@ const getDeptName = (deptId: number | undefined) => {
   return deptOptions.value.find((d: any) => d.id === deptId)?.deptName || "-";
 };
 
-const getRoleName = (row: any) => {
-  if (row.empCode === "ADMIN") return "管理员";
-  return "普通用户";
+const fetchRoles = async () => {
+  try {
+    const res: any = await getRoles();
+    roleList.value = res.data || [];
+  } catch {
+    roleList.value = [];
+  }
 };
 
-const openDialog = (row?: any) => {
+const openDialog = async (row?: any) => {
   isEdit.value = !!row;
+  editRoleIds.value = [];
   if (row) {
     Object.assign(form, {
       id: row.id,
@@ -123,6 +138,12 @@ const openDialog = (row?: any) => {
       deptId: row.deptId,
       password: ""
     });
+    try {
+      const res: any = await getEmpRoles(row.id);
+      editRoleIds.value = (res.data || []).map((id: any) => Number(id));
+    } catch {
+      editRoleIds.value = [];
+    }
   } else {
     Object.assign(form, { id: undefined, empCode: "", empName: "", phone: "", email: "", deptId: undefined, password: "" });
   }
@@ -150,6 +171,11 @@ const handleSubmit = async () => {
     } else {
       await addEmployee({ empCode: form.empCode, empName: form.empName, phone: form.phone, email: form.email, deptId: form.deptId, password: form.password || "123456" });
     }
+    if (form.id) {
+      try {
+        await assignRoles(form.id, editRoleIds.value);
+      } catch {}
+    }
     ElMessage.success(isEdit.value ? "编辑成功" : "新增成功");
     dialogVisible.value = false;
     await fetchData();
@@ -163,6 +189,7 @@ const handleDelete = async (id: number) => {
 
 onMounted(async () => {
   fetchData();
+  fetchRoles();
   try {
     const r: any = await getDeptList();
     if (r.data) {

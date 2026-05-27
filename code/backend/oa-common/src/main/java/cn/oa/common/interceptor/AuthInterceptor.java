@@ -1,6 +1,7 @@
 package cn.oa.common.interceptor;
 
 import cn.oa.common.annotation.RequireAdmin;
+import cn.oa.common.annotation.RequirePermission;
 import cn.oa.common.utils.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,7 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -22,8 +23,25 @@ public class AuthInterceptor implements HandlerInterceptor {
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
     private static final String ONLINE_KEY_PREFIX = "online:user:";
     private static final long ONLINE_TTL_MINUTES = 30;
+
+    private static final Map<String, Set<String>> ROLE_PERMISSIONS = new HashMap<>();
+
+    static {
+        ROLE_PERMISSIONS.put("USER", Set.of(
+                "attendance:checkin", "attendance:list",
+                "leave:apply", "leave:list",
+                "notice:list", "notice:read",
+                "document:list", "document:download",
+                "schedule:list", "schedule:add",
+                "message:list", "message:read",
+                "report:personal"
+        ));
+    }
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -45,7 +63,7 @@ public class AuthInterceptor implements HandlerInterceptor {
 
         Claims claims;
         try {
-            claims = JwtUtil.parseToken(token);
+            claims = jwtUtil.parseToken(token);
         } catch (Exception e) {
             log.error("Token 解析失败：{}", e.getMessage());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -84,6 +102,22 @@ public class AuthInterceptor implements HandlerInterceptor {
                     return false;
                 }
             }
+
+            // 细粒度权限校验
+            RequirePermission requirePermission = handlerMethod.getMethodAnnotation(RequirePermission.class);
+            if (requirePermission != null && !requirePermission.value().isEmpty()) {
+                String rolesKey = "roles:" + empId;
+                @SuppressWarnings("unchecked")
+                List<String> roles = (List<String>) redisTemplate.opsForValue().get(rolesKey);
+                if (roles == null || roles.stream().noneMatch(r ->
+                        hasPermission(r, requirePermission.value()))) {
+                    log.warn("用户 {} (empId={}) 缺少权限: {}", empName, empId, requirePermission.value());
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.getWriter().write("{\"code\":403,\"message\":\"权限不足\",\"data\":null}");
+                    return false;
+                }
+            }
         }
 
         // 续期在线用户 TTL
@@ -93,5 +127,13 @@ public class AuthInterceptor implements HandlerInterceptor {
         }
 
         return true;
+    }
+
+    private boolean hasPermission(String role, String permission) {
+        Set<String> perms = ROLE_PERMISSIONS.get(role);
+        if (perms == null) return false;
+        if (perms.contains(permission)) return true;
+        if ("ADMIN".equalsIgnoreCase(role)) return true;
+        return false;
     }
 }

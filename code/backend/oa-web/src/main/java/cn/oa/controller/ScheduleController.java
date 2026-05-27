@@ -1,5 +1,6 @@
 package cn.oa.controller;
 
+import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
@@ -59,6 +60,7 @@ public class ScheduleController {
 
     @PostMapping
     @Operation(summary = "新增日程")
+    @OperationLog(module = "日程管理", operation = "新增日程")
     public R<Void> add(@RequestBody OaSchedule schedule) {
         scheduleService.save(schedule);
         return R.ok();
@@ -66,6 +68,7 @@ public class ScheduleController {
 
     @PutMapping
     @Operation(summary = "修改日程")
+    @OperationLog(module = "日程管理", operation = "修改日程")
     public R<Void> update(@RequestBody OaSchedule schedule) {
         scheduleService.updateById(schedule);
         return R.ok();
@@ -73,6 +76,7 @@ public class ScheduleController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除日程")
+    @OperationLog(module = "日程管理", operation = "删除日程")
     public R<Void> delete(@PathVariable Long id) {
         scheduleService.removeById(id);
         return R.ok();

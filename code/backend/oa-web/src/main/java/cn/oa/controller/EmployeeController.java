@@ -1,5 +1,6 @@
 package cn.oa.controller;
 
+import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
 import cn.oa.entity.SysEmployee;
@@ -45,6 +46,7 @@ public class EmployeeController {
 
     @PostMapping
     @Operation(summary = "新增员工")
+    @OperationLog(module = "员工管理", operation = "新增员工")
     public R<Void> add(@RequestBody SysEmployee employee) {
         employeeService.addEmployee(employee);
         return R.ok();
@@ -52,6 +54,7 @@ public class EmployeeController {
 
     @PutMapping
     @Operation(summary = "修改员工")
+    @OperationLog(module = "员工管理", operation = "修改员工")
     public R<Void> update(@RequestBody SysEmployee employee) {
         employeeService.updateById(employee);
         return R.ok();
@@ -59,6 +62,7 @@ public class EmployeeController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除员工")
+    @OperationLog(module = "员工管理", operation = "删除员工")
     public R<Void> delete(@PathVariable Long id) {
         employeeService.removeById(id);
         return R.ok();

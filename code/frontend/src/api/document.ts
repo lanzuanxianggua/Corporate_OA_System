@@ -32,5 +32,8 @@ export const deleteDocument = (id: number) => {
 };
 
 export const downloadDocument = (id: string | number) => {
-  return request.get(`/api/document/download/${id}`, { responseType: "blob" });
+  return request.get(`/api/document/download/${id}`, {
+    responseType: "blob",
+    timeout: 60000
+  });
 };

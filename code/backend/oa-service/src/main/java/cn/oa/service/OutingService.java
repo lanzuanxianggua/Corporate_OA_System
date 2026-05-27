@@ -11,4 +11,6 @@ public interface OutingService extends IService<OaOuting> {
     void approve(Long applyId, Long approverId, Integer status, String remark);
 
     IPage<OaOuting> pageList(int pageNum, int pageSize, Long empId, Integer status);
+
+    void updateStatus(Long id, Integer status);
 }

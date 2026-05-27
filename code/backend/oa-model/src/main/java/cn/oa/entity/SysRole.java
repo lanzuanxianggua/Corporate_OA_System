@@ -24,6 +24,11 @@ public class SysRole {
 
     private Integer status = 1;
 
+    private String remark;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
+
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private LocalDateTime updateTime;
 }

@@ -5,7 +5,7 @@
       <el-button type="primary" :icon="Plus" @click="openDialog()">新增部门</el-button>
     </div>
     <el-card>
-      <el-table :data="deptList" row-key="id" :tree-props="{ children: 'children' }" default-expand-all stripe>
+      <el-table :data="deptList" row-key="id" :tree-props="{ children: 'children' }" default-expand-all stripe style="width: 100%">
         <el-table-column label="部门名称" min-width="200">
           <template #default="{ row }">{{ row.deptName }}</template>
         </el-table-column>

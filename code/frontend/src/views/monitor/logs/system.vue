@@ -5,7 +5,7 @@
     </div>
     <el-card>
       <template #header><span class="font-medium">系统日志</span></template>
-      <el-table :data="logList" stripe>
+      <el-table :data="logList" stripe style="width: 100%">
         <el-table-column label="级别" width="80">
           <template #default="{ row }">
             <el-tag :type="row.level === 0 ? 'success' : 'danger'" size="small">{{ row.level === 0 ? "INFO" : "ERROR" }}</el-tag>

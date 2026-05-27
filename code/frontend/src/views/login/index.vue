@@ -49,8 +49,30 @@
               prefix-icon="Lock"
               size="large"
               show-password
-              @keyup.enter="handleLogin"
             />
+          </el-form-item>
+          <el-form-item prop="captchaCode">
+            <div class="flex w-full gap-2">
+              <el-input
+                v-model="loginForm.captchaCode"
+                placeholder="请输入验证码"
+                prefix-icon="Key"
+                size="large"
+                @keyup.enter="handleLogin"
+              />
+              <div
+                class="h-[40px] min-w-[120px] rounded cursor-pointer flex items-center justify-center border border-gray-200 overflow-hidden"
+                @click="refreshCaptcha"
+              >
+                <img
+                  v-if="captchaImg"
+                  :src="captchaImg"
+                  alt="验证码"
+                  class="h-full w-full object-cover"
+                />
+                <span v-else class="text-xs text-gray-400">点击获取</span>
+              </div>
+            </div>
           </el-form-item>
           <el-form-item>
             <el-checkbox v-model="loginForm.remember">记住我</el-checkbox>
@@ -73,27 +95,54 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from "vue";
+import { ref, reactive, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { useUserStore } from "@/store/user";
+import { getCaptcha } from "@/api/auth";
 import type { FormInstance, FormRules } from "element-plus";
 
 const router = useRouter();
 const userStore = useUserStore();
 const loginFormRef = ref<FormInstance>();
 const loading = ref(false);
+const captchaImg = ref("");
+const captchaUuid = ref("");
 
 const loginForm = reactive({
   username: "",
   password: "",
+  captchaCode: "",
   remember: false
 });
 
 const rules: FormRules = {
   username: [{ required: true, message: "请输入用户名", trigger: "blur" }],
-  password: [{ required: true, message: "请输入密码", trigger: "blur" }]
+  password: [{ required: true, message: "请输入密码", trigger: "blur" }],
+  captchaCode: [{ required: true, message: "请输入验证码", trigger: "blur" }]
 };
+
+const refreshCaptcha = async () => {
+  try {
+    const res: any = await getCaptcha();
+    if (res.data) {
+      captchaImg.value = res.data.img;
+      captchaUuid.value = res.data.uuid;
+      loginForm.captchaCode = "";
+    }
+  } catch {
+    // ignore
+  }
+};
+
+onMounted(() => {
+  refreshCaptcha();
+  const saved = localStorage.getItem("remembered_username");
+  if (saved) {
+    loginForm.username = saved;
+    loginForm.remember = true;
+  }
+});
 
 const handleLogin = async () => {
   if (!loginFormRef.value) return;
@@ -101,11 +150,17 @@ const handleLogin = async () => {
     if (!valid) return;
     loading.value = true;
     try {
-      await userStore.loginAction(loginForm.username, loginForm.password);
+      await userStore.loginAction(loginForm.username, loginForm.password, captchaUuid.value, loginForm.captchaCode);
+      if (loginForm.remember) {
+        localStorage.setItem("remembered_username", loginForm.username);
+      } else {
+        localStorage.removeItem("remembered_username");
+      }
       ElMessage.success("登录成功");
       router.push("/welcome");
     } catch (error: any) {
       ElMessage.error(error.message || "登录失败");
+      refreshCaptcha();
     } finally {
       loading.value = false;
     }

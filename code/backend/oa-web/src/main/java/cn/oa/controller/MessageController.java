@@ -1,5 +1,6 @@
 package cn.oa.controller;
 
+import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
@@ -48,6 +49,7 @@ public class MessageController {
     @PostMapping("/send")
     @RequireAdmin
     @Operation(summary = "发送消息")
+    @OperationLog(module = "消息管理", operation = "发送消息")
     public R<Void> send(@RequestBody OaMessage message, HttpServletRequest request) {
         Long empId = (Long) request.getAttribute("empId");
         message.setSenderId(empId);

@@ -16,6 +16,8 @@ public class OaApprovalRecord {
 
     private Long applyId;
 
+    private String businessType;
+
     private Long approverId;
 
     private Integer approveStatus;
@@ -23,4 +25,10 @@ public class OaApprovalRecord {
     private String remark;
 
     private LocalDateTime approveTime;
+
+    private Long taskId;
+
+    private String nodeName;
+
+    private String assigneeName;
 }

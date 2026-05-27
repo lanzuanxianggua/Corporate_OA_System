@@ -151,17 +151,15 @@ let searchTimer: ReturnType<typeof setTimeout> | null = null;
 const fetchList = async () => {
   loading.value = true;
   try {
-    const res: any = await getNoticePage({
+    const params: any = {
       pageNum: pageNum.value,
       pageSize: pageSize.value
-    });
-    let list: NoticeVO[] = res.data?.list || [];
-    // 前端标题搜索过滤
+    };
     if (searchKey.value.trim()) {
-      const key = searchKey.value.trim().toLowerCase();
-      list = list.filter((n) => n.title?.toLowerCase().includes(key));
+      params.title = searchKey.value.trim();
     }
-    noticeList.value = list;
+    const res: any = await getNoticePage(params);
+    noticeList.value = res.data?.list || [];
     total.value = res.data?.total || 0;
   } catch {
     // error handled by interceptor

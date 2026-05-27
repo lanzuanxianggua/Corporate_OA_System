@@ -31,6 +31,8 @@ public class OaLeaveApply {
 
     private Integer status = 0;
 
+    private String leavePeriod = "full";
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 

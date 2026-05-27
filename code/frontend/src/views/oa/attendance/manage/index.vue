@@ -12,10 +12,11 @@
         end-placeholder="结束日期" value-format="YYYY-MM-DD" size="default" style="width: 260px" />
       <el-button type="primary" @click="fetchData">查询</el-button>
       <el-button @click="handleReset">重置</el-button>
+      <el-button type="success" @click="handleExport">导出</el-button>
     </div>
 
     <el-card>
-      <el-table :data="attendanceList" stripe v-loading="loading">
+      <el-table :data="attendanceList" stripe v-loading="loading" style="width: 100%">
         <el-table-column label="工号" prop="empId" width="100" />
         <el-table-column label="姓名" prop="empName" width="100" />
         <el-table-column label="日期" prop="workDate" width="120" />
@@ -38,7 +39,7 @@
 
       <div class="flex justify-end mt-4">
         <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total"
-          :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next" @size-change="fetchData"
+          :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next" @size-change="handleSizeChange"
           @current-change="fetchData" />
       </div>
     </el-card>
@@ -47,7 +48,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { ElMessage } from "element-plus";
 import { getAttendanceAdminPage } from "@/api/attendance";
+import { downloadFile } from "@/utils/download";
 
 const searchName = ref("");
 const statusFilter = ref<number | "">("");
@@ -100,12 +103,29 @@ const fetchData = async () => {
   }
 };
 
+const handleSizeChange = () => {
+  pageNum.value = 1;
+  fetchData();
+};
+
 const handleReset = () => {
   searchName.value = "";
   statusFilter.value = "";
   dateRange.value = [];
   pageNum.value = 1;
   fetchData();
+};
+
+const handleExport = async () => {
+  try {
+    const params = new URLSearchParams();
+    if (dateRange.value?.[0]) params.set("startDate", dateRange.value[0]);
+    if (dateRange.value?.[1]) params.set("endDate", dateRange.value[1]);
+    await downloadFile(`/api/attendance/admin/export?${params.toString()}`, "考勤数据.xlsx");
+    ElMessage.success("导出成功");
+  } catch {
+    ElMessage.error("导出失败");
+  }
 };
 
 onMounted(fetchData);

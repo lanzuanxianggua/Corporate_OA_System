@@ -1,20 +1,27 @@
 package cn.oa.service.impl;
 
+import cn.oa.common.constant.BusinessType;
+import cn.oa.common.exception.BusinessException;
 import cn.oa.entity.OaApprovalRecord;
 import cn.oa.entity.OaBusinessTrip;
+import cn.oa.entity.WfTask;
 import cn.oa.entity.SysEmployee;
 import cn.oa.mapper.OaApprovalRecordMapper;
 import cn.oa.mapper.OaBusinessTripMapper;
 import cn.oa.mapper.SysEmployeeMapper;
+import cn.oa.service.AttendanceService;
 import cn.oa.service.BusinessTripService;
+import cn.oa.service.WorkflowService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -28,29 +35,56 @@ public class BusinessTripServiceImpl extends ServiceImpl<OaBusinessTripMapper, O
     @Autowired
     private SysEmployeeMapper employeeMapper;
 
+    @Autowired
+    private WorkflowService workflowService;
+
+    @Lazy
+    @Autowired
+    private AttendanceService attendanceService;
+
     @Override
-    @Transactional
     public void submit(OaBusinessTrip trip) {
         trip.setStatus(0);
         this.save(trip);
+        long days = java.time.temporal.ChronoUnit.DAYS.between(trip.getStartTime().toLocalDate(), trip.getEndTime().toLocalDate()) + 1;
+        Map<String, Object> ctx = new HashMap<>();
+        ctx.put("days", days);
+        workflowService.startProcess(BusinessType.TRIP, trip.getId(), trip.getEmpId(), ctx);
     }
 
     @Override
     @Transactional
     public void approve(Long applyId, Long approverId, Integer status, String remark) {
-        OaBusinessTrip trip = this.getById(applyId);
-        if (trip == null) {
-            throw new RuntimeException("出差申请不存在");
+        WfTask task = workflowService.findPendingTask(BusinessType.TRIP, applyId, approverId);
+        if (task != null) {
+            workflowService.handleTask(task.getId(), approverId, status, remark);
+        } else {
+            throw new BusinessException("未找到待审批的任务");
         }
-        OaApprovalRecord record = new OaApprovalRecord();
-        record.setApplyId(applyId);
-        record.setApproverId(approverId);
-        record.setApproveStatus(status);
-        record.setRemark(remark);
-        record.setApproveTime(LocalDateTime.now());
-        approvalRecordMapper.insert(record);
+    }
+
+    @Override
+    @Transactional
+    public void updateStatus(Long id, Integer status) {
+        OaBusinessTrip trip = this.getById(id);
+        if (trip == null) return;
+
+        Integer oldStatus = trip.getStatus();
         trip.setStatus(status);
         this.updateById(trip);
+
+        LocalDate startDate = trip.getStartTime().toLocalDate();
+        LocalDate endDate = trip.getEndTime().toLocalDate();
+
+        // When approved (status=1): mark trip attendance
+        if (status == 1 && oldStatus != 1) {
+            attendanceService.markTripAttendance(trip.getEmpId(), startDate, endDate);
+        }
+
+        // When rejected(2) or withdrawn(4) after being approved(1): remove attendance marks
+        if ((status == 2 || status == 4) && oldStatus == 1) {
+            attendanceService.removeMarkedAttendance(trip.getEmpId(), startDate, endDate, 6);
+        }
     }
 
     @Override

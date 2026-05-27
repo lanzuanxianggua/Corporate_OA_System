@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -140,5 +141,60 @@ public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAtt
         resultPage.setTotal(page.getTotal());
         resultPage.setRecords(records);
         return resultPage;
+    }
+
+    @Override
+    public void markLeaveAttendance(Long empId, LocalDate startDate, LocalDate endDate) {
+        markAutoAttendance(empId, startDate, endDate, 5, "请假自动标记");
+    }
+
+    @Override
+    public void markTripAttendance(Long empId, LocalDate startDate, LocalDate endDate) {
+        markAutoAttendance(empId, startDate, endDate, 6, "出差自动标记");
+    }
+
+    @Override
+    public void removeMarkedAttendance(Long empId, LocalDate startDate, LocalDate endDate, Integer status) {
+        this.remove(new LambdaQueryWrapper<OaAttendance>()
+                .eq(OaAttendance::getEmpId, empId)
+                .between(OaAttendance::getWorkDate, startDate, endDate)
+                .eq(OaAttendance::getStatus, status)
+                .like(OaAttendance::getRemark, "自动标记"));
+    }
+
+    private void markAutoAttendance(Long empId, LocalDate startDate, LocalDate endDate, int status, String remark) {
+        for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+            // Skip weekends
+            DayOfWeek dow = date.getDayOfWeek();
+            if (dow == DayOfWeek.SATURDAY || dow == DayOfWeek.SUNDAY) {
+                continue;
+            }
+            // Check if attendance record exists for this date
+            OaAttendance existing = this.getOne(new LambdaQueryWrapper<OaAttendance>()
+                    .eq(OaAttendance::getEmpId, empId)
+                    .eq(OaAttendance::getWorkDate, date));
+            if (existing == null) {
+                // Insert new attendance record
+                OaAttendance attendance = new OaAttendance();
+                attendance.setEmpId(empId);
+                attendance.setWorkDate(date);
+                attendance.setStatus(status);
+                attendance.setRemark(remark);
+                this.save(attendance);
+            } else if (existing.getStatus() != null && existing.getStatus() == 3) {
+                // status=3 means absent; update it to the auto-marked status
+                existing.setStatus(status);
+                existing.setRemark(remark);
+                this.updateById(existing);
+            }
+        }
+    }
+
+    @Override
+    public List<OaAttendance> getHistoryByDateRange(LocalDate startDate, LocalDate endDate) {
+        LambdaQueryWrapper<OaAttendance> wrapper = new LambdaQueryWrapper<>();
+        wrapper.between(OaAttendance::getWorkDate, startDate, endDate)
+                .orderByDesc(OaAttendance::getWorkDate);
+        return this.list(wrapper);
     }
 }

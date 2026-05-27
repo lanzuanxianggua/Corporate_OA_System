@@ -27,11 +27,13 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/login",
                         "/refresh-token",
+                        "/api/auth/captcha",
                         "/error",
                         "/doc.html",
                         "/webjars/**",
                         "/v3/api-docs/**",
-                        "/swagger-resources/**"
+                        "/swagger-resources/**",
+                        "/ws/**"
                 );
     }
 

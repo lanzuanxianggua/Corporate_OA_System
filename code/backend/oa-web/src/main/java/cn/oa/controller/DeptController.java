@@ -1,5 +1,6 @@
 package cn.oa.controller;
 
+import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.result.R;
 import cn.oa.entity.SysDept;
 import cn.oa.service.DeptService;
@@ -34,6 +35,7 @@ public class DeptController {
 
     @PostMapping
     @Operation(summary = "新增部门")
+    @OperationLog(module = "部门管理", operation = "新增部门")
     public R<Void> add(@RequestBody SysDept dept) {
         deptService.save(dept);
         return R.ok();
@@ -41,6 +43,7 @@ public class DeptController {
 
     @PutMapping
     @Operation(summary = "修改部门")
+    @OperationLog(module = "部门管理", operation = "修改部门")
     public R<Void> update(@RequestBody SysDept dept) {
         deptService.updateById(dept);
         return R.ok();
@@ -48,6 +51,7 @@ public class DeptController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除部门")
+    @OperationLog(module = "部门管理", operation = "删除部门")
     public R<Void> delete(@PathVariable Long id) {
         deptService.removeById(id);
         return R.ok();

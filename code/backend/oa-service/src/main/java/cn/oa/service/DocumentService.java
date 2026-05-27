@@ -15,5 +15,5 @@ public interface DocumentService extends IService<OaDocument> {
     /**
      * 分页查询文档列表
      */
-    IPage<OaDocument> pageList(int pageNum, int pageSize);
+    IPage<OaDocument> pageList(int pageNum, int pageSize, String keyword);
 }

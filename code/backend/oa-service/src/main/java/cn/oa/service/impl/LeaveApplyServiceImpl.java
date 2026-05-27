@@ -1,21 +1,32 @@
 package cn.oa.service.impl;
 
+import cn.oa.common.constant.BusinessType;
+import cn.oa.common.exception.BusinessException;
 import cn.oa.entity.OaApprovalRecord;
 import cn.oa.entity.OaLeaveApply;
+import cn.oa.entity.WfTask;
 import cn.oa.entity.SysEmployee;
 import cn.oa.mapper.OaApprovalRecordMapper;
 import cn.oa.mapper.OaLeaveApplyMapper;
 import cn.oa.mapper.SysEmployeeMapper;
+import cn.oa.service.AttendanceService;
 import cn.oa.service.LeaveApplyService;
+import cn.oa.service.LeaveBalanceService;
+import cn.oa.service.WorkflowService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -32,29 +43,94 @@ public class LeaveApplyServiceImpl extends ServiceImpl<OaLeaveApplyMapper, OaLea
     @Autowired
     private SysEmployeeMapper employeeMapper;
 
+    @Autowired
+    private WorkflowService workflowService;
+
+    @Lazy
+    @Autowired
+    private LeaveBalanceService leaveBalanceService;
+
+    @Lazy
+    @Autowired
+    private AttendanceService attendanceService;
+
+    /**
+     * Calculate leave days considering leavePeriod (full/am/pm) and weekends.
+     */
+    private BigDecimal calculateLeaveDays(OaLeaveApply apply) {
+        LocalDate startDate = apply.getStartTime().toLocalDate();
+        LocalDate endDate = apply.getEndTime().toLocalDate();
+        String period = apply.getLeavePeriod() != null ? apply.getLeavePeriod() : "full";
+
+        // Count full weekdays
+        long fullWeekdays = 0;
+        for (LocalDate d = startDate; !d.isAfter(endDate); d = d.plusDays(1)) {
+            DayOfWeek dow = d.getDayOfWeek();
+            if (dow != DayOfWeek.SATURDAY && dow != DayOfWeek.SUNDAY) {
+                fullWeekdays++;
+            }
+        }
+
+        if ("full".equals(period) || fullWeekdays == 0) {
+            return BigDecimal.valueOf(fullWeekdays);
+        }
+
+        // half-day logic (am/pm)
+        boolean sameDay = startDate.equals(endDate);
+        if (sameDay) {
+            return BigDecimal.valueOf(0.5);
+        }
+        // Multi-day half-day: subtract 0.5 from full count (last day is half)
+        return BigDecimal.valueOf(fullWeekdays - 1).add(BigDecimal.valueOf(0.5));
+    }
+
     @Override
-    @Transactional
     public void submit(OaLeaveApply apply) {
         apply.setStatus(0);
         this.save(apply);
+        BigDecimal days = calculateLeaveDays(apply);
+        Map<String, Object> ctx = new HashMap<>();
+        ctx.put("days", days);
+        workflowService.startProcess(BusinessType.LEAVE, apply.getId(), apply.getEmpId(), ctx);
     }
 
     @Override
     @Transactional
     public void approve(Long applyId, Long approverId, Integer status, String remark) {
-        OaLeaveApply apply = this.getById(applyId);
-        if (apply == null) {
-            throw new RuntimeException("请假申请不存在");
+        WfTask task = workflowService.findPendingTask(BusinessType.LEAVE, applyId, approverId);
+        if (task != null) {
+            workflowService.handleTask(task.getId(), approverId, status, remark);
+        } else {
+            throw new BusinessException("未找到待审批的任务");
         }
-        OaApprovalRecord record = new OaApprovalRecord();
-        record.setApplyId(applyId);
-        record.setApproverId(approverId);
-        record.setApproveStatus(status);
-        record.setRemark(remark);
-        record.setApproveTime(LocalDateTime.now());
-        approvalRecordMapper.insert(record);
+    }
+
+    @Override
+    @Transactional
+    public void updateStatus(Long id, Integer status) {
+        OaLeaveApply apply = this.getById(id);
+        if (apply == null) return;
+
+        Integer oldStatus = apply.getStatus();
         apply.setStatus(status);
         this.updateById(apply);
+
+        BigDecimal days = calculateLeaveDays(apply);
+        LocalDate startDate = apply.getStartTime().toLocalDate();
+        LocalDate endDate = apply.getEndTime().toLocalDate();
+        int year = startDate.getYear();
+
+        // When approved (status=1): deduct balance and mark attendance
+        if (status == 1 && oldStatus != 1) {
+            leaveBalanceService.deductBalance(apply.getEmpId(), apply.getLeaveType(), year, days);
+            attendanceService.markLeaveAttendance(apply.getEmpId(), startDate, endDate);
+        }
+
+        // When rejected(2) or withdrawn(4) after being approved(1): restore balance and remove attendance marks
+        if ((status == 2 || status == 4) && oldStatus == 1) {
+            leaveBalanceService.restoreBalance(apply.getEmpId(), apply.getLeaveType(), year, days);
+            attendanceService.removeMarkedAttendance(apply.getEmpId(), startDate, endDate, 5);
+        }
     }
 
     @Override

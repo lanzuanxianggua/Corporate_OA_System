@@ -25,71 +25,33 @@
         text-color="#303133"
         active-text-color="#409EFF"
       >
-        <el-menu-item index="/welcome">
-          <el-icon><HomeFilled /></el-icon>
-          <template #title>首页</template>
-        </el-menu-item>
-
-        <el-sub-menu index="oa">
-          <template #title>
-            <el-icon><Document /></el-icon>
-            <span>OA办公</span>
-          </template>
-          <el-menu-item index="/oa/workbench">工作台</el-menu-item>
-          <el-menu-item index="/oa/attendance/clock">考勤打卡</el-menu-item>
-          <el-menu-item index="/oa/attendance/record">考勤记录</el-menu-item>
-          <el-menu-item index="/oa/leave/apply">请假申请</el-menu-item>
-          <el-menu-item index="/oa/business-trip/apply">出差申请</el-menu-item>
-          <el-menu-item index="/oa/outing/apply">外出申请</el-menu-item>
-          <el-menu-item index="/oa/purchase/apply">采购申请</el-menu-item>
-          <el-menu-item index="/oa/expense/apply">经费申请</el-menu-item>
-          <el-menu-item index="/oa/notice/list">公告通知</el-menu-item>
-          <el-menu-item index="/oa/document/list">文档中心</el-menu-item>
-          <el-menu-item index="/oa/schedule/index">我的日程</el-menu-item>
-          <el-menu-item index="/oa/message/list">消息中心</el-menu-item>
-          <el-menu-item index="/oa/report/personal">个人报表</el-menu-item>
-        </el-sub-menu>
-
-        <el-sub-menu v-if="userStore.isAdmin()" index="oa-admin">
-          <template #title>
-            <el-icon><DataAnalysis /></el-icon>
-            <span>OA管理</span>
-          </template>
-          <el-menu-item index="/oa/dashboard">数据看板</el-menu-item>
-          <el-menu-item index="/oa/attendance/manage">考勤管理</el-menu-item>
-          <el-menu-item index="/oa/leave/approval">请假审批</el-menu-item>
-          <el-menu-item index="/oa/business-trip/approval">出差审批</el-menu-item>
-          <el-menu-item index="/oa/outing/approval">外出审批</el-menu-item>
-          <el-menu-item index="/oa/purchase/approval">采购审批</el-menu-item>
-          <el-menu-item index="/oa/expense/approval">经费审批</el-menu-item>
-          <el-menu-item index="/oa/notice/manage">公告管理</el-menu-item>
-          <el-menu-item index="/oa/document/manage">文档管理</el-menu-item>
-          <el-menu-item index="/oa/schedule/overview">日程总览</el-menu-item>
-          <el-menu-item index="/oa/message/send">发送消息</el-menu-item>
-          <el-menu-item index="/oa/report/admin">管理员报表</el-menu-item>
-        </el-sub-menu>
-
-        <el-sub-menu v-if="userStore.isAdmin()" index="system">
-          <template #title>
-            <el-icon><Setting /></el-icon>
-            <span>系统管理</span>
-          </template>
-          <el-menu-item index="/system/user">员工管理</el-menu-item>
-          <el-menu-item index="/system/role">角色管理</el-menu-item>
-          <el-menu-item index="/system/menu">菜单管理</el-menu-item>
-          <el-menu-item index="/system/dept">部门管理</el-menu-item>
-        </el-sub-menu>
-
-        <el-sub-menu v-if="userStore.isAdmin()" index="monitor">
-          <template #title>
-            <el-icon><Monitor /></el-icon>
-            <span>系统监控</span>
-          </template>
-          <el-menu-item index="/monitor/online">在线用户</el-menu-item>
-          <el-menu-item index="/monitor/logs/login">登录日志</el-menu-item>
-          <el-menu-item index="/monitor/logs/operation">操作日志</el-menu-item>
-          <el-menu-item index="/monitor/logs/system">系统日志</el-menu-item>
-        </el-sub-menu>
+        <template v-for="(item, idx) in menuConfig">
+          <el-sub-menu
+            v-if="item.children && (!item.roles || userStore.isAdmin())"
+            :key="'sub-' + idx"
+            :index="'menu-' + idx"
+          >
+            <template #title>
+              <el-icon><component :is="item.icon" /></el-icon>
+              <span>{{ item.title }}</span>
+            </template>
+            <el-menu-item
+              v-for="(child, cidx) in item.children"
+              :key="'menu-' + idx + '-' + cidx"
+              :index="child.path"
+            >
+              {{ child.title }}
+            </el-menu-item>
+          </el-sub-menu>
+          <el-menu-item
+            v-else-if="!item.children && (!item.roles || userStore.isAdmin())"
+            :key="'item-' + idx"
+            :index="item.path"
+          >
+            <el-icon><component :is="item.icon" /></el-icon>
+            <template #title>{{ item.title }}</template>
+          </el-menu-item>
+        </template>
       </el-menu>
     </div>
 
@@ -157,17 +119,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ElMessageBox } from "element-plus";
+import { ElMessageBox, ElNotification } from "element-plus";
 import { useUserStore } from "@/store/user";
 import { getUnreadCount } from "@/api/message";
+import { menuConfig } from "./menuConfig";
+import { wsClient } from "@/utils/websocket";
 
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
 const isCollapsed = ref(false);
 const unreadCount = ref(0);
+let unreadTimer: ReturnType<typeof setInterval> | null = null;
 
 const activeMenu = computed(() => route.path);
 
@@ -201,6 +166,35 @@ const fetchUnreadCount = async () => {
 
 onMounted(() => {
   fetchUnreadCount();
-  setInterval(fetchUnreadCount, 60000);
+  unreadTimer = setInterval(fetchUnreadCount, 60000);
+
+  // WebSocket real-time notifications
+  const empId = userStore.userInfo?.id;
+  if (empId) {
+    wsClient.connect(empId);
+    wsClient.on("*", (data) => {
+      unreadCount.value++;
+      const actionMap: Record<string, string> = {
+        approved: "已通过",
+        rejected: "已驳回",
+        task: "新审批任务"
+      };
+      const action = actionMap[data.action || data.type] || "新通知";
+      ElNotification({
+        title: action,
+        message: data.description || `您有一条新的${action}`,
+        type: data.action === "rejected" ? "warning" : "info",
+        duration: 4000
+      });
+    });
+  }
+});
+
+onUnmounted(() => {
+  wsClient.disconnect();
+  if (unreadTimer) {
+    clearInterval(unreadTimer);
+    unreadTimer = null;
+  }
 });
 </script>

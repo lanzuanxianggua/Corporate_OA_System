@@ -27,6 +27,18 @@ export const getAllRoles = () => {
   return request.get<any, any>("/list-all-role");
 };
 
+export const getRoles = () => {
+  return request.get<any, any>("/api/system/roles");
+};
+
+export const getEmpRoles = (empId: number) => {
+  return request.get<any, any>("/api/system/emp-roles", { params: { empId } });
+};
+
+export const assignRoles = (empId: number, roleIds: number[]) => {
+  return request.post<any, any>("/api/system/assign-roles", { empId, roleIds });
+};
+
 export const getRoleByUserId = (userId: number) => {
   return request.post<any, any>("/list-role-ids", { userId });
 };
@@ -42,6 +54,18 @@ export interface RoleVO {
 
 export const getRolePage = (params?: Record<string, any>) => {
   return request.post<any, any>("/role", params || {});
+};
+
+export const addRole = (data: Record<string, any>) => {
+  return request.post<any, any>("/role/add", data);
+};
+
+export const updateRole = (data: Record<string, any>) => {
+  return request.put<any, any>("/role/update", data);
+};
+
+export const deleteRole = (id: number) => {
+  return request.delete<any, any>(`/role/${id}`);
 };
 
 export interface MenuVO {

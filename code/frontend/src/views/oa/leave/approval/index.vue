@@ -121,6 +121,9 @@
           </el-descriptions-item>
         </el-descriptions>
 
+        <el-divider content-position="left">审批进度</el-divider>
+        <ApprovalTimeline v-if="currentRow?.id" business-type="leave" :business-id="currentRow.id" />
+
         <el-form label-position="top">
           <el-form-item label="审批备注">
             <el-input
@@ -152,6 +155,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { ElMessage } from "element-plus";
+import ApprovalTimeline from "@/components/ApprovalTimeline.vue";
 import {
   getLeavePage,
   approveLeave,
@@ -176,6 +180,7 @@ const statusFilter = ref<number | undefined>(undefined);
 
 const fetchList = async () => {
   loading.value = true;
+  tableData.value = [];
   try {
     const params: any = {
       pageNum: pageNum.value,
@@ -215,6 +220,10 @@ const openApproveDialog = (row: LeaveApplyVO, action: number) => {
 
 const handleApprove = async () => {
   if (!currentRow.value?.id) return;
+  if (approveAction.value === 2 && (!approveRemark.value || !approveRemark.value.trim())) {
+    ElMessage.warning("驳回时必须填写原因");
+    return;
+  }
   approving.value = true;
   try {
     await approveLeave({
@@ -226,6 +235,7 @@ const handleApprove = async () => {
       approveAction.value === 1 ? "已通过该请假申请" : "已拒绝该请假申请"
     );
     dialogVisible.value = false;
+    tableData.value = [];
     fetchList();
   } catch {
     // error handled by interceptor

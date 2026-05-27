@@ -3,6 +3,8 @@ import request from "@/utils/request";
 export interface LoginDTO {
   username: string;
   password: string;
+  captchaUuid: string;
+  captchaCode: string;
 }
 
 export interface LoginVO {
@@ -18,6 +20,10 @@ export interface LoginVO {
 
 export const login = (data: LoginDTO) => {
   return request.post<any, any>("/login", data);
+};
+
+export const getCaptcha = () => {
+  return request.get<any, any>("/api/auth/captcha");
 };
 
 export const refreshToken = (refreshToken: string) => {

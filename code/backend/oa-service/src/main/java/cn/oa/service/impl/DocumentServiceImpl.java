@@ -3,6 +3,7 @@ package cn.oa.service.impl;
 import cn.oa.entity.OaDocument;
 import cn.oa.mapper.OaDocumentMapper;
 import cn.oa.service.DocumentService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -52,8 +53,13 @@ public class DocumentServiceImpl extends ServiceImpl<OaDocumentMapper, OaDocumen
     }
 
     @Override
-    public IPage<OaDocument> pageList(int pageNum, int pageSize) {
+    public IPage<OaDocument> pageList(int pageNum, int pageSize, String keyword) {
         Page<OaDocument> page = new Page<>(pageNum, pageSize);
-        return this.page(page);
+        LambdaQueryWrapper<OaDocument> wrapper = new LambdaQueryWrapper<>();
+        if (keyword != null && !keyword.isEmpty()) {
+            wrapper.like(OaDocument::getDocName, keyword);
+        }
+        wrapper.orderByDesc(OaDocument::getCreateTime);
+        return this.page(page, wrapper);
     }
 }

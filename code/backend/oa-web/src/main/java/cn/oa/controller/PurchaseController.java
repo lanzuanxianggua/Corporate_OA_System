@@ -1,5 +1,6 @@
 package cn.oa.controller;
 
+import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
@@ -29,14 +30,16 @@ public class PurchaseController {
 
     @PostMapping("/submit")
     @Operation(summary = "提交采购申请")
-    public R<Void> submit(@RequestBody OaPurchase purchase) {
+    @OperationLog(module = "采购管理", operation = "提交采购申请")
+    public R<Void> submit(@RequestBody OaPurchase purchase, HttpServletRequest request) {
+        purchase.setEmpId((Long) request.getAttribute("empId"));
         purchaseService.submit(purchase);
         return R.ok();
     }
 
     @PostMapping("/approve")
-    @RequireAdmin
     @Operation(summary = "审批采购申请")
+    @OperationLog(module = "采购管理", operation = "审批采购申请")
     public R<Void> approve(@RequestBody Map<String, Object> params, HttpServletRequest request) {
         Long applyId = Long.valueOf(params.get("id").toString());
         Integer status = Integer.valueOf(params.get("status").toString());
