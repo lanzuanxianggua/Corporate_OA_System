@@ -908,11 +908,11 @@ assert_ok "#124 Personal attendance summary" "$(curl -s -H "Authorization: Beare
 # 125. GET /api/report/personal/attendance-trend
 assert_ok "#125 Personal attendance trend" "$(curl -s -H "Authorization: Bearer $TOKEN_USER" "$BASE_URL/api/report/personal/attendance-trend?month=2026-05")"
 
-# 126. GET /api/report/personal/leave-summary
-assert_ok "#126 Personal leave summary" "$(curl -s -H "Authorization: Bearer $TOKEN_USER" "$BASE_URL/api/report/personal/leave-summary?year=2026")"
+# 126. GET /api/report/personal/leave-summary (requires month param in yyyy-MM format)
+assert_ok "#126 Personal leave summary" "$(curl -s -H "Authorization: Bearer $TOKEN_USER" "$BASE_URL/api/report/personal/leave-summary?month=2026-05")"
 
-# 127. GET /api/report/personal/monthly-compare
-assert_ok "#127 Personal monthly compare" "$(curl -s -H "Authorization: Bearer $TOKEN_USER" "$BASE_URL/api/report/personal/monthly-compare?year=2026")"
+# 127. GET /api/report/personal/monthly-compare (requires month param in yyyy-MM format)
+assert_ok "#127 Personal monthly compare" "$(curl -s -H "Authorization: Bearer $TOKEN_USER" "$BASE_URL/api/report/personal/monthly-compare?month=2026-05")"
 
 # 128. GET /api/report/admin/attendance-summary
 assert_ok "#128 Admin attendance summary" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/api/report/admin/attendance-summary?month=2026-05")"
@@ -923,8 +923,8 @@ assert_ok "#129 Admin dept compare" "$(curl -s -H "Authorization: Bearer $TOKEN_
 # 130. GET /api/report/admin/attendance-trend
 assert_ok "#130 Admin attendance trend" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/api/report/admin/attendance-trend?month=2026-05")"
 
-# 131. GET /api/report/admin/leave-analysis
-assert_ok "#131 Admin leave analysis" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/api/report/admin/leave-analysis?year=2026")"
+# 131. GET /api/report/admin/leave-analysis (requires month param in yyyy-MM format)
+assert_ok "#131 Admin leave analysis" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/api/report/admin/leave-analysis?month=2026-05")"
 
 # 132. GET /api/report/admin/employee-ranking
 assert_ok "#132 Admin employee ranking" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/api/report/admin/employee-ranking?month=2026-05")"
@@ -969,9 +969,9 @@ log_section "29. Schedule [139-142]"
 # 139. GET /api/schedule/page
 assert_ok "#139 Schedule page" "$(curl -s -H "Authorization: Bearer $TOKEN_USER" "$BASE_URL/api/schedule/page?pageNum=1&pageSize=10")"
 
-# 140. POST /api/schedule (create)
+# 140. POST /api/schedule (create) - OaSchedule requires startTime/endTime as LocalDateTime
 SCHED_RESP=$(curl -s -X POST -H "Authorization: Bearer $TOKEN_USER" -H "$H" "$BASE_URL/api/schedule" \
-    -d '{"title":"TestSchedule_API","scheduleDate":"2026-06-15","startTime":"09:00","endTime":"10:00","description":"auto-test","color":"#409EFF"}')
+    -d '{"title":"TestSchedule_API","startTime":"2026-06-15 09:00:00","endTime":"2026-06-15 10:00:00","content":"auto-test"}')
 assert_ok "#140 Schedule create" "$SCHED_RESP"
 SCHED_ID=$(json_num "$SCHED_RESP" "id")
 [ -z "$SCHED_ID" ] && SCHED_ID=$(json_num "$SCHED_RESP" "data")
@@ -996,9 +996,9 @@ fi
 # ============================================================
 log_section "30. Workflow [143-159]"
 
-# 143. POST /api/workflow/definition (create)
+# 143. POST /api/workflow/definition (create) - requires processKey + processType
 WF_DEF_RESP=$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/api/workflow/definition" \
-    -d '{"processType":"test_process","processName":"TestProcess_API","nodeConfig":[{"nodeIndex":0,"nodeName":"Start","nodeType":"start"},{"nodeIndex":1,"nodeName":"Manager Approval","nodeType":"approval","assigneeType":"dept_manager","multiType":"orsign"}],"description":"auto-test"}')
+    -d '{"processType":"test_process","processKey":"test_process_api","processName":"TestProcess_API","nodeConfig":[{"nodeIndex":1,"nodeName":"Manager Approval","nodeType":"approval","assigneeType":"dept_manager","multiType":"orsign"}]}')
 assert_ok "#143 Workflow definition create" "$WF_DEF_RESP"
 WF_DEF_ID=$(json_num "$WF_DEF_RESP" "id")
 [ -z "$WF_DEF_ID" ] && WF_DEF_ID=$(json_num "$WF_DEF_RESP" "data")
@@ -1021,18 +1021,18 @@ else
     log_pass "#147 Workflow definition activate (skipped)"
 fi
 
-# 148. GET /api/workflow/history
-assert_ok "#148 Workflow history" "$(curl -s -H "Authorization: Bearer $TOKEN_USER" "$BASE_URL/api/workflow/history?pageNum=1&pageSize=10")"
+# 148. GET /api/workflow/history (requires businessType + businessId params)
+assert_ok "#148 Workflow history" "$(curl -s -H "Authorization: Bearer $TOKEN_USER" "$BASE_URL/api/workflow/history?businessType=leave&businessId=1")"
 
-# 149. GET /api/workflow/approval-chain
-assert_ok "#149 Workflow approval chain" "$(curl -s -H "Authorization: Bearer $TOKEN_USER" "$BASE_URL/api/workflow/approval-chain?processType=leave")"
+# 149. GET /api/workflow/approval-chain (requires businessType + businessId params)
+assert_ok "#149 Workflow approval chain" "$(curl -s -H "Authorization: Bearer $TOKEN_USER" "$BASE_URL/api/workflow/approval-chain?businessType=leave&businessId=1")"
 
 # 150. POST /api/workflow/withdraw
 assert_ok "#150 Workflow withdraw" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_USER" -H "$H" "$BASE_URL/api/workflow/withdraw" \
     -d '{"instanceId":99999}')" -1
 
-# 151. GET /api/workflow/task/find
-assert_ok "#151 Workflow task find" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/api/workflow/task/find?processType=leave&empId=2")"
+# 151. GET /api/workflow/task/find (requires businessType + businessId params)
+assert_ok "#151 Workflow task find" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/api/workflow/task/find?businessType=leave&businessId=1")"
 
 # 152. POST /api/workflow/task/transfer
 assert_ok "#152 Workflow task transfer" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/api/workflow/task/transfer" \
@@ -1049,12 +1049,12 @@ assert_ok "#154 Workflow task urge" "$(curl -s -X POST -H "Authorization: Bearer
 # 155. GET /api/workflow/cc/my
 assert_ok "#155 Workflow CC my" "$(curl -s -H "Authorization: Bearer $TOKEN_USER" "$BASE_URL/api/workflow/cc/my?pageNum=1&pageSize=5")"
 
-# 156. POST /api/workflow/cc/read/{id}
+# 156. POST /api/workflow/cc/read/{id} (accept -1 for non-existent CC record)
 assert_ok "#156 Workflow CC read" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_USER" "$BASE_URL/api/workflow/cc/read/99999")" -1
 
-# 157. POST /api/workflow/delegation/set
+# 157. POST /api/workflow/delegation/set - WfDelegation uses delegateToId, startTime, endTime
 DELEG_RESP=$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/api/workflow/delegation/set" \
-    -d '{"delegateToEmpId":2,"startDate":"2026-08-01","endDate":"2026-08-31","processTypes":"leave,expense"}')
+    -d '{"delegateToId":2,"startTime":"2026-08-01 00:00:00","endTime":"2026-08-31 23:59:59"}')
 assert_ok "#157 Workflow delegation set" "$DELEG_RESP"
 DELEG_ID=$(json_num "$DELEG_RESP" "id")
 [ -z "$DELEG_ID" ] && DELEG_ID=$(json_num "$DELEG_RESP" "data")
@@ -1164,17 +1164,17 @@ assert_ok "#174 User list (POST)" "$(curl -s -X POST -H "Authorization: Bearer $
 # 175. GET /list-all-role
 assert_ok "#175 List all roles" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/list-all-role")"
 
-# 176. POST /list-role-ids
+# 176. POST /list-role-ids (requires userId key in body)
 assert_ok "#176 List role IDs" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/list-role-ids" \
-    -d '{"empId":1}')"
+    -d '{"userId":1}')"
 
 # 177. POST /role (list roles)
 assert_ok "#177 Role list (POST)" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/role" \
     -d '{"pageNum":1,"pageSize":10}')"
 
-# 178. POST /role/add (create role)
+# 178. POST /role/add (requires roleName + roleKey)
 ROLE_ADD_RESP=$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/role/add" \
-    -d '{"roleName":"TestRole_API","roleCode":"TEST_API","orderNum":99,"status":1}')
+    -d '{"roleName":"TestRole_API","roleKey":"TEST_API","remark":"auto-test","status":1,"sort":99}')
 assert_ok "#178 Role add" "$ROLE_ADD_RESP"
 NEW_ROLE_ID=$(json_num "$ROLE_ADD_RESP" "id")
 [ -z "$NEW_ROLE_ID" ] && NEW_ROLE_ID=$(json_num "$ROLE_ADD_RESP" "data")
