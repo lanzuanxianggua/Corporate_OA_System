@@ -32,7 +32,9 @@ public class OutingController {
     @Operation(summary = "提交外出申请")
     @OperationLog(module = "外出管理", operation = "提交外出申请")
     public R<Void> submit(@RequestBody OaOuting outing, HttpServletRequest request) {
-        outing.setEmpId((Long) request.getAttribute("empId"));
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        outing.setEmpId(empId);
         outingService.submit(outing);
         return R.ok();
     }
@@ -44,7 +46,8 @@ public class OutingController {
         Long applyId = Long.valueOf(params.get("id").toString());
         Integer status = Integer.valueOf(params.get("status").toString());
         String remark = params.get("remark") != null ? params.get("remark").toString() : null;
-        Long approverId = (Long) request.getAttribute("empId");
+        Object approverIdObj = request.getAttribute("empId");
+        Long approverId = (approverIdObj instanceof Number) ? ((Number) approverIdObj).longValue() : Long.valueOf(approverIdObj.toString());
         outingService.approve(applyId, approverId, status, remark);
         return R.ok();
     }

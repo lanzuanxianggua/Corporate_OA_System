@@ -12,7 +12,9 @@
         <el-table-column prop="groupName" label="考勤组名称" min-width="120" />
         <el-table-column prop="workStartTime" label="上班时间" width="100" />
         <el-table-column prop="workEndTime" label="下班时间" width="100" />
-        <el-table-column prop="workDays" label="工作日" min-width="150" />
+        <el-table-column label="工作日" min-width="150">
+          <template #default="{ row }">{{ formatWorkDays(row.workDays) }}</template>
+        </el-table-column>
         <el-table-column prop="empCount" label="员工数" width="80" align="center" />
         <el-table-column label="操作" width="200" align="center">
           <template #default="{ row }">
@@ -56,7 +58,9 @@
     </el-dialog>
 
     <el-dialog v-model="assignDialogVisible" title="分配员工" width="500px" :close-on-click-modal="false">
-      <el-input v-model="assignEmpIds" type="textarea" :rows="3" placeholder="请输入员工ID，逗号分隔" />
+      <el-select v-model="assignEmpIds" multiple filterable placeholder="请选择员工" style="width: 100%">
+        <el-option v-for="emp in employeeList" :key="emp.id" :label="emp.empName" :value="emp.id" />
+      </el-select>
       <template #footer>
         <el-button @click="assignDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="assigning" @click="handleAssign">确定</el-button>
@@ -70,11 +74,17 @@ import { ref, reactive, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import type { FormInstance, FormRules } from "element-plus";
 import { getAttendanceGroupPage, addAttendanceGroup, updateAttendanceGroup, deleteAttendanceGroup, assignEmployees } from "@/api/attendanceGroup";
+import { getEmployeePage } from "@/api/employee";
 
 const weekDays = [
   { label: "周一", value: 1 }, { label: "周二", value: 2 }, { label: "周三", value: 3 },
   { label: "周四", value: 4 }, { label: "周五", value: 5 }, { label: "周六", value: 6 }, { label: "周日", value: 7 }
 ];
+
+const formatWorkDays = (days: number[]) => {
+  if (!days?.length) return "-";
+  return days.map(d => weekDays.find(w => w.value === d)?.label || d).join("、");
+};
 
 const loading = ref(false);
 const tableData = ref<any[]>([]);
@@ -139,21 +149,28 @@ const handleDelete = async (id: number) => {
 const assignDialogVisible = ref(false);
 const assigning = ref(false);
 const currentGroupId = ref<number>();
-const assignEmpIds = ref("");
+const assignEmpIds = ref<number[]>([]);
+const employeeList = ref<any[]>([]);
+
+const fetchEmployeeList = async () => {
+  try {
+    const res: any = await getEmployeePage({ pageNum: 1, pageSize: 200 });
+    employeeList.value = res.data?.list || [];
+  } catch { /* ignore */ }
+};
 
 const openAssignDialog = (row: any) => {
   currentGroupId.value = row.id;
-  assignEmpIds.value = "";
+  assignEmpIds.value = [];
   assignDialogVisible.value = true;
 };
 
 const handleAssign = async () => {
   if (!currentGroupId.value) return;
-  const empIds = assignEmpIds.value.split(",").map(Number).filter(n => !isNaN(n));
-  if (!empIds.length) { ElMessage.warning("请输入员工ID"); return; }
+  if (!assignEmpIds.value.length) { ElMessage.warning("请选择员工"); return; }
   assigning.value = true;
   try {
-    await assignEmployees({ groupId: currentGroupId.value, empIds });
+    await assignEmployees({ groupId: currentGroupId.value, empIds: assignEmpIds.value });
     ElMessage.success("分配成功");
     assignDialogVisible.value = false;
     fetchList();
@@ -162,5 +179,5 @@ const handleAssign = async () => {
   }
 };
 
-onMounted(() => { fetchList(); });
+onMounted(() => { fetchList(); fetchEmployeeList(); });
 </script>

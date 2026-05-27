@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @TableName("wf_process_instance")
 public class WfProcessInstance {
 
-    @TableId(type = IdType.ASSIGN_ID)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     private Long processId;
@@ -58,5 +58,5 @@ public class WfProcessInstance {
     private LocalDateTime createTime;
 
     @TableLogic
-    private Integer delFlag;
+    private String delFlag;
 }

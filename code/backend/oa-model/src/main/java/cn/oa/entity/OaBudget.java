@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @TableName("oa_budget")
 public class OaBudget {
 
-    @TableId(type = IdType.ASSIGN_ID)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     private Long deptId;
@@ -23,18 +23,20 @@ public class OaBudget {
 
     private BigDecimal usedAmount = BigDecimal.ZERO;
 
-    private Character status = '0';
+    private String status = "0";
 
-    private Long createBy;
+    @TableField(fill = FieldFill.INSERT)
+    private String createBy;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 
-    private Long updateBy;
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private String updateBy;
 
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
 
     @TableLogic
-    private Integer delFlag;
+    private String delFlag;
 }

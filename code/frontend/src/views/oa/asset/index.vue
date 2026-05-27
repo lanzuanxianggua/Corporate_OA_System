@@ -86,7 +86,7 @@ const searchKey = ref("");
 const fetchList = async () => {
   loading.value = true;
   try {
-    const res: any = await getAssetPage({ pageNum: pageNum.value, pageSize: pageSize.value, category: searchKey.value || undefined });
+    const res: any = await getAssetPage({ pageNum: pageNum.value, pageSize: pageSize.value, assetName: searchKey.value || undefined, assetCode: searchKey.value || undefined });
     tableData.value = res.data?.list || [];
     total.value = res.data?.total || 0;
   } finally {

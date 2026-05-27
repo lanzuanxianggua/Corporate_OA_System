@@ -8,7 +8,7 @@ import java.util.List;
 
 public interface ContractService extends IService<OaContract> {
 
-    IPage<OaContract> pageList(int pageNum, int pageSize, String contractName, String contractType);
+    IPage<OaContract> pageList(int pageNum, int pageSize, String contractName, String contractType, String contractNo);
 
     List<OaContract> expiringList(int days);
 }

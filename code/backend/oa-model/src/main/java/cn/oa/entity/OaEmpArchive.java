@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @TableName("oa_emp_archive")
 public class OaEmpArchive {
 
-    @TableId(type = IdType.ASSIGN_ID)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     private Long empId;
@@ -42,15 +42,20 @@ public class OaEmpArchive {
 
     private String remark;
 
-    private Long createBy;
+    @TableField(fill = FieldFill.INSERT)
+    private String createBy;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 
-    private Long updateBy;
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private String updateBy;
 
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
+
+    @TableLogic
+    private String delFlag;
 
     @TableField(exist = false)
     private String empName;
@@ -72,7 +77,4 @@ public class OaEmpArchive {
 
     @TableField(exist = false)
     private LocalDate hireDate;
-
-    @TableLogic
-    private Integer delFlag;
 }

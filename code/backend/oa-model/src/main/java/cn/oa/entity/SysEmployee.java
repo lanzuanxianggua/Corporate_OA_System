@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @TableName("sys_employee")
 public class SysEmployee {
 
-    @TableId(type = IdType.ASSIGN_ID)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     private String empCode;
@@ -31,6 +31,14 @@ public class SysEmployee {
     private String avatar;
 
     private Integer status = 1;
+
+    private String delFlag;
+
+    private String createBy;
+
+    private String updateBy;
+
+    private Long postId;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;

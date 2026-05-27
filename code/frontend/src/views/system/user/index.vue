@@ -57,7 +57,7 @@
         </el-form-item>
         <el-form-item label="角色">
           <el-select v-model="editRoleIds" multiple placeholder="请选择角色" class="w-full">
-            <el-option v-for="role in roleList" :key="role.id" :label="role.roleName" :value="role.id" />
+            <el-option v-for="role in roleList" :key="role.id" :label="role.name" :value="role.id" />
           </el-select>
         </el-form-item>
         <el-form-item v-if="!isEdit" label="初始密码">
@@ -77,7 +77,8 @@ import { ref, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Plus } from "@element-plus/icons-vue";
 import { getEmployeePage, addEmployee, updateEmployee, deleteEmployee } from "@/api/employee";
-import { getDeptList, getRoles, getEmpRoles, assignRoles } from "@/api/system";
+import { getAllRoles, getEmpRoles, assignRoles } from "@/api/system";
+import { getDeptTree } from "@/api/dept";
 
 const searchName = ref("");
 const searchStatus = ref<number | undefined>(undefined);
@@ -118,7 +119,7 @@ const getDeptName = (deptId: number | undefined) => {
 
 const fetchRoles = async () => {
   try {
-    const res: any = await getRoles();
+    const res: any = await getAllRoles();
     roleList.value = res.data || [];
   } catch {
     roleList.value = [];
@@ -191,7 +192,7 @@ onMounted(async () => {
   fetchData();
   fetchRoles();
   try {
-    const r: any = await getDeptList();
+    const r: any = await getDeptTree();
     if (r.data) {
       const flat = flattenDepts(Array.isArray(r.data) ? r.data : []);
       deptOptions.value = flat;

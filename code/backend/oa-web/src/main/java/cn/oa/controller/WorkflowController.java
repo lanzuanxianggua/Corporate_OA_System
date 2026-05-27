@@ -63,7 +63,8 @@ public class WorkflowController {
     public R<PageResult<WfTask>> pendingTasks(@RequestParam int pageNum,
                                                @RequestParam int pageSize,
                                                HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         IPage<WfTask> page = workflowService.myPendingTasks(empId, pageNum, pageSize);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
@@ -77,7 +78,8 @@ public class WorkflowController {
         Object statusObj = params.get("status") != null ? params.get("status") : params.get("action");
         Integer status = Integer.valueOf(statusObj.toString());
         String remark = params.get("remark") != null ? params.get("remark").toString() : null;
-        Long handlerId = (Long) request.getAttribute("empId");
+        Object handlerIdObj = request.getAttribute("empId");
+        Long handlerId = (handlerIdObj instanceof Number) ? ((Number) handlerIdObj).longValue() : Long.valueOf(handlerIdObj.toString());
         workflowService.handleTask(taskId, handlerId, status, remark);
         return R.ok();
     }
@@ -114,7 +116,8 @@ public class WorkflowController {
         if (params.get("businessId") == null) return R.fail("businessId不能为空");
         String businessType = params.get("businessType").toString();
         Long businessId = Long.valueOf(params.get("businessId").toString());
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         workflowService.withdrawProcess(businessType, businessId, empId);
         return R.ok();
     }
@@ -122,7 +125,8 @@ public class WorkflowController {
     @GetMapping("/task/find")
     @Operation(summary = "查找待处理任务")
     public R<WfTask> findTask(@RequestParam String businessType, @RequestParam Long businessId, HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         return R.ok(workflowService.findPendingTask(businessType, businessId, empId));
     }
 
@@ -134,7 +138,8 @@ public class WorkflowController {
         Long taskId = Long.valueOf(params.get("taskId").toString());
         Long toAssigneeId = Long.valueOf(params.get("toAssigneeId").toString());
         String reason = params.get("reason") != null ? params.get("reason").toString() : null;
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         workflowService.transferTask(taskId, empId, toAssigneeId, reason);
         return R.ok();
     }
@@ -147,7 +152,8 @@ public class WorkflowController {
         Long taskId = Long.valueOf(params.get("taskId").toString());
         String returnTarget = params.get("returnTarget").toString();
         String remark = params.get("remark") != null ? params.get("remark").toString() : null;
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         workflowService.returnTask(taskId, empId, returnTarget, remark);
         return R.ok();
     }
@@ -157,7 +163,8 @@ public class WorkflowController {
     public R<Void> urgeTask(@RequestBody Map<String, Object> params, HttpServletRequest request) {
         String businessType = params.get("businessType").toString();
         Long businessId = Long.valueOf(params.get("businessId").toString());
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         WfProcessInstance instance = workflowService.getByBusiness(businessType, businessId);
         if (instance == null) {
             return R.fail("流程实例不存在");
@@ -169,7 +176,8 @@ public class WorkflowController {
     @GetMapping("/cc/my")
     @Operation(summary = "我的抄送")
     public R<PageResult<WfCcRecord>> myCcRecords(@RequestParam int pageNum, @RequestParam int pageSize, HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         Page<WfCcRecord> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<WfCcRecord> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(WfCcRecord::getCcEmpId, empId).orderByDesc(WfCcRecord::getCreateTime);
@@ -191,7 +199,9 @@ public class WorkflowController {
     @PostMapping("/delegation/set")
     @Operation(summary = "设置审批委托")
     public R<Void> setDelegation(@RequestBody WfDelegation delegation, HttpServletRequest request) {
-        delegation.setDelegatorId((Long) request.getAttribute("empId"));
+        Object delegatorIdObj = request.getAttribute("empId");
+        Long delegatorId = (delegatorIdObj instanceof Number) ? ((Number) delegatorIdObj).longValue() : Long.valueOf(delegatorIdObj.toString());
+        delegation.setDelegatorId(delegatorId);
         delegationService.setDelegation(delegation);
         return R.ok();
     }
@@ -199,14 +209,16 @@ public class WorkflowController {
     @GetMapping("/delegation/my")
     @Operation(summary = "我的审批委托")
     public R<List<WfDelegation>> myDelegations(HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         return R.ok(delegationService.getMyDelegations(empId));
     }
 
     @PostMapping("/delegation/cancel/{id}")
     @Operation(summary = "取消审批委托")
     public R<Void> cancelDelegation(@PathVariable Long id, HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         delegationService.cancelDelegation(id, empId);
         return R.ok();
     }

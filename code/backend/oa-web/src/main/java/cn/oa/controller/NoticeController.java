@@ -36,7 +36,8 @@ public class NoticeController {
                                         @RequestParam int pageSize,
                                         @RequestParam(required = false) String title,
                                         HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         IPage<OaNotice> page = noticeService.pageList(pageNum, pageSize, title);
         // 填充 isRead 状态
         for (OaNotice notice : page.getRecords()) {
@@ -57,7 +58,8 @@ public class NoticeController {
     @Operation(summary = "新增公告")
     @OperationLog(module = "公告管理", operation = "新增公告")
     public R<Void> add(@RequestBody OaNotice notice, HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         notice.setPublisherId(empId);
         noticeService.save(notice);
         return R.ok();
@@ -84,7 +86,8 @@ public class NoticeController {
     @PostMapping("/{id}/read")
     @Operation(summary = "标记公告已读")
     public R<Void> markAsRead(@PathVariable Long id, HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         noticeService.markAsRead(id, empId);
         return R.ok();
     }

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
@@ -14,7 +15,7 @@ import java.time.LocalDateTime;
 @TableName("oa_schedule")
 public class OaSchedule {
 
-    @TableId(type = IdType.ASSIGN_ID)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     private Long empId;
@@ -36,4 +37,13 @@ public class OaSchedule {
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
+
+    @TableLogic
+    private String delFlag;
+
+    @TableField(fill = FieldFill.INSERT)
+    private String createBy;
+
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private String updateBy;
 }

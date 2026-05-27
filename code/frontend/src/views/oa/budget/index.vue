@@ -9,7 +9,9 @@
       </template>
 
       <el-table :data="tableData" v-loading="loading" stripe style="width: 100%" :header-cell-style="{ background: '#f5f7fa', color: '#606266' }">
-        <el-table-column prop="deptId" label="部门ID" min-width="80" align="center" />
+        <el-table-column label="部门" min-width="80" align="center">
+          <template #default="{ row }">{{ getDeptName(row.deptId) }}</template>
+        </el-table-column>
         <el-table-column label="预算年月" min-width="100" align="center">
           <template #default="{ row }">{{ row.budgetYear }}-{{ String(row.budgetMonth).padStart(2, '0') }}</template>
         </el-table-column>
@@ -48,8 +50,10 @@
 
     <el-dialog v-model="dialogVisible" :title="form.id ? '编辑预算' : '新增预算'" width="500px" :close-on-click-modal="false">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
-        <el-form-item label="部门ID" prop="deptId">
-          <el-input-number v-model="form.deptId" :min="1" style="width: 100%" />
+        <el-form-item label="部门" prop="deptId">
+          <el-select v-model="form.deptId" placeholder="请选择部门" style="width: 100%">
+            <el-option v-for="dept in deptList" :key="dept.id" :label="dept.deptName" :value="dept.id" />
+          </el-select>
         </el-form-item>
         <el-form-item label="预算年份" prop="budgetYear">
           <el-input-number v-model="form.budgetYear" :min="2000" :max="2099" style="width: 100%" />
@@ -76,12 +80,36 @@ import { ref, reactive, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import type { FormInstance, FormRules } from "element-plus";
 import { getBudgetPage, addBudget, updateBudget, deleteBudget } from "@/api/budget";
+import { getDeptTree } from "@/api/dept";
 
 const loading = ref(false);
 const tableData = ref<any[]>([]);
 const pageNum = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
+const deptList = ref<any[]>([]);
+
+const flattenDepts = (list: any[]): any[] => {
+  const result: any[] = [];
+  for (const item of list) {
+    result.push(item);
+    if (item.children?.length) result.push(...flattenDepts(item.children));
+  }
+  return result;
+};
+
+const getDeptName = (deptId: number) => {
+  const dept = deptList.value.find(d => d.id === deptId);
+  return dept ? dept.deptName : deptId;
+};
+
+const fetchDeptList = async () => {
+  try {
+    const res: any = await getDeptTree();
+    const tree = Array.isArray(res.data) ? res.data : [];
+    deptList.value = flattenDepts(tree);
+  } catch { /* ignore */ }
+};
 
 const fetchList = async () => {
   loading.value = true;
@@ -135,5 +163,5 @@ const handleDelete = async (id: number) => {
   fetchList();
 };
 
-onMounted(() => { fetchList(); });
+onMounted(() => { fetchList(); fetchDeptList(); });
 </script>

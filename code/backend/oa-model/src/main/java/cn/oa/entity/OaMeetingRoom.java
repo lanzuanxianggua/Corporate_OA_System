@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @TableName("oa_meeting_room")
 public class OaMeetingRoom {
 
-    @TableId(type = IdType.ASSIGN_ID)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     private String roomName;
@@ -40,5 +40,5 @@ public class OaMeetingRoom {
     private LocalDateTime updateTime;
 
     @TableLogic
-    private Integer delFlag;
+    private String delFlag;
 }

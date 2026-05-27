@@ -32,7 +32,9 @@ public class BusinessTripController {
     @Operation(summary = "提交出差申请")
     @OperationLog(module = "出差管理", operation = "提交出差申请")
     public R<Void> submit(@RequestBody OaBusinessTrip trip, HttpServletRequest request) {
-        trip.setEmpId((Long) request.getAttribute("empId"));
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        trip.setEmpId(empId);
         businessTripService.submit(trip);
         return R.ok();
     }
@@ -44,7 +46,8 @@ public class BusinessTripController {
         Long applyId = Long.valueOf(params.get("id").toString());
         Integer status = Integer.valueOf(params.get("status").toString());
         String remark = params.get("remark") != null ? params.get("remark").toString() : null;
-        Long approverId = (Long) request.getAttribute("empId");
+        Object approverIdObj = request.getAttribute("empId");
+        Long approverId = (approverIdObj instanceof Number) ? ((Number) approverIdObj).longValue() : Long.valueOf(approverIdObj.toString());
         businessTripService.approve(applyId, approverId, status, remark);
         return R.ok();
     }

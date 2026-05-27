@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @TableName("oa_outing")
 public class OaOuting {
 
-    @TableId(type = IdType.ASSIGN_ID)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     private Long empId;
@@ -33,6 +33,12 @@ public class OaOuting {
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
+
+    private String delFlag;
+
+    private String createBy;
+
+    private String updateBy;
 
     @TableField(exist = false)
     private String empName;

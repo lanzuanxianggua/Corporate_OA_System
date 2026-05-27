@@ -35,6 +35,11 @@ node_modules/
 .vite/
 .vuepress/dist/
 
+# Lock files (regenerate with pnpm install)
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
 ######################################################################
 # IDE
 
@@ -78,6 +83,7 @@ build/
 # Logs
 
 *.log
+logs/
 
 ######################################################################
 # Temp Files
@@ -98,14 +104,28 @@ test_screenshots/
 test_ui.py
 
 ######################################################################
-# Local Configuration
+# Sensitive / Local Configuration (contains credentials)
 
 application-local.properties
 application-local.yml
 application-local.yaml
 
+# Uploaded files (user data)
+uploads/
+
+# Environment files with potential secrets
+.env.local
+.env.*.local
+
 ######################################################################
-# Claude
+# Test Artifacts
+
+test-results/
+playwright-report/
+playwright/.cache/
+
+######################################################################
+# Claude (personal AI assistant config)
 
 .claude/
 CLAUDE.md

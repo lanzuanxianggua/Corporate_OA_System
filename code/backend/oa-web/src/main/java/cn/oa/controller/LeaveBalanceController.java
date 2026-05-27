@@ -38,7 +38,8 @@ public class LeaveBalanceController {
     @GetMapping("/my")
     @Operation(summary = "查询当前用户假期余额")
     public R<List<OaLeaveBalance>> my(HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         return R.ok(leaveBalanceService.myBalances(empId));
     }
 

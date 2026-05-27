@@ -74,7 +74,8 @@ public class MeetingController {
     @PostMapping("/submit")
     @Operation(summary = "创建会议")
     public R<Void> submit(@RequestBody OaMeeting meeting, HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         meeting.setOrganizerId(empId);
         meetingService.submit(meeting);
         return R.ok();
@@ -93,7 +94,8 @@ public class MeetingController {
     @PostMapping("/cancel/{id}")
     @Operation(summary = "取消会议")
     public R<Void> cancel(@PathVariable Long id, HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         meetingService.cancel(id, empId);
         return R.ok();
     }

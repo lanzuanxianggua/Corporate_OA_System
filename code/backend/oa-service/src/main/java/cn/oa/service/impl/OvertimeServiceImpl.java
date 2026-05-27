@@ -45,7 +45,7 @@ public class OvertimeServiceImpl extends ServiceImpl<OaOvertimeMapper, OaOvertim
 
     @Override
     public void submit(OaOvertime overtime) {
-        overtime.setStatus(0);
+        overtime.setStatus("0");
         this.save(overtime);
         Map<String, Object> ctx = new HashMap<>();
         ctx.put("hours", overtime.getHours().doubleValue());
@@ -69,8 +69,8 @@ public class OvertimeServiceImpl extends ServiceImpl<OaOvertimeMapper, OaOvertim
         OaOvertime overtime = this.getById(id);
         if (overtime == null) return;
 
-        Integer oldStatus = overtime.getStatus();
-        overtime.setStatus(status);
+        String oldStatus = overtime.getStatus();
+        overtime.setStatus(String.valueOf(status));
         this.updateById(overtime);
 
         // Convert hours to days: hours / 8, rounded to nearest 0.5
@@ -79,12 +79,12 @@ public class OvertimeServiceImpl extends ServiceImpl<OaOvertimeMapper, OaOvertim
         int year = overtime.getOvertimeDate().getYear();
 
         // When approved (status=1): add compensatory leave balance (leaveType=5)
-        if (status == 1 && oldStatus != 1) {
+        if (status == 1 && !"1".equals(oldStatus)) {
             leaveBalanceService.addCompensatoryBalance(overtime.getEmpId(), year, days);
         }
 
         // When rejected(2) or withdrawn(4) after being approved(1): reverse the compensatory leave
-        if ((status == 2 || status == 4) && oldStatus == 1) {
+        if ((status == 2 || status == 4) && "1".equals(oldStatus)) {
             leaveBalanceService.deductBalance(overtime.getEmpId(), 5, year, days);
         }
     }

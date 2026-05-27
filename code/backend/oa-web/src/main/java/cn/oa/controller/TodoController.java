@@ -31,7 +31,8 @@ public class TodoController {
                                        @RequestParam int pageSize,
                                        @RequestParam(required = false) Integer status,
                                        HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         IPage<OaTodo> page = todoService.myTodos(empId, status, pageNum, pageSize);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
@@ -39,7 +40,8 @@ public class TodoController {
     @GetMapping("/count")
     @Operation(summary = "待办数量")
     public R<Long> count(HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         return R.ok(todoService.countPending(empId));
     }
 

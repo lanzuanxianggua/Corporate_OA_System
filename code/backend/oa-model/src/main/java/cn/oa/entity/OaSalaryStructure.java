@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @TableName("oa_salary_structure")
 public class OaSalaryStructure {
 
-    @TableId(type = IdType.ASSIGN_ID)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     private Long empId;
@@ -31,18 +31,20 @@ public class OaSalaryStructure {
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate effectiveDate;
 
-    private Character status = '0';
+    private String status = "0";
 
-    private Long createBy;
+    @TableField(fill = FieldFill.INSERT)
+    private String createBy;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 
-    private Long updateBy;
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private String updateBy;
 
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
 
     @TableLogic
-    private Integer delFlag;
+    private String delFlag;
 }

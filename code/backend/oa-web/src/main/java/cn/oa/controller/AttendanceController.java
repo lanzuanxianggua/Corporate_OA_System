@@ -53,7 +53,8 @@ public class AttendanceController {
     @Operation(summary = "上班打卡")
     @OperationLog(module = "考勤管理", operation = "上班打卡")
     public R<Void> clockIn(HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         attendanceService.clockIn(empId);
         return R.ok();
     }
@@ -62,7 +63,8 @@ public class AttendanceController {
     @Operation(summary = "下班打卡")
     @OperationLog(module = "考勤管理", operation = "下班打卡")
     public R<Void> clockOut(HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         attendanceService.clockOut(empId);
         return R.ok();
     }
@@ -70,7 +72,8 @@ public class AttendanceController {
     @GetMapping("/today")
     @Operation(summary = "获取今日考勤")
     public R<OaAttendance> today(HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         OaAttendance attendance = attendanceService.getTodayAttendance(empId);
         return R.ok(attendance);
     }
@@ -81,7 +84,8 @@ public class AttendanceController {
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
             HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         return R.ok(attendanceService.getAttendanceHistory(empId, startDate, endDate));
     }
 
@@ -107,6 +111,10 @@ public class AttendanceController {
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
             HttpServletResponse response) throws IOException {
         List<OaAttendance> records = attendanceService.getHistoryByDateRange(startDate, endDate);
+        if (records == null || records.isEmpty()) {
+            ExcelExportUtil.export(response, "考勤数据", AttendanceExportVO.class, new ArrayList<>());
+            return;
+        }
         if (records.size() > 10000) {
             records = records.subList(0, 10000);
         }

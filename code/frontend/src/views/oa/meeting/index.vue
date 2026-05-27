@@ -69,7 +69,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import type { FormInstance, FormRules } from "element-plus";
 import { getRooms, submitMeeting, getMeetingPage, cancelMeeting } from "@/api/meeting";
 
@@ -109,6 +109,16 @@ const rules = reactive<FormRules>({
   endTime: [{ required: true, message: "请选择结束时间", trigger: "change" }]
 });
 
+const openDialog = () => {
+  form.title = "";
+  form.roomId = undefined;
+  form.startTime = "";
+  form.endTime = "";
+  form.description = "";
+  formRef.value?.resetFields();
+  dialogVisible.value = true;
+};
+
 const handleSubmit = async () => {
   if (!formRef.value) return;
   await formRef.value.validate();
@@ -124,6 +134,7 @@ const handleSubmit = async () => {
 };
 
 const handleCancel = async (row: any) => {
+  await ElMessageBox.confirm("确定要取消该会议吗？", "提示", { type: "warning" });
   await cancelMeeting(row.id);
   ElMessage.success("已取消会议");
   fetchList();

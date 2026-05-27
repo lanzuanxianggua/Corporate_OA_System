@@ -67,7 +67,8 @@ public class SalaryController {
     @GetMapping("/my")
     @Operation(summary = "查询当前用户最新薪资记录")
     public R<OaSalaryRecord> my(HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         return R.ok(salaryRecordService.myLatestRecord(empId));
     }
 }

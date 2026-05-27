@@ -32,11 +32,11 @@ export const getRoles = () => {
 };
 
 export const getEmpRoles = (empId: number) => {
-  return request.get<any, any>("/api/system/emp-roles", { params: { empId } });
+  return request.get<any, any>("/emp-roles", { params: { empId } });
 };
 
 export const assignRoles = (empId: number, roleIds: number[]) => {
-  return request.post<any, any>("/api/system/assign-roles", { empId, roleIds });
+  return request.post<any, any>("/assign-roles", { empId, roleIds });
 };
 
 export const getRoleByUserId = (userId: number) => {

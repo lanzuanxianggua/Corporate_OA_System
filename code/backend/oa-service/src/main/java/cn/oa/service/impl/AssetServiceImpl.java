@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 public class AssetServiceImpl extends ServiceImpl<OaAssetMapper, OaAsset> implements AssetService {
 
     @Override
-    public IPage<OaAsset> pageList(int pageNum, int pageSize, String category, Character status) {
+    public IPage<OaAsset> pageList(int pageNum, int pageSize, String category, String status, String assetName, String assetCode) {
         Page<OaAsset> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<OaAsset> wrapper = new LambdaQueryWrapper<>();
         if (category != null && !category.isEmpty()) {
@@ -21,6 +21,12 @@ public class AssetServiceImpl extends ServiceImpl<OaAssetMapper, OaAsset> implem
         }
         if (status != null) {
             wrapper.eq(OaAsset::getStatus, status);
+        }
+        if (assetName != null && !assetName.isEmpty()) {
+            wrapper.like(OaAsset::getAssetName, assetName);
+        }
+        if (assetCode != null && !assetCode.isEmpty()) {
+            wrapper.like(OaAsset::getAssetCode, assetCode);
         }
         wrapper.orderByDesc(OaAsset::getCreateTime);
         return this.page(page, wrapper);

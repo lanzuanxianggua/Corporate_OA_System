@@ -63,7 +63,8 @@ public class AuthController {
     @Operation(summary = "登出")
     @OperationLog(module = "认证管理", operation = "用户登出")
     public R<Void> logout(HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : (empIdObj != null ? Long.valueOf(empIdObj.toString()) : null);
         if (empId != null) {
             authService.logout(empId);
         }
@@ -74,7 +75,8 @@ public class AuthController {
     @Operation(summary = "修改密码")
     @OperationLog(module = "认证管理", operation = "修改密码")
     public R<Void> changePassword(@RequestBody ChangePasswordDTO dto, HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : (empIdObj != null ? Long.valueOf(empIdObj.toString()) : null);
         if (empId == null) {
             return R.fail("未登录");
         }

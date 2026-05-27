@@ -6,5 +6,5 @@ import com.baomidou.mybatisplus.extension.service.IService;
 
 public interface AssetService extends IService<OaAsset> {
 
-    IPage<OaAsset> pageList(int pageNum, int pageSize, String category, Character status);
+    IPage<OaAsset> pageList(int pageNum, int pageSize, String category, String status, String assetName, String assetCode);
 }

@@ -43,7 +43,8 @@ public class ScheduleController {
                                           HttpServletRequest request) {
         // 非管理员只能查看自己的日程
         if (empId != null) {
-            Long currentEmpId = (Long) request.getAttribute("empId");
+            Object currentEmpIdObj = request.getAttribute("empId");
+            Long currentEmpId = (currentEmpIdObj instanceof Number) ? ((Number) currentEmpIdObj).longValue() : Long.valueOf(currentEmpIdObj.toString());
             @SuppressWarnings("unchecked")
             List<String> roles = (List<String>) redisTemplate.opsForValue().get("roles:" + currentEmpId);
             boolean isAdmin = roles != null && roles.stream().anyMatch(r -> "ADMIN".equalsIgnoreCase(r));
@@ -52,7 +53,8 @@ public class ScheduleController {
             }
         }
         if (empId == null) {
-            empId = (Long) request.getAttribute("empId");
+            Object empIdObj = request.getAttribute("empId");
+            empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         }
         IPage<OaSchedule> page = scheduleService.pageList(pageNum, pageSize, empId);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));

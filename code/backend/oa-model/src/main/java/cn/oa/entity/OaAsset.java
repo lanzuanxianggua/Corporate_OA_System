@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @TableName("oa_asset")
 public class OaAsset {
 
-    @TableId(type = IdType.ASSIGN_ID)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     private String assetCode;
@@ -29,22 +29,24 @@ public class OaAsset {
     private BigDecimal purchasePrice;
 
     /** 0-idle 1-in-use 2-repair 3-scrapped */
-    private Character status = '0';
+    private String status = "0";
 
     private Long currentUserId;
 
     private Long deptId;
 
-    private Long createBy;
+    @TableField(fill = FieldFill.INSERT)
+    private String createBy;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 
-    private Long updateBy;
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private String updateBy;
 
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
 
     @TableLogic
-    private Integer delFlag;
+    private String delFlag;
 }

@@ -283,7 +283,8 @@ public class SystemManageController {
 
     @GetMapping("/mine")
     public R<Map<String, Object>> mine(HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         String empName = (String) request.getAttribute("empName");
 
         SysEmployee emp = employeeMapper.selectById(empId);

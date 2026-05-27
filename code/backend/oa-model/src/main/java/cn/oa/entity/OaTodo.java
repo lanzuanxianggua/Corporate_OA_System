@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @TableName("oa_todo")
 public class OaTodo {
 
-    @TableId(type = IdType.ASSIGN_ID)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     private Long empId;

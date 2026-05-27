@@ -74,7 +74,8 @@ public class AlertController {
     @PostMapping("/log/handle/{id}")
     @Operation(summary = "处理预警")
     public R<Void> handleLog(@PathVariable Long id, @RequestBody Map<String, String> params, HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         String handleRemark = params.get("handleRemark");
         alertLogService.handle(id, String.valueOf(empId), handleRemark);
         return R.ok();

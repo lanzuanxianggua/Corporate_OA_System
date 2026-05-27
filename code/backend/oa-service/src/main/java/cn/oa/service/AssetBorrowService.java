@@ -10,5 +10,5 @@ public interface AssetBorrowService extends IService<OaAssetBorrow> {
 
     void returnAsset(Long borrowId);
 
-    IPage<OaAssetBorrow> pageList(int pageNum, int pageSize, Long borrowerId, Character status);
+    IPage<OaAssetBorrow> pageList(int pageNum, int pageSize, Long borrowerId, String status);
 }

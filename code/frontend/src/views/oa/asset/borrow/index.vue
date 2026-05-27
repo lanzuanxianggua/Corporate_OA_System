@@ -55,7 +55,7 @@
 import { ref, reactive, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import type { FormInstance, FormRules } from "element-plus";
-import { getAssetPage, borrowAsset } from "@/api/asset";
+import { getAssetPage, getBorrowPage, borrowAsset } from "@/api/asset";
 
 const loading = ref(false);
 const tableData = ref<any[]>([]);
@@ -67,7 +67,7 @@ const assets = ref<any[]>([]);
 const fetchList = async () => {
   loading.value = true;
   try {
-    const res: any = await getAssetPage({ pageNum: pageNum.value, pageSize: pageSize.value });
+    const res: any = await getBorrowPage({ pageNum: pageNum.value, pageSize: pageSize.value });
     tableData.value = res.data?.list || [];
     total.value = res.data?.total || 0;
   } finally {
@@ -77,7 +77,7 @@ const fetchList = async () => {
 
 const fetchAssets = async () => {
   try {
-    const res: any = await getAssetPage({ pageNum: 1, pageSize: 200, status: 0 });
+    const res: any = await getAssetPage({ pageNum: 1, pageSize: 200, status: "0" });
     assets.value = res.data?.list || [];
   } catch {}
 };

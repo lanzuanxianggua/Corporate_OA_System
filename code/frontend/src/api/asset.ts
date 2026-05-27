@@ -17,3 +17,6 @@ export const borrowAsset = (data: any) =>
 
 export const returnAsset = (borrowId: number) =>
   request.post(`/api/asset/return/${borrowId}`);
+
+export const getBorrowPage = (params: any) =>
+  request.get<any, any>("/api/asset/borrow/page", { params });

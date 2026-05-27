@@ -36,7 +36,8 @@ public class ReportController {
             @RequestParam(required = false) String month,
             @RequestParam(defaultValue = "month") String period,
             HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         LocalDate start, end;
         switch (period) {
             case "today" -> { start = end = LocalDate.now(); }
@@ -64,7 +65,8 @@ public class ReportController {
             @RequestParam(defaultValue = "6") int months,
             @RequestParam(defaultValue = "month") String period,
             HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         if ("today".equals(period)) months = 7;
         else if ("week".equals(period)) months = 4;
         else if ("year".equals(period)) months = 12;
@@ -77,7 +79,8 @@ public class ReportController {
     @Operation(summary = "个人请假统计")
     public R<List<Map<String, Object>>> personalLeaveSummary(
             @RequestParam String month, HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         PersonalReportVO report = reportService.getPersonalReport(empId, month, 1);
         return R.ok(report.getLeaveSummary());
     }
@@ -86,7 +89,8 @@ public class ReportController {
     @Operation(summary = "个人月度对比")
     public R<PersonalReportVO.MonthlyCompare> personalMonthlyCompare(
             @RequestParam String month, HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         PersonalReportVO report = reportService.getPersonalReport(empId, month, 1);
         return R.ok(report.getMonthlyCompare());
     }

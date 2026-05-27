@@ -16,7 +16,7 @@ import java.util.List;
 public class ContractServiceImpl extends ServiceImpl<OaContractMapper, OaContract> implements ContractService {
 
     @Override
-    public IPage<OaContract> pageList(int pageNum, int pageSize, String contractName, String contractType) {
+    public IPage<OaContract> pageList(int pageNum, int pageSize, String contractName, String contractType, String contractNo) {
         Page<OaContract> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<OaContract> wrapper = new LambdaQueryWrapper<>();
         if (contractName != null && !contractName.isEmpty()) {
@@ -24,6 +24,9 @@ public class ContractServiceImpl extends ServiceImpl<OaContractMapper, OaContrac
         }
         if (contractType != null && !contractType.isEmpty()) {
             wrapper.eq(OaContract::getContractType, contractType);
+        }
+        if (contractNo != null && !contractNo.isEmpty()) {
+            wrapper.like(OaContract::getContractNo, contractNo);
         }
         wrapper.orderByDesc(OaContract::getCreateTime);
         return this.page(page, wrapper);

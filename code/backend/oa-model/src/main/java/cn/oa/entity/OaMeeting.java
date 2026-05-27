@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @TableName("oa_meeting")
 public class OaMeeting {
 
-    @TableId(type = IdType.ASSIGN_ID)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     private String title;
@@ -51,7 +51,7 @@ public class OaMeeting {
     private LocalDateTime updateTime;
 
     @TableLogic
-    private Integer delFlag;
+    private String delFlag;
 
     /** 会议室名称（非数据库字段） */
     @TableField(exist = false)

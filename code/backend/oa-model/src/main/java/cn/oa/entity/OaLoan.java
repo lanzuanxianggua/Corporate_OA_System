@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @TableName("oa_loan")
 public class OaLoan {
 
-    @TableId(type = IdType.ASSIGN_ID)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     private Long empId;
@@ -21,20 +21,20 @@ public class OaLoan {
 
     private String repaymentPlan;
 
-    private Integer status = 0;
+    private String status = "0";
 
-    private Long createBy;
+    private String createBy;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 
-    private Long updateBy;
+    private String updateBy;
 
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
 
     @TableLogic
-    private Integer delFlag;
+    private String delFlag;
 
     @TableField(exist = false)
     private String empName;

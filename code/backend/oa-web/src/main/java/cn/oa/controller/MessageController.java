@@ -31,7 +31,8 @@ public class MessageController {
     @GetMapping("/unread-count")
     @Operation(summary = "获取未读消息数量")
     public R<Long> unreadCount(HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         Long count = messageService.getUnreadCount(empId);
         return R.ok(count);
     }
@@ -41,7 +42,8 @@ public class MessageController {
     public R<PageResult<OaMessage>> page(@RequestParam(defaultValue = "1") int pageNum,
                                           @RequestParam(defaultValue = "10") int pageSize,
                                           HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         IPage<OaMessage> page = messageService.pageList(pageNum, pageSize, empId);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
@@ -51,7 +53,8 @@ public class MessageController {
     @Operation(summary = "发送消息")
     @OperationLog(module = "消息管理", operation = "发送消息")
     public R<Void> send(@RequestBody OaMessage message, HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         message.setSenderId(empId);
         if (message.getReceiverId() == null) {
             return R.fail("请输入接收人ID");
@@ -63,7 +66,8 @@ public class MessageController {
     @PostMapping("/{id}/read")
     @Operation(summary = "标记消息已读")
     public R<Void> markAsRead(@PathVariable Long id, HttpServletRequest request) {
-        Long empId = (Long) request.getAttribute("empId");
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         messageService.markAsRead(id, empId);
         return R.ok();
     }

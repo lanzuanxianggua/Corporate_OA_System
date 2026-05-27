@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @TableName("wf_task")
 public class WfTask {
 
-    @TableId(type = IdType.ASSIGN_ID)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     private Long instanceId;

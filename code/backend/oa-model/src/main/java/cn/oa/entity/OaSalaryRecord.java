@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @TableName("oa_salary_record")
 public class OaSalaryRecord {
 
-    @TableId(type = IdType.ASSIGN_ID)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     private Long empId;
@@ -36,9 +36,10 @@ public class OaSalaryRecord {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime payTime;
 
-    private Character status = '0';
+    private String status = "0";
 
-    private Long createBy;
+    @TableField(fill = FieldFill.INSERT)
+    private String createBy;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;

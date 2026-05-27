@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @TableName("oa_asset_borrow")
 public class OaAssetBorrow {
 
-    @TableId(type = IdType.ASSIGN_ID)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     private Long assetId;
@@ -27,7 +27,7 @@ public class OaAssetBorrow {
     private LocalDateTime actualReturn;
 
     /** 0-borrowed 1-returned */
-    private Character status = '0';
+    private String status = "0";
 
     private String remark;
 

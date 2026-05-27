@@ -43,7 +43,7 @@ public class LoanServiceImpl extends ServiceImpl<OaLoanMapper, OaLoan> implement
 
     @Override
     public void submit(OaLoan loan) {
-        loan.setStatus(0);
+        loan.setStatus("0");
         this.save(loan);
         Map<String, Object> ctx = new HashMap<>();
         ctx.put("amount", loan.getLoanAmount().doubleValue());
@@ -65,7 +65,7 @@ public class LoanServiceImpl extends ServiceImpl<OaLoanMapper, OaLoan> implement
     public void updateStatus(Long id, Integer status) {
         OaLoan loan = this.getById(id);
         if (loan != null) {
-            loan.setStatus(status);
+            loan.setStatus(String.valueOf(status));
             this.updateById(loan);
         }
     }

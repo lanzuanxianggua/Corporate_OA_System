@@ -51,7 +51,9 @@ public class LeaveApplyController {
     @Operation(summary = "提交请假申请")
     @OperationLog(module = "请假管理", operation = "提交请假申请")
     public R<Void> submit(@RequestBody OaLeaveApply apply, HttpServletRequest request) {
-        apply.setEmpId((Long) request.getAttribute("empId"));
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        apply.setEmpId(empId);
         leaveApplyService.submit(apply);
         return R.ok();
     }
@@ -63,7 +65,8 @@ public class LeaveApplyController {
         Long applyId = Long.valueOf(params.get("id").toString());
         Integer status = Integer.valueOf(params.get("status").toString());
         String remark = params.get("remark") != null ? params.get("remark").toString() : null;
-        Long approverId = (Long) request.getAttribute("empId");
+        Object approverIdObj = request.getAttribute("empId");
+        Long approverId = (approverIdObj instanceof Number) ? ((Number) approverIdObj).longValue() : Long.valueOf(approverIdObj.toString());
         leaveApplyService.approve(applyId, approverId, status, remark);
         return R.ok();
     }

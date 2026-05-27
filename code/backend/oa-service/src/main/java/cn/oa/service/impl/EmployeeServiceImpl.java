@@ -31,6 +31,11 @@ public class EmployeeServiceImpl extends ServiceImpl<SysEmployeeMapper, SysEmplo
         if (deptId != null) {
             wrapper.eq(SysEmployee::getDeptId, deptId);
         }
+        wrapper.eq(SysEmployee::getDelFlag, "0");
+        wrapper.select(SysEmployee::getId, SysEmployee::getEmpCode, SysEmployee::getEmpName,
+                SysEmployee::getPhone, SysEmployee::getEmail, SysEmployee::getDeptId,
+                SysEmployee::getAvatar, SysEmployee::getStatus, SysEmployee::getPostId,
+                SysEmployee::getCreateTime, SysEmployee::getUpdateTime);
         wrapper.orderByDesc(SysEmployee::getCreateTime);
         return this.page(page, wrapper);
     }

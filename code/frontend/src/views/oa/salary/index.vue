@@ -75,8 +75,10 @@
 
     <el-dialog v-model="structDialogVisible" :title="structForm.id ? '编辑薪资结构' : '新增薪资结构'" width="500px" :close-on-click-modal="false">
       <el-form ref="structFormRef" :model="structForm" :rules="structRules" label-width="90px">
-        <el-form-item label="员工ID" prop="empId">
-          <el-input-number v-model="structForm.empId" :min="1" :precision="0" style="width: 100%" />
+        <el-form-item label="员工" prop="empId">
+          <el-select v-model="structForm.empId" placeholder="请选择员工" filterable style="width: 100%">
+            <el-option v-for="emp in employeeList" :key="emp.id" :label="emp.empName" :value="emp.id" />
+          </el-select>
         </el-form-item>
         <el-form-item label="基本工资" prop="baseSalary">
           <el-input-number v-model="structForm.baseSalary" :min="0" :precision="2" style="width: 100%" />
@@ -113,8 +115,17 @@ import { ref, reactive, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import type { FormInstance, FormRules } from "element-plus";
 import { getStructurePage, addStructure, updateStructure, getRecordPage } from "@/api/salary";
+import { getEmployeePage } from "@/api/employee";
 
 const activeTab = ref("structure");
+const employeeList = ref<any[]>([]);
+
+const fetchEmployeeList = async () => {
+  try {
+    const res: any = await getEmployeePage({ pageNum: 1, pageSize: 200 });
+    employeeList.value = res.data?.list || [];
+  } catch { /* ignore */ }
+};
 
 // --- 薪资结构 ---
 const structLoading = ref(false);
@@ -180,5 +191,5 @@ const fetchRecordList = async () => {
   }
 };
 
-onMounted(() => { fetchStructList(); fetchRecordList(); });
+onMounted(() => { fetchStructList(); fetchRecordList(); fetchEmployeeList(); });
 </script>

@@ -47,7 +47,9 @@ public class ExpenseController {
     @Operation(summary = "提交经费申请")
     @OperationLog(module = "经费管理", operation = "提交经费申请")
     public R<Void> submit(@RequestBody OaExpense expense, HttpServletRequest request) {
-        expense.setEmpId((Long) request.getAttribute("empId"));
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        expense.setEmpId(empId);
         expenseService.submit(expense);
         return R.ok();
     }
@@ -59,7 +61,8 @@ public class ExpenseController {
         Long applyId = Long.valueOf(params.get("id").toString());
         Integer status = Integer.valueOf(params.get("status").toString());
         String remark = params.get("remark") != null ? params.get("remark").toString() : null;
-        Long approverId = (Long) request.getAttribute("empId");
+        Object approverIdObj = request.getAttribute("empId");
+        Long approverId = (approverIdObj instanceof Number) ? ((Number) approverIdObj).longValue() : Long.valueOf(approverIdObj.toString());
         expenseService.approve(applyId, approverId, status, remark);
         return R.ok();
     }

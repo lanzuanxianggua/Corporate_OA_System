@@ -27,8 +27,9 @@ public class ContractController {
     public R<PageResult<OaContract>> page(@RequestParam int pageNum,
                                             @RequestParam int pageSize,
                                             @RequestParam(required = false) String contractName,
-                                            @RequestParam(required = false) String contractType) {
-        IPage<OaContract> page = contractService.pageList(pageNum, pageSize, contractName, contractType);
+                                            @RequestParam(required = false) String contractType,
+                                            @RequestParam(required = false) String contractNo) {
+        IPage<OaContract> page = contractService.pageList(pageNum, pageSize, contractName, contractType, contractNo);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 

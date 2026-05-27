@@ -2,13 +2,15 @@
   <div>
     <div class="flex items-center justify-between mb-4">
       <span class="text-lg font-bold text-[#303133]">数据看板</span>
-      <el-radio-group v-model="period" @change="fetchAllData">
-        <el-radio-button value="today">今日</el-radio-button>
-        <el-radio-button value="week">本周</el-radio-button>
-        <el-radio-button value="month">本月</el-radio-button>
-        <el-radio-button value="year">本年</el-radio-button>
-      </el-radio-group>
-      <el-date-picker v-if="period === 'year'" v-model="selectedYear" type="year" placeholder="选择年份" format="YYYY年" value-format="YYYY" @change="fetchAllData" />
+      <div class="flex items-center gap-3">
+        <el-radio-group v-model="period" @change="fetchAllData">
+          <el-radio-button value="today">今日</el-radio-button>
+          <el-radio-button value="week">本周</el-radio-button>
+          <el-radio-button value="month">本月</el-radio-button>
+          <el-radio-button value="year">本年</el-radio-button>
+        </el-radio-group>
+        <el-date-picker v-if="period === 'year'" v-model="selectedYear" type="year" placeholder="选择年份" format="YYYY年" value-format="YYYY" @change="fetchAllData" />
+      </div>
     </div>
 
     <el-row :gutter="16" class="mb-5">

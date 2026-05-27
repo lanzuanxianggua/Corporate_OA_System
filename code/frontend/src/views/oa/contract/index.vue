@@ -102,7 +102,7 @@ const searchKey = ref("");
 const fetchList = async () => {
   loading.value = true;
   try {
-    const res: any = await getContractPage({ pageNum: pageNum.value, pageSize: pageSize.value, contractName: searchKey.value || undefined });
+    const res: any = await getContractPage({ pageNum: pageNum.value, pageSize: pageSize.value, contractName: searchKey.value || undefined, contractNo: searchKey.value || undefined });
     tableData.value = res.data?.list || [];
     total.value = res.data?.total || 0;
   } finally {

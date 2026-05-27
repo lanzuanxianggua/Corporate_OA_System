@@ -1,5 +1,6 @@
 package cn.oa.service.impl;
 
+import cn.oa.common.exception.BusinessException;
 import cn.oa.entity.OaAsset;
 import cn.oa.entity.OaAssetBorrow;
 import cn.oa.mapper.OaAssetMapper;
@@ -26,16 +27,16 @@ public class AssetBorrowServiceImpl extends ServiceImpl<OaAssetBorrowMapper, OaA
     public void borrowAsset(OaAssetBorrow borrow) {
         OaAsset asset = assetMapper.selectById(borrow.getAssetId());
         if (asset == null) {
-            throw new RuntimeException("资产不存在");
+            throw new BusinessException("资产不存在");
         }
-        if (asset.getStatus() != '0') {
-            throw new RuntimeException("资产当前不可借出");
+        if (!"0".equals(asset.getStatus())) {
+            throw new BusinessException("资产当前不可借出");
         }
-        borrow.setStatus('0');
+        borrow.setStatus("0");
         borrow.setBorrowTime(LocalDateTime.now());
         this.save(borrow);
 
-        asset.setStatus('1');
+        asset.setStatus("1");
         asset.setCurrentUserId(borrow.getBorrowerId());
         assetMapper.updateById(asset);
     }
@@ -45,22 +46,22 @@ public class AssetBorrowServiceImpl extends ServiceImpl<OaAssetBorrowMapper, OaA
     public void returnAsset(Long borrowId) {
         OaAssetBorrow borrow = this.getById(borrowId);
         if (borrow == null) {
-            throw new RuntimeException("借出记录不存在");
+            throw new BusinessException("借出记录不存在");
         }
         borrow.setActualReturn(LocalDateTime.now());
-        borrow.setStatus('1');
+        borrow.setStatus("1");
         this.updateById(borrow);
 
         OaAsset asset = assetMapper.selectById(borrow.getAssetId());
         if (asset != null) {
-            asset.setStatus('0');
+            asset.setStatus("0");
             asset.setCurrentUserId(null);
             assetMapper.updateById(asset);
         }
     }
 
     @Override
-    public IPage<OaAssetBorrow> pageList(int pageNum, int pageSize, Long borrowerId, Character status) {
+    public IPage<OaAssetBorrow> pageList(int pageNum, int pageSize, Long borrowerId, String status) {
         Page<OaAssetBorrow> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<OaAssetBorrow> wrapper = new LambdaQueryWrapper<>();
         if (borrowerId != null) {

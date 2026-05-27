@@ -44,11 +44,19 @@
           </template>
 
           <el-form ref="formRef" :model="form" :rules="rules" label-width="90px" label-position="right" class="max-w-[560px]">
+            <el-form-item label="加班日期" prop="overtimeDate">
+              <el-date-picker v-model="form.overtimeDate" type="date" placeholder="请选择加班日期" format="YYYY-MM-DD" value-format="YYYY-MM-DD" style="width: 100%" />
+            </el-form-item>
             <el-form-item label="开始时间" prop="startTime">
               <el-date-picker v-model="form.startTime" type="datetime" placeholder="请选择开始时间" format="YYYY-MM-DD HH:mm" value-format="YYYY-MM-DD HH:mm:ss" style="width: 100%" />
             </el-form-item>
             <el-form-item label="结束时间" prop="endTime">
               <el-date-picker v-model="form.endTime" type="datetime" placeholder="请选择结束时间" format="YYYY-MM-DD HH:mm" value-format="YYYY-MM-DD HH:mm:ss" style="width: 100%" />
+            </el-form-item>
+            <el-form-item label="加班时长" prop="hours">
+              <el-input v-model.number="form.hours" type="number" placeholder="请输入加班时长（小时）" :min="0.5" :step="0.5">
+                <template #append>小时</template>
+              </el-input>
             </el-form-item>
             <el-form-item label="加班原因" prop="reason">
               <el-input v-model="form.reason" type="textarea" :rows="4" placeholder="请输入加班原因" maxlength="200" show-word-limit />
@@ -107,10 +115,12 @@ const showDetail = (row: any) => {
 
 const formRef = ref<FormInstance>();
 const submitting = ref(false);
-const form = reactive({ startTime: "", endTime: "", reason: "" });
+const form = reactive({ overtimeDate: "", startTime: "", endTime: "", hours: undefined as number | undefined, reason: "" });
 const rules = reactive<FormRules>({
+  overtimeDate: [{ required: true, message: "请选择加班日期", trigger: "change" }],
   startTime: [{ required: true, message: "请选择开始时间", trigger: "change" }],
   endTime: [{ required: true, message: "请选择结束时间", trigger: "change" }],
+  hours: [{ required: true, message: "请输入加班时长", trigger: "blur" }],
   reason: [{ required: true, message: "请输入加班原因", trigger: "blur" }]
 });
 

@@ -13,6 +13,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 @RestController
 @RequestMapping("/api/asset")
 @Tag(name = "资产管理")
@@ -29,8 +31,10 @@ public class AssetController {
     public R<PageResult<OaAsset>> page(@RequestParam int pageNum,
                                         @RequestParam int pageSize,
                                         @RequestParam(required = false) String category,
-                                        @RequestParam(required = false) Character status) {
-        IPage<OaAsset> page = assetService.pageList(pageNum, pageSize, category, status);
+                                        @RequestParam(required = false) String status,
+                                        @RequestParam(required = false) String assetName,
+                                        @RequestParam(required = false) String assetCode) {
+        IPage<OaAsset> page = assetService.pageList(pageNum, pageSize, category, status, assetName, assetCode);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 
@@ -60,7 +64,10 @@ public class AssetController {
 
     @PostMapping("/borrow")
     @Operation(summary = "借出资产")
-    public R<Void> borrow(@RequestBody OaAssetBorrow borrow) {
+    public R<Void> borrow(@RequestBody OaAssetBorrow borrow, HttpServletRequest request) {
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        borrow.setBorrowerId(empId);
         assetBorrowService.borrowAsset(borrow);
         return R.ok();
     }
@@ -70,5 +77,16 @@ public class AssetController {
     public R<Void> returnAsset(@PathVariable Long borrowId) {
         assetBorrowService.returnAsset(borrowId);
         return R.ok();
+    }
+
+    @GetMapping("/borrow/page")
+    @Operation(summary = "分页查询借用记录")
+    public R<PageResult<OaAssetBorrow>> borrowPage(
+            @RequestParam int pageNum,
+            @RequestParam int pageSize,
+            @RequestParam(required = false) Long borrowerId,
+            @RequestParam(required = false) String status) {
+        IPage<OaAssetBorrow> page = assetBorrowService.pageList(pageNum, pageSize, borrowerId, status);
+        return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 }

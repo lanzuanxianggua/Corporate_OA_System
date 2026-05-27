@@ -72,7 +72,8 @@ public class AuthInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        Long empId = claims.get("empId", Long.class);
+        Object empIdObj = claims.get("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         String redisTokenKey = "token:" + empId;
         Object cachedToken = redisTemplate.opsForValue().get(redisTokenKey);
         if (cachedToken == null || !token.equals(cachedToken.toString())) {
