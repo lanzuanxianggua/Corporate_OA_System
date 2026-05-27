@@ -52,10 +52,26 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Initialize database
+      - name: Initialize database schema
         run: |
-          mysql -h 127.0.0.1 -u root -ptest_password oa_system_test < code/backend/sql/init.sql 2>/dev/null || true
-        continue-on-error: true
+          sed 's/oa_system/oa_system_test/g; s/CREATE DATABASE[^;]*;//g' \
+            code/backend/sql/phase_all_ddl.sql | \
+            mysql -h 127.0.0.1 -u root -ptest_password oa_system_test
+
+      - name: Seed essential data
+        run: |
+          sed 's/oa_system/oa_system_test/g; s/CREATE DATABASE[^;]*;//g' \
+            code/backend/oa-web/src/main/resources/sql/init.sql | \
+            mysql -h 127.0.0.1 -u root -ptest_password oa_system_test
+          sed 's/oa_system/oa_system_test/g' \
+            code/backend/init_dashboard_data.sql | \
+            mysql -h 127.0.0.1 -u root -ptest_password oa_system_test
+          sed 's/oa_system/oa_system_test/g' \
+            code/backend/sql/test_data.sql | \
+            mysql -h 127.0.0.1 -u root -ptest_password oa_system_test
+          sed 's/oa_system/oa_system_test/g' \
+            code/backend/sql/seed_workflow_roles.sql | \
+            mysql -h 127.0.0.1 -u root -ptest_password oa_system_test
 
       - name: Build backend
         working-directory: code/backend

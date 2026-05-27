@@ -5,7 +5,7 @@
 # ============================================================
 
 BASE_URL="http://localhost:8080"
-REDIS_CLI="C:/Program Files/Redis/redis-cli.exe"
+REDIS_CLI="${REDIS_CLI:-C:/Program Files/Redis/redis-cli.exe}"
 PASS=0
 FAIL=0
 ERRORS=()
