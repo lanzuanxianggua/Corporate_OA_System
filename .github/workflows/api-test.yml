@@ -65,6 +65,13 @@ jobs:
           sed 's/oa_system/oa_system_test/g; s/CREATE DATABASE[^;]*;//g' \
             code/backend/sql/phase_all_ddl.sql | \
             mysql --force -h 127.0.0.1 -u root -ptest_password oa_system_test 2>&1 || true
+          # Add missing columns that entities expect but init.sql didn't define
+          mysql --force -h 127.0.0.1 -u root -ptest_password oa_system_test -e "
+            ALTER TABLE sys_role ADD COLUMN remark VARCHAR(500) DEFAULT '' COMMENT '备注';
+            ALTER TABLE sys_role ADD COLUMN del_flag CHAR(1) DEFAULT '0' COMMENT '删除标志';
+            ALTER TABLE sys_role ADD COLUMN update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间';
+            ALTER TABLE sys_emp_role ADD COLUMN del_flag CHAR(1) DEFAULT '0' COMMENT '删除标志';
+          " 2>/dev/null || true
           # Seed: extra employees (wujiu etc.) + attendance history
           sed 's/oa_system/oa_system_test/g' \
             code/backend/init_dashboard_data.sql | \
