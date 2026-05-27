@@ -133,7 +133,7 @@ fi
 
 # 8. POST /api/employee (create)
 EMP_CREATE_RESP=$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/api/employee" \
-    -d '{"empName":"TestUser_API","username":"testapi999","password":"123456","phone":"13800009999","email":"testapi@oa.com","deptId":1,"gender":1,"entryDate":"2026-01-01"}')
+    -d '{"empCode":"EMP_TEST_999","empName":"TestUser_API","password":"123456","phone":"13800009999","email":"testapi@oa.com","deptId":1,"gender":1,"entryDate":"2026-01-01","status":1}')
 assert_ok "#8 Employee create" "$EMP_CREATE_RESP"
 NEW_EMP_ID=$(json_num "$EMP_CREATE_RESP" "id")
 [ -z "$NEW_EMP_ID" ] && NEW_EMP_ID=$(json_num "$EMP_CREATE_RESP" "empId")
@@ -141,10 +141,10 @@ NEW_EMP_ID=$(json_num "$EMP_CREATE_RESP" "id")
 # 9. PUT /api/employee (update)
 if [ -n "$NEW_EMP_ID" ]; then
     assert_ok "#9 Employee update" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/api/employee" \
-        -d "{\"empId\":$NEW_EMP_ID,\"empName\":\"TestUser_Updated\",\"phone\":\"13800008888\"}")"
+        -d "{\"id\":$NEW_EMP_ID,\"empName\":\"TestUser_Updated\",\"phone\":\"13800008888\"}")"
 else
     assert_ok "#9 Employee update (fallback)" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/api/employee" \
-        -d '{"empId":1,"empName":"Admin","phone":"13800000001"}')"
+        -d '{"id":1,"empName":"Admin","phone":"13800000001"}')"
 fi
 
 # 10. DELETE /api/employee/{id}
@@ -154,9 +154,8 @@ else
     log_pass "#10 Employee delete (skipped - no test ID)"
 fi
 
-# 11. PUT /api/employee/password
-assert_ok "#11 Employee password reset" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/api/employee/password" \
-    -d '{"empId":1,"newPassword":"123456"}')"
+# 11. PUT /api/employee/password (uses @RequestParam, not JSON body)
+assert_ok "#11 Employee password reset" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/api/employee/password?empId=1&oldPwd=123456&newPwd=123456")"
 
 # ============================================================
 # SECTION 3: Dept (12-15)
@@ -403,8 +402,8 @@ assert_ok "#49 Clock-out" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_US
 # 50. GET /api/attendance/today
 assert_ok "#50 Attendance today" "$(curl -s -H "Authorization: Bearer $TOKEN_USER" "$BASE_URL/api/attendance/today")"
 
-# 51. GET /api/attendance/history
-assert_ok "#51 Attendance history" "$(curl -s -H "Authorization: Bearer $TOKEN_USER" "$BASE_URL/api/attendance/history?pageNum=1&pageSize=10")"
+# 51. GET /api/attendance/history (requires startDate + endDate params)
+assert_ok "#51 Attendance history" "$(curl -s -H "Authorization: Bearer $TOKEN_USER" "$BASE_URL/api/attendance/history?startDate=2026-01-01&endDate=2026-12-31")"
 
 # 52. GET /api/attendance/admin/page
 assert_ok "#52 Attendance admin page" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/api/attendance/admin/page?pageNum=1&pageSize=10")"
@@ -469,6 +468,7 @@ log_section "12. Leave [60-63]"
 LEAVE_RESP=$(curl -s -X POST -H "Authorization: Bearer $TOKEN_USER" -H "$H" "$BASE_URL/api/leave/submit" \
     -d '{"leaveType":1,"startTime":"2026-09-01 09:00:00","endTime":"2026-09-01 18:00:00","reason":"auto-test"}')
 assert_ok "#60 Leave submit" "$LEAVE_RESP"
+if ! check "$LEAVE_RESP"; then echo "  [DEBUG] Leave submit response: $(echo "$LEAVE_RESP" | head -c 300)"; fi
 LEAVE_ID=$(json_num "$LEAVE_RESP" "id")
 [ -z "$LEAVE_ID" ] && LEAVE_ID=$(json_num "$LEAVE_RESP" "data")
 
@@ -497,9 +497,9 @@ assert_ok "#64 Leave balance page" "$(curl -s -H "Authorization: Bearer $TOKEN_A
 # 65. GET /api/leave-balance/my
 assert_ok "#65 Leave balance my" "$(curl -s -H "Authorization: Bearer $TOKEN_USER" "$BASE_URL/api/leave-balance/my")"
 
-# 66. POST /api/leave-balance/init
+# 66. POST /api/leave-balance/init (requires empId + year in JSON body)
 assert_ok "#66 Leave balance init" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/api/leave-balance/init" \
-    -d '{"year":2026}')"
+    -d '{"empId":2,"year":2026}')"
 
 # ============================================================
 # SECTION 14: Overtime (67-69)
@@ -619,9 +619,8 @@ fi
 # 82. GET /api/loan/page
 assert_ok "#82 Loan page" "$(curl -s -H "Authorization: Bearer $TOKEN_USER" "$BASE_URL/api/loan/page?pageNum=1&pageSize=5")"
 
-# 83. POST /api/loan/repayment
-# Use a safe fallback borrowId since we need an approved loan
-assert_ok "#83 Loan repayment" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_USER" -H "$H" "$BASE_URL/api/loan/repayment" \
+# 83. POST /api/loan/repayment (requires @RequireAdmin and loanId/amount in JSON body)
+assert_ok "#83 Loan repayment" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/api/loan/repayment" \
     -d '{"loanId":99999,"amount":100}')" -1
 
 # ============================================================
@@ -721,13 +720,15 @@ log_section "22. Document [97-100]"
 # 97. GET /api/document/page
 assert_ok "#97 Document page" "$(curl -s -H "Authorization: Bearer $TOKEN_USER" "$BASE_URL/api/document/page?pageNum=1&pageSize=5")"
 
-# 98. POST /api/document/upload
+# 98. POST /api/document/upload (multipart/form-data with uploaderId)
+echo "auto-test" > /tmp/test-upload.txt
 DOC_UPLOAD_RESP=$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" \
-    -F "file=@tests/api-test.sh" -F "categoryId=1" -F "title=auto-test-doc" \
+    -F "file=@/tmp/test-upload.txt" -F "uploaderId=1" \
     "$BASE_URL/api/document/upload")
 assert_ok "#98 Document upload" "$DOC_UPLOAD_RESP"
 DOC_ID=$(json_num "$DOC_UPLOAD_RESP" "id")
 [ -z "$DOC_ID" ] && DOC_ID=$(json_num "$DOC_UPLOAD_RESP" "data")
+rm -f /tmp/test-upload.txt
 
 # 99. DELETE /api/document/{id}
 if [ -n "$DOC_ID" ]; then
@@ -737,7 +738,13 @@ else
 fi
 
 # 100. GET /api/document/download/{id} (binary)
-# Use ID 99999 as safe fallback - just verify endpoint doesn't crash
+# Use existing DOC_ID if available, otherwise use safe fallback
+if [ -n "$DOC_ID" ]; then
+    assert_http_ok "#100 Document download" "$BASE_URL/api/document/download/$DOC_ID" "GET" "$TOKEN_ADMIN"
+else
+    # Non-existent ID - endpoint should return error gracefully, not 500
+    assert_ok "#100 Document download (no doc)" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/api/document/download/1")" -1
+fi
 assert_http_ok "#100 Document download" "$BASE_URL/api/document/download/99999" "GET" "$TOKEN_ADMIN"
 
 # ============================================================
@@ -765,7 +772,7 @@ fi
 
 # 105. POST /api/meeting/submit (create meeting before room delete)
 MEETING_RESP=$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/api/meeting/submit" \
-    -d '{"title":"TestMeeting_API","roomId":'"${ROOM_ID:-1}"','"startTime":"2026-10-01 10:00:00","endTime":"2026-10-01 12:00:00","attendees":"2","description":"auto-test"}')
+    -d "{\"title\":\"TestMeeting_API\",\"roomId\":${ROOM_ID:-1},\"startTime\":\"2026-10-01 10:00:00\",\"endTime\":\"2026-10-01 12:00:00\",\"attendees\":\"2\",\"description\":\"auto-test\"}")
 assert_ok "#105 Meeting submit" "$MEETING_RESP"
 MEETING_ID=$(json_num "$MEETING_RESP" "id")
 [ -z "$MEETING_ID" ] && MEETING_ID=$(json_num "$MEETING_RESP" "data")
