@@ -1,0 +1,46 @@
+name: CI - Mobile Build (H5)
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'code/mobile/**'
+      - '.github/workflows/mobile.yml'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'code/mobile/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        working-directory: code/mobile
+        run: pnpm install
+
+      - name: Build H5
+        working-directory: code/mobile
+        run: pnpm build:h5
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-h5-dist
+          path: code/mobile/dist/build/h5/
+          retention-days: 5
