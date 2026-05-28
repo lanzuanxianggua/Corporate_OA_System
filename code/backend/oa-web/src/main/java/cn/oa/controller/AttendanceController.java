@@ -2,6 +2,7 @@ package cn.oa.controller;
 
 import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
+import cn.oa.common.annotation.RequireRole;
 import cn.oa.common.result.R;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.utils.ExcelExportUtil;
@@ -95,7 +96,7 @@ public class AttendanceController {
     }
 
     @GetMapping("/admin/page")
-    @RequireAdmin
+    @RequireRole({"ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"})
     @Operation(summary = "管理员考勤分页查询")
     public R<PageResult<Map<String, Object>>> adminPage(
             @RequestParam(defaultValue = "1") int pageNum,

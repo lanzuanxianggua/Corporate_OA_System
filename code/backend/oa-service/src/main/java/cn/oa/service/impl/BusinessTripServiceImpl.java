@@ -11,6 +11,7 @@ import cn.oa.entity.SysEmployee;
 import cn.oa.mapper.OaApprovalRecordMapper;
 import cn.oa.mapper.OaBusinessTripMapper;
 import cn.oa.mapper.SysEmployeeMapper;
+import cn.oa.mapper.WfTaskMapper;
 import cn.oa.service.AttendanceService;
 import cn.oa.service.BusinessTripService;
 import cn.oa.service.WorkflowService;
@@ -41,6 +42,9 @@ public class BusinessTripServiceImpl extends ServiceImpl<OaBusinessTripMapper, O
     @Autowired
     private WorkflowService workflowService;
 
+    @Autowired
+    private WfTaskMapper wfTaskMapper;
+
     @Lazy
     @Autowired
     private AttendanceService attendanceService;
@@ -63,7 +67,16 @@ public class BusinessTripServiceImpl extends ServiceImpl<OaBusinessTripMapper, O
     @Override
     @Transactional
     public void approve(Long applyId, Long approverId, Integer status, String remark) {
+        approve(applyId, approverId, status, remark, null);
+    }
+
+    @Override
+    @Transactional
+    public void approve(Long applyId, Long approverId, Integer status, String remark, Long taskId) {
         WfTask task = workflowService.findPendingTask(BusinessType.TRIP, applyId, approverId);
+        if (task == null && taskId != null) {
+            task = wfTaskMapper.selectById(taskId);
+        }
         if (task != null) {
             workflowService.handleTask(task.getId(), approverId, status, remark);
         } else {

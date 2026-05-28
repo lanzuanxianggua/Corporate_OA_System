@@ -2,6 +2,7 @@ import { get, post } from "@/utils/request";
 
 export const getDefinitions = () => get("/api/workflow/definition/list");
 export const getPendingTasks = (params: any) => get("/api/workflow/task/pending", params);
+export const getHandledTasks = (params: any) => get("/api/workflow/task/handled", params);
 export const handleTask = (data: any) => post("/api/workflow/task/handle", data);
 export const transferTask = (data: any) => post("/api/workflow/task/transfer", data);
 export const returnTask = (data: any) => post("/api/workflow/task/return", data);

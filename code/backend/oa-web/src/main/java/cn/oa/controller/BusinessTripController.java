@@ -50,10 +50,11 @@ public class BusinessTripController {
         Long applyId = Long.valueOf(params.get("id").toString());
         Integer status = Integer.valueOf(params.get("status").toString());
         String remark = params.get("remark") != null ? params.get("remark").toString() : null;
+        Long taskId = params.get("taskId") != null ? Long.valueOf(params.get("taskId").toString()) : null;
         Object approverIdObj = request.getAttribute("empId");
         Long approverId = (approverIdObj instanceof Number) ? ((Number) approverIdObj).longValue() : Long.valueOf(approverIdObj.toString());
-        businessTripService.approve(applyId, approverId, status, remark);
-        log.info("Business trip approved: id={}, status={}, approverId={}", applyId, status, approverId);
+        businessTripService.approve(applyId, approverId, status, remark, taskId);
+        log.info("Business trip approved: id={}, status={}, approverId={}, taskId={}", applyId, status, approverId, taskId);
         return R.ok();
     }
 

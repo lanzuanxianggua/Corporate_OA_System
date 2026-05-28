@@ -10,6 +10,8 @@ public interface BusinessTripService extends IService<OaBusinessTrip> {
 
     void approve(Long applyId, Long approverId, Integer status, String remark);
 
+    void approve(Long applyId, Long approverId, Integer status, String remark, Long taskId);
+
     IPage<OaBusinessTrip> pageList(int pageNum, int pageSize, Long empId, Integer status);
 
     void updateStatus(Long id, Integer status);

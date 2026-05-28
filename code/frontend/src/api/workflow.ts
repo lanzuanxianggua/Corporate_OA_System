@@ -10,7 +10,7 @@ export const createDefinition = (data: Partial<ProcessDefinition>) =>
 export const getPendingTasks = (params: { pageNum: number; pageSize: number }) =>
   request.get<unknown, ApiResponse<PageResult<WorkflowTask>>>("/api/workflow/task/pending", { params });
 
-export const handleTask = (data: { taskId: number; action: number; remark?: string }) =>
+export const handleTask = (data: { taskId: number; status: number; remark?: string }) =>
   request.post<unknown, ApiResponse<void>>("/api/workflow/task/handle", data);
 
 export const getApprovalHistory = (params: { businessType: string; businessId: number }) =>

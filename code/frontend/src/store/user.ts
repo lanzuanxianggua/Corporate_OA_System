@@ -20,12 +20,20 @@ export const useUserStore = defineStore("user", () => {
       : null
   );
 
-  const isAdmin = () => {
+  const hasRole = (role: string) => {
     if (!userInfo.value?.roles) return false;
     return userInfo.value.roles.some(
-      (r: string) => r === "ADMIN" || r === "admin"
+      (r: string) => r === role || r === role.toLowerCase()
     );
   };
+
+  const hasAnyRole = (roles: string[]) => {
+    if (!roles?.length) return true;
+    if (!userInfo.value?.roles) return false;
+    return roles.some((role) => hasRole(role));
+  };
+
+  const isAdmin = () => hasRole("ADMIN");
 
   const loginAction = async (username: string, password: string, captchaUuid: string, captchaCode: string) => {
     const res: any = await loginApi({ username, password, captchaUuid, captchaCode });
@@ -61,5 +69,5 @@ export const useUserStore = defineStore("user", () => {
     router.push("/login");
   };
 
-  return { token, userInfo, isAdmin, loginAction, logoutAction };
+  return { token, userInfo, hasRole, hasAnyRole, isAdmin, loginAction, logoutAction };
 });

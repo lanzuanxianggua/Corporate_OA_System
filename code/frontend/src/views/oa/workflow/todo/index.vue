@@ -127,7 +127,7 @@ const confirmHandle = async () => {
   }
   handling.value = true;
   try {
-    await handleTask({ taskId: currentRow.value.id, action: handleAction.value, remark: remark.value });
+    await handleTask({ taskId: currentRow.value.id, status: handleAction.value, remark: remark.value });
     ElMessage.success(handleAction.value === 1 ? "已通过" : "已驳回");
     dialogVisible.value = false;
     fetchList();

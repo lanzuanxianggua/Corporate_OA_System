@@ -22,6 +22,8 @@ public interface WorkflowService extends IService<WfProcessDefinition> {
 
     IPage<WfTask> myPendingTasks(Long assigneeId, int pageNum, int pageSize);
 
+    IPage<WfTask> myHandledTasks(Long assigneeId, int pageNum, int pageSize);
+
     WfProcessInstance getByBusiness(String businessType, Long businessId);
 
     List<WfProcessDefinition> listDefinitions();

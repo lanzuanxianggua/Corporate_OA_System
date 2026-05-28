@@ -67,7 +67,7 @@ class OutingControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("审批外出申请 - 通过")
     void approveOutingPass() throws Exception {
-        doNothing().when(outingService).approve(1L, 1L, 1, "同意");
+        doNothing().when(outingService).approve(1L, 1L, 1, "同意", null);
 
         Map<String, Object> params = Map.of("id", 1, "status", 1, "remark", "同意");
 
@@ -78,13 +78,13 @@ class OutingControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0));
 
-        verify(outingService, times(1)).approve(1L, 1L, 1, "同意");
+        verify(outingService, times(1)).approve(1L, 1L, 1, "同意", null);
     }
 
     @Test
     @DisplayName("审批外出申请 - 驳回")
     void approveOutingReject() throws Exception {
-        doNothing().when(outingService).approve(1L, 1L, 2, "理由不充分");
+        doNothing().when(outingService).approve(1L, 1L, 2, "理由不充分", null);
 
         Map<String, Object> params = Map.of("id", 1, "status", 2, "remark", "理由不充分");
 

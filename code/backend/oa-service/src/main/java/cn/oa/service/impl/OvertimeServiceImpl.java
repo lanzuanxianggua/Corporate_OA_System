@@ -11,6 +11,7 @@ import cn.oa.entity.SysEmployee;
 import cn.oa.mapper.OaApprovalRecordMapper;
 import cn.oa.mapper.OaOvertimeMapper;
 import cn.oa.mapper.SysEmployeeMapper;
+import cn.oa.mapper.WfTaskMapper;
 import cn.oa.service.LeaveBalanceService;
 import cn.oa.service.OvertimeService;
 import cn.oa.service.WorkflowService;
@@ -42,6 +43,9 @@ public class OvertimeServiceImpl extends ServiceImpl<OaOvertimeMapper, OaOvertim
     @Autowired
     private WorkflowService workflowService;
 
+    @Autowired
+    private WfTaskMapper wfTaskMapper;
+
     @Lazy
     @Autowired
     private LeaveBalanceService leaveBalanceService;
@@ -63,7 +67,16 @@ public class OvertimeServiceImpl extends ServiceImpl<OaOvertimeMapper, OaOvertim
     @Override
     @Transactional
     public void approve(Long overtimeId, Long approverId, Integer status, String remark) {
+        approve(overtimeId, approverId, status, remark, null);
+    }
+
+    @Override
+    @Transactional
+    public void approve(Long overtimeId, Long approverId, Integer status, String remark, Long taskId) {
         WfTask task = workflowService.findPendingTask(BusinessType.OVERTIME, overtimeId, approverId);
+        if (task == null && taskId != null) {
+            task = wfTaskMapper.selectById(taskId);
+        }
         if (task != null) {
             workflowService.handleTask(task.getId(), approverId, status, remark);
         } else {

@@ -10,6 +10,8 @@ public interface LoanService extends IService<OaLoan> {
 
     void approve(Long loanId, Long approverId, Integer status, String remark);
 
+    void approve(Long loanId, Long approverId, Integer status, String remark, Long taskId);
+
     IPage<OaLoan> pageList(int pageNum, int pageSize, Long empId, Integer status);
 
     void addRepayment(Long loanId, java.math.BigDecimal amount, String remark);

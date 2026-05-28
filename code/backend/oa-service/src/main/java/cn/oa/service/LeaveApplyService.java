@@ -17,6 +17,11 @@ public interface LeaveApplyService extends IService<OaLeaveApply> {
     void approve(Long applyId, Long approverId, Integer status, String remark);
 
     /**
+     * 审批请假申请（支持taskId直接定位任务）
+     */
+    void approve(Long applyId, Long approverId, Integer status, String remark, Long taskId);
+
+    /**
      * 分页查询请假申请
      */
     IPage<OaLeaveApply> pageList(int pageNum, int pageSize, Long empId, Integer status);

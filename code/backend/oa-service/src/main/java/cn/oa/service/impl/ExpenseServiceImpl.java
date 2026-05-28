@@ -12,6 +12,7 @@ import cn.oa.entity.SysEmployee;
 import cn.oa.mapper.OaApprovalRecordMapper;
 import cn.oa.mapper.OaExpenseMapper;
 import cn.oa.mapper.SysEmployeeMapper;
+import cn.oa.mapper.WfTaskMapper;
 import cn.oa.service.BudgetService;
 import cn.oa.service.ExpenseService;
 import cn.oa.service.WorkflowService;
@@ -43,6 +44,9 @@ public class ExpenseServiceImpl extends ServiceImpl<OaExpenseMapper, OaExpense> 
     @Autowired
     private WorkflowService workflowService;
 
+    @Autowired
+    private WfTaskMapper wfTaskMapper;
+
     @Lazy
     @Autowired
     private BudgetService budgetService;
@@ -64,7 +68,16 @@ public class ExpenseServiceImpl extends ServiceImpl<OaExpenseMapper, OaExpense> 
     @Override
     @Transactional
     public void approve(Long applyId, Long approverId, Integer status, String remark) {
+        approve(applyId, approverId, status, remark, null);
+    }
+
+    @Override
+    @Transactional
+    public void approve(Long applyId, Long approverId, Integer status, String remark, Long taskId) {
         WfTask task = workflowService.findPendingTask(BusinessType.EXPENSE, applyId, approverId);
+        if (task == null && taskId != null) {
+            task = wfTaskMapper.selectById(taskId);
+        }
         if (task != null) {
             workflowService.handleTask(task.getId(), approverId, status, remark);
         } else {

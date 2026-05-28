@@ -66,7 +66,7 @@ class LoanControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("审批借支申请 - 通过")
     void approveLoanPass() throws Exception {
-        doNothing().when(loanService).approve(1L, 1L, 1, "同意");
+        doNothing().when(loanService).approve(1L, 1L, 1, "同意", null);
 
         Map<String, Object> params = Map.of("id", 1, "status", 1, "remark", "同意");
 
@@ -77,7 +77,7 @@ class LoanControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0));
 
-        verify(loanService, times(1)).approve(1L, 1L, 1, "同意");
+        verify(loanService, times(1)).approve(1L, 1L, 1, "同意", null);
     }
 
     @Test

@@ -472,15 +472,27 @@ export interface AttendanceGroup {
 export interface WorkflowTask {
   id?: number;
   processInstanceId?: number;
+  instanceId?: number;
+  processId?: number;
+  nodeIndex?: number;
   nodeId?: string;
   nodeName?: string;
   assigneeId?: number;
   assigneeName?: string;
-  status?: number;
+  status?: number | string;
   businessId?: number;
   businessType?: string;
   processName?: string;
   createTime?: string;
+  actionTime?: string;
+  remark?: string;
+  actionSource?: string;
+  transferFromId?: number;
+  transferReason?: string;
+  deadline?: string;
+  parentTaskId?: number;
+  multiType?: string;
+  instance?: ProcessInstance;
 }
 
 export interface ProcessDefinition {

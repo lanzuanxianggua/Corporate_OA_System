@@ -29,7 +29,7 @@ export const menuConfig: MenuItem[] = [
     path: "/oa/approval-center",
     title: "审批中心",
     icon: "Stamp",
-    roles: ["ADMIN"]
+    roles: ["ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"]
   },
   {
     title: "考勤管理",
@@ -37,6 +37,8 @@ export const menuConfig: MenuItem[] = [
     children: [
       { path: "/oa/attendance/clock", title: "考勤打卡" },
       { path: "/oa/attendance/record", title: "考勤记录" },
+      { path: "/oa/attendance/manage", title: "考勤管理", roles: ["ADMIN", "DEPT_MANAGER"] },
+      { path: "/oa/attendance-group", title: "考勤组管理", roles: ["ADMIN"] },
       { path: "/oa/leave-balance", title: "假期余额" }
     ]
   },
@@ -86,12 +88,46 @@ export const menuConfig: MenuItem[] = [
   {
     title: "工作流管理",
     icon: "SetUp",
-    roles: ["ADMIN"],
     children: [
-      { path: "/oa/workflow-definition", title: "流程定义" },
-      { path: "/oa/workflow/cc", title: "抄送记录" },
-      { path: "/oa/workflow/delegation", title: "审批委托" }
+      { path: "/oa/workflow-definition", title: "流程定义", roles: ["ADMIN"] },
+      { path: "/oa/workflow/cc", title: "抄送记录", roles: ["ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"] },
+      { path: "/oa/workflow/delegation", title: "审批委托", roles: ["ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"] },
+      { path: "/oa/workflow-todo", title: "待办任务", roles: ["ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"] }
     ]
+  },
+  {
+    title: "审批管理",
+    icon: "Checked",
+    children: [
+      { path: "/oa/leave/approval", title: "请假审批", roles: ["ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"] },
+      { path: "/oa/business-trip/approval", title: "出差审批", roles: ["ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"] },
+      { path: "/oa/outing/approval", title: "外出审批", roles: ["ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"] },
+      { path: "/oa/purchase/approval", title: "采购审批", roles: ["ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"] },
+      { path: "/oa/expense/approval", title: "经费审批", roles: ["ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"] },
+      { path: "/oa/overtime-approval", title: "加班审批", roles: ["ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"] },
+      { path: "/oa/loan-approval", title: "借支审批", roles: ["ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"] }
+    ]
+  },
+  {
+    title: "报表中心",
+    icon: "TrendCharts",
+    children: [
+      { path: "/oa/report/personal", title: "个人报表" },
+      { path: "/oa/report/admin", title: "管理报表", roles: ["ADMIN", "DEPT_MANAGER"] }
+    ]
+  },
+  {
+    title: "薪资管理",
+    icon: "Money",
+    children: [
+      { path: "/oa/salary-my", title: "我的薪资" },
+      { path: "/oa/salary", title: "薪资管理", roles: ["ADMIN"] }
+    ]
+  },
+  {
+    title: "档案管理",
+    icon: "FolderOpened",
+    roles: ["ADMIN"]
   },
   {
     title: "系统管理",

@@ -50,10 +50,11 @@ public class OutingController {
         Long applyId = Long.valueOf(params.get("id").toString());
         Integer status = Integer.valueOf(params.get("status").toString());
         String remark = params.get("remark") != null ? params.get("remark").toString() : null;
+        Long taskId = params.get("taskId") != null ? Long.valueOf(params.get("taskId").toString()) : null;
         Object approverIdObj = request.getAttribute("empId");
         Long approverId = (approverIdObj instanceof Number) ? ((Number) approverIdObj).longValue() : Long.valueOf(approverIdObj.toString());
-        outingService.approve(applyId, approverId, status, remark);
-        log.info("Outing approved: id={}, status={}, approverId={}", applyId, status, approverId);
+        outingService.approve(applyId, approverId, status, remark, taskId);
+        log.info("Outing approved: id={}, status={}, approverId={}, taskId={}", applyId, status, approverId, taskId);
         return R.ok();
     }
 

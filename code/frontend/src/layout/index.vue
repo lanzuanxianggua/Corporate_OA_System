@@ -27,7 +27,7 @@
       >
         <template v-for="(item, idx) in menuConfig">
           <el-sub-menu
-            v-if="item.children && (!item.roles || userStore.isAdmin())"
+            v-if="item.children && (!item.roles || userStore.hasAnyRole(item.roles))"
             :key="'sub-' + idx"
             :index="'menu-' + idx"
           >
@@ -44,7 +44,7 @@
             </el-menu-item>
           </el-sub-menu>
           <el-menu-item
-            v-else-if="!item.children && (!item.roles || userStore.isAdmin())"
+            v-else-if="!item.children && (!item.roles || userStore.hasAnyRole(item.roles))"
             :key="'item-' + idx"
             :index="item.path ?? ''"
           >

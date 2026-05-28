@@ -32,7 +32,7 @@ const staticRoutes: RouteRecordRaw[] = [
         path: "oa/approval-center",
         name: "ApprovalCenter",
         component: () => import("@/views/oa/approval-center/index.vue"),
-        meta: { title: "审批中心", roles: ["ADMIN"] }
+        meta: { title: "审批中心", roles: ["ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"] }
       },
       {
         path: "oa/attendance/clock",
@@ -50,7 +50,7 @@ const staticRoutes: RouteRecordRaw[] = [
         path: "oa/attendance/manage",
         name: "AttendanceManage",
         component: () => import("@/views/oa/attendance/manage/index.vue"),
-        meta: { title: "考勤管理", roles: ["ADMIN"] }
+        meta: { title: "考勤管理", roles: ["ADMIN", "DEPT_MANAGER"] }
       },
       {
         path: "oa/leave/apply",
@@ -62,7 +62,7 @@ const staticRoutes: RouteRecordRaw[] = [
         path: "oa/leave/approval",
         name: "LeaveApproval",
         component: () => import("@/views/oa/leave/approval/index.vue"),
-        meta: { title: "请假审批", roles: ["ADMIN"] }
+        meta: { title: "请假审批", roles: ["ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"] }
       },
       {
         path: "oa/business-trip/apply",
@@ -74,7 +74,7 @@ const staticRoutes: RouteRecordRaw[] = [
         path: "oa/business-trip/approval",
         name: "BusinessTripApproval",
         component: () => import("@/views/oa/business-trip/approval/index.vue"),
-        meta: { title: "出差审批", roles: ["ADMIN"] }
+        meta: { title: "出差审批", roles: ["ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"] }
       },
       {
         path: "oa/outing/apply",
@@ -86,7 +86,7 @@ const staticRoutes: RouteRecordRaw[] = [
         path: "oa/outing/approval",
         name: "OutingApproval",
         component: () => import("@/views/oa/outing/approval/index.vue"),
-        meta: { title: "外出审批", roles: ["ADMIN"] }
+        meta: { title: "外出审批", roles: ["ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"] }
       },
       {
         path: "oa/purchase/apply",
@@ -98,7 +98,7 @@ const staticRoutes: RouteRecordRaw[] = [
         path: "oa/purchase/approval",
         name: "PurchaseApproval",
         component: () => import("@/views/oa/purchase/approval/index.vue"),
-        meta: { title: "采购审批", roles: ["ADMIN"] }
+        meta: { title: "采购审批", roles: ["ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"] }
       },
       {
         path: "oa/expense/apply",
@@ -110,7 +110,7 @@ const staticRoutes: RouteRecordRaw[] = [
         path: "oa/expense/approval",
         name: "ExpenseApproval",
         component: () => import("@/views/oa/expense/approval/index.vue"),
-        meta: { title: "经费审批", roles: ["ADMIN"] }
+        meta: { title: "经费审批", roles: ["ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"] }
       },
       {
         path: "oa/notice/list",
@@ -170,7 +170,7 @@ const staticRoutes: RouteRecordRaw[] = [
         path: "oa/report/admin",
         name: "ReportAdmin",
         component: () => import("@/views/oa/report/admin/index.vue"),
-        meta: { title: "管理员报表", roles: ["ADMIN"] }
+        meta: { title: "管理报表", roles: ["ADMIN", "DEPT_MANAGER"] }
       },
       {
         path: "oa/dashboard",
@@ -230,19 +230,19 @@ const staticRoutes: RouteRecordRaw[] = [
         path: "oa/workflow-todo",
         name: "WorkflowTodo",
         component: () => import("@/views/oa/workflow/todo/index.vue"),
-        meta: { title: "工作流任务" }
+        meta: { title: "待办任务", roles: ["ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"] }
       },
       {
         path: "oa/workflow/cc",
         name: "WorkflowCc",
         component: () => import("@/views/oa/workflow/cc/index.vue"),
-        meta: { title: "抄送记录" }
+        meta: { title: "抄送记录", roles: ["ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"] }
       },
       {
         path: "oa/workflow/delegation",
         name: "WorkflowDelegation",
         component: () => import("@/views/oa/workflow/delegation/index.vue"),
-        meta: { title: "审批委托" }
+        meta: { title: "审批委托", roles: ["ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"] }
       },
       {
         path: "oa/todo",
@@ -272,7 +272,7 @@ const staticRoutes: RouteRecordRaw[] = [
         path: "oa/overtime-approval",
         name: "OvertimeApproval",
         component: () => import("@/views/oa/overtime/approval/index.vue"),
-        meta: { title: "加班审批", roles: ["ADMIN"] }
+        meta: { title: "加班审批", roles: ["ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"] }
       },
       {
         path: "oa/salary",
@@ -338,7 +338,7 @@ const staticRoutes: RouteRecordRaw[] = [
         path: "oa/loan-approval",
         name: "LoanApproval",
         component: () => import("@/views/oa/loan/approval/index.vue"),
-        meta: { title: "借支审批", roles: ["ADMIN"] }
+        meta: { title: "借支审批", roles: ["ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"] }
       },
       {
         path: "oa/alert-rule",
@@ -446,9 +446,7 @@ router.beforeEach((to, _from, next) => {
     const requiredRoles = to.meta?.roles as string[] | undefined;
     if (requiredRoles?.length) {
       const userStore = useUserStore();
-      const userRoles: string[] = userStore.userInfo?.roles || [];
-      const hasRole = requiredRoles.some(r => userRoles.includes(r));
-      if (!hasRole) {
+      if (!userStore.hasAnyRole(requiredRoles)) {
         next("/error/403");
         return;
       }

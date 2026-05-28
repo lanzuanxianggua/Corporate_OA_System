@@ -6,6 +6,7 @@ import cn.oa.common.exception.BusinessException;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import cn.oa.entity.WfDelegation;
 import cn.oa.entity.WfProcessDefinition;
 import cn.oa.entity.WfProcessInstance;
 import cn.oa.entity.WfTask;
@@ -24,6 +25,7 @@ import cn.oa.mapper.SysEmployeeMapper;
 import cn.oa.mapper.SysEmpRoleMapper;
 import cn.oa.mapper.SysRoleMapper;
 import cn.oa.service.DelegationService;
+import cn.oa.service.DeptService;
 import cn.oa.service.TodoService;
 import cn.oa.service.WorkflowService;
 import cn.oa.service.NotificationService;
@@ -77,6 +79,9 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
 
     @Autowired
     private NotificationService notificationService;
+
+    @Autowired
+    private DeptService deptService;
 
     @Override
     @Transactional
@@ -150,9 +155,29 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
         if (task == null) {
             throw new BusinessException("任务不存在");
         }
+
+        // Authorization check: handler must be the task assignee OR authorized via delegation
         if (!task.getAssigneeId().equals(handlerId)) {
-            throw new BusinessException("无权处理此任务");
+            boolean authorized = false;
+            // Check if handler is the delegator of the task assignee (task was delegated to assignee)
+            Long delegateId = delegationService.resolveDelegate(handlerId);
+            if (delegateId != null && delegateId.equals(task.getAssigneeId())) {
+                authorized = true;
+            }
+            // Check if handler is the delegate of the task assignee (reverse delegation)
+            if (!authorized) {
+                WfDelegation reverseDelegation = delegationService.findActiveDelegationForDelegate(handlerId);
+                if (reverseDelegation != null && reverseDelegation.getDelegatorId().equals(task.getAssigneeId())) {
+                    authorized = true;
+                }
+            }
+            if (!authorized) {
+                log.warn("handleTask: user {} not authorized for task {} assigned to {}", handlerId, taskId, task.getAssigneeId());
+                throw new BusinessException("无权处理此任务");
+            }
+            log.info("handleTask: delegation approval - user {} acting on task {} assigned to {}", handlerId, taskId, task.getAssigneeId());
         }
+
         if (!"0".equals(task.getStatus())) {
             throw new BusinessException("任务已处理");
         }
@@ -328,6 +353,23 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
         IPage<WfTask> result = taskMapper.selectPage(page, wrapper);
 
         // fill instance info
+        for (WfTask task : result.getRecords()) {
+            WfProcessInstance inst = instanceMapper.selectById(task.getInstanceId());
+            task.setInstance(inst);
+            task.setBusinessType(inst != null ? inst.getBusinessType() : null);
+        }
+        return result;
+    }
+
+    @Override
+    public IPage<WfTask> myHandledTasks(Long assigneeId, int pageNum, int pageSize) {
+        Page<WfTask> page = new Page<>(pageNum, pageSize);
+        LambdaQueryWrapper<WfTask> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(WfTask::getAssigneeId, assigneeId)
+                .ne(WfTask::getStatus, "0")
+                .orderByDesc(WfTask::getActionTime);
+        IPage<WfTask> result = taskMapper.selectPage(page, wrapper);
+
         for (WfTask task : result.getRecords()) {
             WfProcessInstance inst = instanceMapper.selectById(task.getInstanceId());
             task.setInstance(inst);
@@ -522,11 +564,82 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
             case "role_global":
                 return resolveByRoleGlobal(assigneeValue);
             case "dept_manager":
-                return resolveByRole("DEPT_MANAGER", initiatorId);
+                return resolveDeptManager(initiatorId);
             default:
                 try { return Long.valueOf(assigneeValue); }
                 catch (NumberFormatException e) { return resolveByRole(assigneeValue, initiatorId); }
         }
+    }
+
+    /**
+     * Resolve the department manager for the initiator's department.
+     * Strategy:
+     * 1. Look at the initiator's department and use the dept leader field if it matches a DEPT_MANAGER role.
+     * 2. Walk up the department tree to find a department with a leader who has the DEPT_MANAGER role.
+     * 3. Fallback to the role-based resolution (any employee with DEPT_MANAGER role in same dept).
+     */
+    private Long resolveDeptManager(Long initiatorId) {
+        SysEmployee initiator = employeeMapper.selectById(initiatorId);
+        if (initiator == null || initiator.getDeptId() == null) {
+            log.warn("resolveDeptManager: initiator {} has no dept, falling back to role lookup", initiatorId);
+            return resolveByRole("DEPT_MANAGER", initiatorId);
+        }
+
+        // Find the DEPT_MANAGER role ID
+        SysRole deptManagerRole = roleMapper.selectOne(
+                new LambdaQueryWrapper<SysRole>().eq(SysRole::getRoleKey, "DEPT_MANAGER").last("LIMIT 1"));
+
+        // Walk up the department tree looking for a department with a leader
+        Long currentDeptId = initiator.getDeptId();
+        int maxDepth = 10; // prevent infinite loop
+        while (currentDeptId != null && maxDepth-- > 0) {
+            cn.oa.entity.SysDept dept = deptService.getById(currentDeptId);
+            if (dept == null) break;
+
+            String leader = dept.getLeader();
+            if (leader != null && !leader.trim().isEmpty()) {
+                // The leader field might be an empId (numeric) or a name
+                try {
+                    Long leaderEmpId = Long.valueOf(leader.trim());
+                    // Verify this leader has DEPT_MANAGER role
+                    if (deptManagerRole != null) {
+                        Long count = empRoleMapper.selectCount(
+                                new LambdaQueryWrapper<SysEmpRole>()
+                                        .eq(SysEmpRole::getEmpId, leaderEmpId)
+                                        .eq(SysEmpRole::getRoleId, deptManagerRole.getId()));
+                        if (count > 0) {
+                            log.debug("resolveDeptManager: found dept leader empId={} for deptId={}", leaderEmpId, currentDeptId);
+                            return leaderEmpId;
+                        }
+                    }
+                    // Leader exists but may not have explicit role; still return if dept is set up this way
+                    SysEmployee leaderEmp = employeeMapper.selectById(leaderEmpId);
+                    if (leaderEmp != null) {
+                        log.debug("resolveDeptManager: using dept leader empId={} (no role check) for deptId={}", leaderEmpId, currentDeptId);
+                        return leaderEmpId;
+                    }
+                } catch (NumberFormatException ignored) {
+                    // leader is a name string, not an empId; try to find by name
+                    SysEmployee leaderByName = employeeMapper.selectOne(
+                            new LambdaQueryWrapper<SysEmployee>()
+                                    .eq(SysEmployee::getEmpName, leader.trim())
+                                    .eq(SysEmployee::getDelFlag, "0")
+                                    .last("LIMIT 1"));
+                    if (leaderByName != null) {
+                        log.debug("resolveDeptManager: found dept leader by name empId={} for deptId={}", leaderByName.getId(), currentDeptId);
+                        return leaderByName.getId();
+                    }
+                }
+            }
+
+            // Move to parent department
+            if (dept.getParentId() == null || dept.getParentId() == 0L) break;
+            currentDeptId = dept.getParentId();
+        }
+
+        // Fallback to role-based resolution
+        log.debug("resolveDeptManager: falling back to role-based lookup for initiatorId={}", initiatorId);
+        return resolveByRole("DEPT_MANAGER", initiatorId);
     }
 
     private Long resolveByRole(String roleKey, Long initiatorId) {
@@ -653,13 +766,92 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
     @Override
     public WfTask findPendingTask(String businessType, Long businessId, Long assigneeId) {
         WfProcessInstance instance = getByBusiness(businessType, businessId);
-        if (instance == null) return null;
+        if (instance == null) {
+            log.warn("findPendingTask: no instance found for businessType={}, businessId={}", businessType, businessId);
+            return null;
+        }
+
+        // 1. Direct match: task assigned to this user
         LambdaQueryWrapper<WfTask> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(WfTask::getInstanceId, instance.getId())
                .eq(WfTask::getAssigneeId, assigneeId)
                .eq(WfTask::getStatus, "0")
                .last("LIMIT 1");
-        return taskMapper.selectOne(wrapper);
+        WfTask task = taskMapper.selectOne(wrapper);
+        if (task != null) {
+            log.debug("findPendingTask: direct match taskId={} for assigneeId={}", task.getId(), assigneeId);
+            return task;
+        }
+
+        // 2. Delegation check: task was delegated, assigneeId on task is the delegate,
+        //    but current user is the delegator (original assignee). Allow the delegator to see it.
+        Long delegateId = delegationService.resolveDelegate(assigneeId);
+        if (delegateId != null) {
+            LambdaQueryWrapper<WfTask> delegateWrapper = new LambdaQueryWrapper<>();
+            delegateWrapper.eq(WfTask::getInstanceId, instance.getId())
+                    .eq(WfTask::getAssigneeId, delegateId)
+                    .eq(WfTask::getStatus, "0")
+                    .last("LIMIT 1");
+            WfTask delegatedTask = taskMapper.selectOne(delegateWrapper);
+            if (delegatedTask != null) {
+                log.debug("findPendingTask: delegation match taskId={} delegator={} delegate={}",
+                        delegatedTask.getId(), assigneeId, delegateId);
+                return delegatedTask;
+            }
+        }
+
+        // 3. Reverse delegation check: current user may be a delegate whose delegator
+        //    was the original assignee. Find if there is an active delegation where
+        //    this user is the delegateToId.
+        WfDelegation reverseDelegation = findActiveDelegationForDelegate(assigneeId);
+        if (reverseDelegation != null) {
+            LambdaQueryWrapper<WfTask> reverseWrapper = new LambdaQueryWrapper<>();
+            reverseWrapper.eq(WfTask::getInstanceId, instance.getId())
+                    .eq(WfTask::getAssigneeId, reverseDelegation.getDelegatorId())
+                    .eq(WfTask::getStatus, "0")
+                    .last("LIMIT 1");
+            WfTask reverseTask = taskMapper.selectOne(reverseWrapper);
+            if (reverseTask != null) {
+                log.debug("findPendingTask: reverse delegation match taskId={} delegate={} delegator={}",
+                        reverseTask.getId(), assigneeId, reverseDelegation.getDelegatorId());
+                return reverseTask;
+            }
+        }
+
+        // 4. Multi-person task fallback: check if user is a child task assignee
+        //    (e.g., in countersign/orsign scenarios where parentTaskId is set)
+        LambdaQueryWrapper<WfTask> multiWrapper = new LambdaQueryWrapper<>();
+        multiWrapper.eq(WfTask::getInstanceId, instance.getId())
+                .eq(WfTask::getAssigneeId, assigneeId)
+                .eq(WfTask::getStatus, "0")
+                .isNotNull(WfTask::getParentTaskId)
+                .last("LIMIT 1");
+        WfTask multiTask = taskMapper.selectOne(multiWrapper);
+        if (multiTask != null) {
+            log.debug("findPendingTask: multi-person match taskId={} for assigneeId={}", multiTask.getId(), assigneeId);
+            return multiTask;
+        }
+
+        // 5. Last resort: any pending task for this instance (handles edge cases where
+        //    task was transferred or reassigned but the approval controller still sends original assignee)
+        LambdaQueryWrapper<WfTask> anyWrapper = new LambdaQueryWrapper<>();
+        anyWrapper.eq(WfTask::getInstanceId, instance.getId())
+                .eq(WfTask::getStatus, "0")
+                .last("LIMIT 1");
+        WfTask anyTask = taskMapper.selectOne(anyWrapper);
+        if (anyTask != null) {
+            log.warn("findPendingTask: fallback to any pending task taskId={}, requested assigneeId={} actual assigneeId={}",
+                    anyTask.getId(), assigneeId, anyTask.getAssigneeId());
+        }
+        return anyTask;
+    }
+
+    /**
+     * Find an active delegation record where the given empId is the delegateToId.
+     * This handles the case where a user is acting as delegate for someone else.
+     */
+    private WfDelegation findActiveDelegationForDelegate(Long delegateToId) {
+        return delegationService.findActiveDelegationForDelegate(delegateToId);
     }
 
     @Override

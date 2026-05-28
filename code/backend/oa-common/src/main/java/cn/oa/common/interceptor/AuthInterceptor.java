@@ -2,6 +2,7 @@ package cn.oa.common.interceptor;
 
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.annotation.RequirePermission;
+import cn.oa.common.annotation.RequireRole;
 import cn.oa.common.utils.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
@@ -101,6 +102,34 @@ public class AuthInterceptor implements HandlerInterceptor {
                     response.setContentType("application/json;charset=UTF-8");
                     response.getWriter().write("{\"code\":403,\"message\":\"权限不足，需要管理员权限\",\"data\":null}");
                     return false;
+                }
+            }
+
+            // 角色校验 (@RequireRole)
+            RequireRole methodRole = handlerMethod.getMethodAnnotation(RequireRole.class);
+            RequireRole classRole = handlerMethod.getBeanType().getAnnotation(RequireRole.class);
+            RequireRole requireRole = methodRole != null ? methodRole : classRole;
+            if (requireRole != null && requireRole.value().length > 0) {
+                String rolesKey = "roles:" + empId;
+                @SuppressWarnings("unchecked")
+                List<String> roles = (List<String>) redisTemplate.opsForValue().get(rolesKey);
+                boolean isAdmin = roles != null && roles.stream().anyMatch(r -> "ADMIN".equalsIgnoreCase(r));
+                if (isAdmin) {
+                    // ADMIN bypasses all role checks
+                } else {
+                    boolean hasRequiredRole = roles != null && roles.stream().anyMatch(userRole -> {
+                        for (String required : requireRole.value()) {
+                            if (required.equalsIgnoreCase(userRole)) return true;
+                        }
+                        return false;
+                    });
+                    if (!hasRequiredRole) {
+                        log.warn("用户 {} (empId={}) 缺少所需角色: {}", empName, empId, String.join(", ", requireRole.value()));
+                        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                        response.setContentType("application/json;charset=UTF-8");
+                        response.getWriter().write("{\"code\":403,\"message\":\"权限不足，需要指定角色\",\"data\":null}");
+                        return false;
+                    }
                 }
             }
 

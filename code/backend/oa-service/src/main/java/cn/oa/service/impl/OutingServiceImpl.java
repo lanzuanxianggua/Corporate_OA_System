@@ -11,6 +11,7 @@ import cn.oa.entity.SysEmployee;
 import cn.oa.mapper.OaApprovalRecordMapper;
 import cn.oa.mapper.OaOutingMapper;
 import cn.oa.mapper.SysEmployeeMapper;
+import cn.oa.mapper.WfTaskMapper;
 import cn.oa.service.OutingService;
 import cn.oa.service.WorkflowService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -38,6 +39,9 @@ public class OutingServiceImpl extends ServiceImpl<OaOutingMapper, OaOuting> imp
     @Autowired
     private WorkflowService workflowService;
 
+    @Autowired
+    private WfTaskMapper wfTaskMapper;
+
     @Override
     @Transactional
     public void submit(OaOuting outing) {
@@ -56,7 +60,16 @@ public class OutingServiceImpl extends ServiceImpl<OaOutingMapper, OaOuting> imp
     @Override
     @Transactional
     public void approve(Long applyId, Long approverId, Integer status, String remark) {
+        approve(applyId, approverId, status, remark, null);
+    }
+
+    @Override
+    @Transactional
+    public void approve(Long applyId, Long approverId, Integer status, String remark, Long taskId) {
         WfTask task = workflowService.findPendingTask(BusinessType.OUTING, applyId, approverId);
+        if (task == null && taskId != null) {
+            task = wfTaskMapper.selectById(taskId);
+        }
         if (task != null) {
             workflowService.handleTask(task.getId(), approverId, status, remark);
         } else {

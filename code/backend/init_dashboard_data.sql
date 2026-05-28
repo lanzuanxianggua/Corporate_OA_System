@@ -20,14 +20,22 @@ DELETE FROM oa_login_log;
 DELETE FROM sys_emp_role WHERE emp_id > 1;
 DELETE FROM sys_employee WHERE id > 1;
 DELETE FROM sys_dept WHERE id > 5;
+DELETE FROM oa_attendance_group_emp;
 
 -- ===== 1. 新增子部门 =====
 INSERT INTO sys_dept (id, dept_name, parent_id, sort, leader, phone, status) VALUES
-(6, '前端组', 2, 1, '陈十一', '13800000010', 1),
-(7, '后端组', 2, 2, '张三', '13800000001', 1),
-(8, '销售组', 3, 1, '杨十六', '13800000015', 1),
-(9, '运营组', 3, 2, '何十七', '13800000016', 1),
-(10, '审计组', 4, 1, NULL, NULL, 1);
+(6, '前端组', 2, 1, '11', '13800000010', 1),
+(7, '后端组', 2, 2, '2', '13800000001', 1),
+(8, '销售组', 3, 1, '15', '13800000015', 1),
+(9, '运营组', 3, 2, '16', '13800000016', 1),
+(10, '审计组', 4, 1, '19', '13800000019', 1);
+
+-- Update parent dept leaders too (init.sql set them to NULL)
+UPDATE sys_dept SET leader = '1', phone = '13800000000' WHERE id = 1;
+UPDATE sys_dept SET leader = '1', phone = '13800000000' WHERE id = 2;
+UPDATE sys_dept SET leader = '3', phone = '13800000002' WHERE id = 3;
+UPDATE sys_dept SET leader = '4', phone = '13800000003' WHERE id = 4;
+UPDATE sys_dept SET leader = '5', phone = '13800000004' WHERE id = 5;
 
 -- ===== 2. 新增员工（ID 7~20）=====
 -- 密码均为 123456，BCrypt加密
@@ -53,6 +61,33 @@ INSERT INTO sys_employee (id, emp_code, emp_name, password, phone, email, dept_i
 INSERT INTO sys_emp_role (emp_id, role_id) VALUES
 (7,2),(8,2),(9,2),(10,2),(11,2),(12,2),(13,2),(14,2),
 (15,2),(16,2),(17,2),(18,2),(19,2),(20,2);
+
+-- 绑定审批角色 (after fix_data_consistency.sql clears and re-inserts)
+-- Also add approval roles here so the data is self-contained
+INSERT IGNORE INTO sys_role (id, role_name, role_key, sort, status) VALUES
+(3, '部门主管', 'DEPT_MANAGER', 2, 1),
+(4, '组长', 'TEAM_LEAD', 3, 1),
+(5, '总监', 'DIRECTOR', 4, 1),
+(6, '总经理', 'GM', 5, 1);
+
+-- Approval role assignments
+INSERT IGNORE INTO sys_emp_role (emp_id, role_id) VALUES
+(1, 1),  -- admin = ADMIN
+(1, 6),  -- admin = GM
+(2, 4),  -- zhangsan = TEAM_LEAD
+(3, 3),  -- lisi = DEPT_MANAGER
+(4, 5),  -- wangwu = DIRECTOR
+(5, 3),  -- zhaoliu = DEPT_MANAGER
+(6, 4),  -- sunqi = TEAM_LEAD
+(11, 4), -- chensy = TEAM_LEAD (前端组长)
+(15, 4); -- yangsl = TEAM_LEAD (销售组长)
+
+-- ===== 2.5 考勤组员工关联 =====
+INSERT INTO oa_attendance_group_emp (id, group_id, emp_id) VALUES
+(1,  1, 1), (2,  1, 2), (3,  1, 3), (4,  1, 4), (5,  1, 5),
+(6,  1, 6), (7,  1, 7), (8,  1, 8), (9,  1, 9), (10, 1, 10),
+(11, 1, 11), (12, 1, 12), (13, 1, 13), (14, 1, 14), (15, 1, 15),
+(16, 1, 16), (17, 1, 17), (18, 1, 18), (19, 1, 19), (20, 1, 20);
 
 -- ===== 3. 考勤数据 =====
 -- status: 0=正常 1=迟到 2=早退 3=缺勤 4=请假

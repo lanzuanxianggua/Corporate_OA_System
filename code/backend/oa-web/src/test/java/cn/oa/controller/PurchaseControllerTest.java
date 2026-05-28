@@ -67,7 +67,7 @@ class PurchaseControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("审批采购申请 - 通过")
     void approvePurchasePass() throws Exception {
-        doNothing().when(purchaseService).approve(1L, 1L, 1, "同意");
+        doNothing().when(purchaseService).approve(1L, 1L, 1, "同意", null);
 
         Map<String, Object> params = Map.of("id", 1, "status", 1, "remark", "同意");
 
@@ -78,13 +78,13 @@ class PurchaseControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0));
 
-        verify(purchaseService, times(1)).approve(1L, 1L, 1, "同意");
+        verify(purchaseService, times(1)).approve(1L, 1L, 1, "同意", null);
     }
 
     @Test
     @DisplayName("审批采购申请 - 驳回")
     void approvePurchaseReject() throws Exception {
-        doNothing().when(purchaseService).approve(1L, 1L, 2, "预算不足");
+        doNothing().when(purchaseService).approve(1L, 1L, 2, "预算不足", null);
 
         Map<String, Object> params = Map.of("id", 1, "status", 2, "remark", "预算不足");
 

@@ -42,10 +42,11 @@ public class LoanController {
         Long loanId = Long.valueOf(params.get("id").toString());
         Integer status = Integer.valueOf(params.get("status").toString());
         String remark = params.get("remark") != null ? params.get("remark").toString() : null;
+        Long taskId = params.get("taskId") != null ? Long.valueOf(params.get("taskId").toString()) : null;
         Object approverIdObj = request.getAttribute("empId");
         Long approverId = (approverIdObj instanceof Number) ? ((Number) approverIdObj).longValue() : Long.valueOf(approverIdObj.toString());
-        loanService.approve(loanId, approverId, status, remark);
-        log.info("Loan approved: id={}, status={}, approverId={}", loanId, status, approverId);
+        loanService.approve(loanId, approverId, status, remark, taskId);
+        log.info("Loan approved: id={}, status={}, approverId={}, taskId={}", loanId, status, approverId, taskId);
         return R.ok();
     }
 

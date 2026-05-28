@@ -73,12 +73,8 @@ INSERT INTO oa_meeting_room (id, room_name, location, capacity, equipment, statu
 (3, 'Meeting Room C', '5F-501', 6, 'whiteboard,tv', '0'),
 (4, 'Grand Meeting', '1F', 50, 'projector,audio,video', '0');
 
-INSERT INTO wf_process_definition (id, process_name, process_key, process_type, node_config, status, version) VALUES
-(1, 'Leave Process', 'leave_process', 'leave', '[{"nodeIndex":0,"nodeName":"Manager","assigneeType":"admin"}]', '0', 1),
-(2, 'Trip Process', 'trip_process', 'trip', '[{"nodeIndex":0,"nodeName":"Manager","assigneeType":"admin"}]', '0', 1),
-(3, 'Outing Process', 'outing_process', 'outing', '[{"nodeIndex":0,"nodeName":"Manager","assigneeType":"admin"}]', '0', 1),
-(4, 'Purchase Process', 'purchase_process', 'purchase', '[{"nodeIndex":0,"nodeName":"Manager","assigneeType":"admin"}]', '0', 1),
-(5, 'Expense Process', 'expense_process', 'expense', '[{"nodeIndex":0,"nodeName":"Manager","assigneeType":"admin"}]', '0', 1);
+-- workflow definitions moved to init_workflow_meeting.sql and fix_data_consistency.sql
+-- to avoid duplicate/conflicting inserts with wrong nodeConfig format
 
 INSERT INTO sys_menu (menu_id, parent_id, menu_name, path, component, perms, menu_type, icon, order_num, status) VALUES
 (1, 0, 'System', '/system', NULL, NULL, 'M', 'setting', 1, '0'),

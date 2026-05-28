@@ -53,4 +53,30 @@ public class DelegationServiceImpl extends ServiceImpl<WfDelegationMapper, WfDel
         WfDelegation delegation = this.getOne(wrapper);
         return delegation != null ? delegation.getDelegateToId() : null;
     }
+
+    @Override
+    public WfDelegation findActiveDelegationForDelegate(Long delegateToId) {
+        LambdaQueryWrapper<WfDelegation> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(WfDelegation::getDelegateToId, delegateToId)
+                .eq(WfDelegation::getStatus, "0")
+                .le(WfDelegation::getStartTime, LocalDateTime.now())
+                .ge(WfDelegation::getEndTime, LocalDateTime.now())
+                .last("LIMIT 1");
+        return this.getOne(wrapper);
+    }
+
+    /**
+     * Find an active delegation from a delegator to a specific delegate.
+     * Used for authorization checks in approval flows.
+     */
+    public WfDelegation findActiveDelegation(Long delegatorId, Long delegateToId) {
+        LambdaQueryWrapper<WfDelegation> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(WfDelegation::getDelegatorId, delegatorId)
+                .eq(WfDelegation::getDelegateToId, delegateToId)
+                .eq(WfDelegation::getStatus, "0")
+                .le(WfDelegation::getStartTime, LocalDateTime.now())
+                .ge(WfDelegation::getEndTime, LocalDateTime.now())
+                .last("LIMIT 1");
+        return this.getOne(wrapper);
+    }
 }

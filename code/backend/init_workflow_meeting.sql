@@ -108,37 +108,51 @@ CREATE TABLE IF NOT EXISTS `oa_meeting` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='会议表';
 
 -- =====================================================
--- 初始化流程定义数据
+-- 初始化流程定义数据 (全部7种业务类型)
+-- nodeIndex 从 1 开始, assigneeType: dept_manager/role_global/specific
+-- conditions: 条件路由, 满足条件时才进入该节点
 -- =====================================================
 
--- 请假审批流程
+-- 请假审批流程: 部门主管审批 -> (>3天)总监审批
 INSERT INTO `wf_process_definition` (`id`, `process_name`, `process_key`, `process_type`, `node_config`, `status`, `version`) VALUES
 (1, '请假审批流程', 'leave_approval', 'leave',
- '[{"nodeIndex":0,"nodeName":"部门主管审批","assigneeType":"dept_manager","assigneeValue":"dept_manager"}]',
+ '[{"nodeIndex":1,"nodeName":"部门主管审批","nodeType":"approval","assigneeType":"dept_manager","assigneeValue":"dept_manager"},{"nodeIndex":2,"nodeName":"总监审批","nodeType":"approval","assigneeType":"role_global","assigneeValue":"DIRECTOR","conditions":[{"field":"days","operator":">","value":3}]}]',
  '0', 1);
 
--- 出差审批流程
+-- 出差审批流程: 部门主管审批 -> (>5000元)总经理审批
 INSERT INTO `wf_process_definition` (`id`, `process_name`, `process_key`, `process_type`, `node_config`, `status`, `version`) VALUES
 (2, '出差审批流程', 'trip_approval', 'trip',
- '[{"nodeIndex":0,"nodeName":"部门主管审批","assigneeType":"dept_manager","assigneeValue":"dept_manager"}]',
+ '[{"nodeIndex":1,"nodeName":"部门主管审批","nodeType":"approval","assigneeType":"dept_manager","assigneeValue":"dept_manager"},{"nodeIndex":2,"nodeName":"总经理审批","nodeType":"approval","assigneeType":"role_global","assigneeValue":"GM","conditions":[{"field":"amount","operator":">","value":5000}]}]',
  '0', 1);
 
--- 外出审批流程
+-- 外出审批流程: 部门主管审批
 INSERT INTO `wf_process_definition` (`id`, `process_name`, `process_key`, `process_type`, `node_config`, `status`, `version`) VALUES
 (3, '外出审批流程', 'outing_approval', 'outing',
- '[{"nodeIndex":0,"nodeName":"部门主管审批","assigneeType":"dept_manager","assigneeValue":"dept_manager"}]',
+ '[{"nodeIndex":1,"nodeName":"部门主管审批","nodeType":"approval","assigneeType":"dept_manager","assigneeValue":"dept_manager"}]',
  '0', 1);
 
--- 采购审批流程
+-- 采购审批流程: 部门主管审批 -> (>10000)总监审批 -> (>50000)总经理审批
 INSERT INTO `wf_process_definition` (`id`, `process_name`, `process_key`, `process_type`, `node_config`, `status`, `version`) VALUES
 (4, '采购审批流程', 'purchase_approval', 'purchase',
- '[{"nodeIndex":0,"nodeName":"部门主管审批","assigneeType":"dept_manager","assigneeValue":"dept_manager"},{"nodeIndex":1,"nodeName":"总经理审批","assigneeType":"specific","assigneeValue":"1"}]',
+ '[{"nodeIndex":1,"nodeName":"部门主管审批","nodeType":"approval","assigneeType":"dept_manager","assigneeValue":"dept_manager"},{"nodeIndex":2,"nodeName":"总监审批","nodeType":"approval","assigneeType":"role_global","assigneeValue":"DIRECTOR","conditions":[{"field":"amount","operator":">","value":10000}]},{"nodeIndex":3,"nodeName":"总经理审批","nodeType":"approval","assigneeType":"role_global","assigneeValue":"GM","conditions":[{"field":"amount","operator":">","value":50000}]}]',
  '0', 1);
 
--- 报销审批流程
+-- 报销审批流程: 部门主管审批 -> (>5000)财务总监(王五id=4)审批
 INSERT INTO `wf_process_definition` (`id`, `process_name`, `process_key`, `process_type`, `node_config`, `status`, `version`) VALUES
 (5, '报销审批流程', 'expense_approval', 'expense',
- '[{"nodeIndex":0,"nodeName":"部门主管审批","assigneeType":"dept_manager","assigneeValue":"dept_manager"}]',
+ '[{"nodeIndex":1,"nodeName":"部门主管审批","nodeType":"approval","assigneeType":"dept_manager","assigneeValue":"dept_manager"},{"nodeIndex":2,"nodeName":"财务总监审批","nodeType":"approval","assigneeType":"specific","assigneeValue":"4","conditions":[{"field":"amount","operator":">","value":5000}]}]',
+ '0', 1);
+
+-- 加班审批流程: 部门主管审批 -> (>4小时)总监审批
+INSERT INTO `wf_process_definition` (`id`, `process_name`, `process_key`, `process_type`, `node_config`, `status`, `version`) VALUES
+(6, '加班审批流程', 'overtime_approval', 'overtime',
+ '[{"nodeIndex":1,"nodeName":"部门主管审批","nodeType":"approval","assigneeType":"dept_manager","assigneeValue":"dept_manager"},{"nodeIndex":2,"nodeName":"总监审批","nodeType":"approval","assigneeType":"role_global","assigneeValue":"DIRECTOR","conditions":[{"field":"hours","operator":">","value":4}]}]',
+ '0', 1);
+
+-- 借款审批流程: 部门主管审批 -> 财务总监(王五id=4)审批 -> (>100000)总经理审批
+INSERT INTO `wf_process_definition` (`id`, `process_name`, `process_key`, `process_type`, `node_config`, `status`, `version`) VALUES
+(7, '借款审批流程', 'loan_approval', 'loan',
+ '[{"nodeIndex":1,"nodeName":"部门主管审批","nodeType":"approval","assigneeType":"dept_manager","assigneeValue":"dept_manager"},{"nodeIndex":2,"nodeName":"财务总监审批","nodeType":"approval","assigneeType":"specific","assigneeValue":"4"},{"nodeIndex":3,"nodeName":"总经理审批","nodeType":"approval","assigneeType":"role_global","assigneeValue":"GM","conditions":[{"field":"amount","operator":">","value":100000}]}]',
  '0', 1);
 
 -- =====================================================

@@ -1,6 +1,7 @@
 package cn.oa.controller;
 
 import cn.oa.common.annotation.RequireAdmin;
+import cn.oa.common.annotation.RequireRole;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
 import cn.oa.entity.OaApprovalRecord;
@@ -73,6 +74,17 @@ public class WorkflowController {
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 
+    @GetMapping("/task/handled")
+    @Operation(summary = "我的已办任务")
+    public R<PageResult<WfTask>> handledTasks(@RequestParam int pageNum,
+                                                @RequestParam int pageSize,
+                                                HttpServletRequest request) {
+        Object empIdObj = request.getAttribute("empId");
+        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        IPage<WfTask> page = workflowService.myHandledTasks(empId, pageNum, pageSize);
+        return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
+    }
+
     @PostMapping("/task/handle")
     @Operation(summary = "处理任务（审批/驳回）")
     public R<Void> handleTask(@RequestBody @Valid Map<String, Object> params, HttpServletRequest request) {
@@ -90,6 +102,7 @@ public class WorkflowController {
     }
 
     @PostMapping("/definition/activate")
+    @RequireRole({"DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"})
     @Operation(summary = "激活/停用流程定义")
     public R<Void> activateDefinition(@RequestBody @Valid Map<String, Object> params) {
         Long id = Long.valueOf(params.get("id").toString());
@@ -168,6 +181,7 @@ public class WorkflowController {
     }
 
     @PostMapping("/task/urge")
+    @RequireRole({"DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"})
     @Operation(summary = "催办")
     public R<Void> urgeTask(@RequestBody @Valid Map<String, Object> params, HttpServletRequest request) {
         String businessType = params.get("businessType").toString();

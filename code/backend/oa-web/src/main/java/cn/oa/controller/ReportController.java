@@ -1,6 +1,7 @@
 package cn.oa.controller;
 
 import cn.oa.common.annotation.RequireAdmin;
+import cn.oa.common.annotation.RequireRole;
 import cn.oa.common.result.R;
 import cn.oa.entity.*;
 import cn.oa.service.ReportService;
@@ -100,7 +101,7 @@ public class ReportController {
     // ===== 管理员报表 =====
 
     @GetMapping("/admin/attendance-summary")
-    @RequireAdmin
+    @RequireRole({"ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"})
     @Operation(summary = "全员考勤汇总")
     public R<AdminReportVO.AttendanceSummary> adminAttendanceSummary(@RequestParam String month) {
         return R.ok(reportService.getAdminAttendanceSummary(month));

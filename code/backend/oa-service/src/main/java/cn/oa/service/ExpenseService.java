@@ -10,6 +10,8 @@ public interface ExpenseService extends IService<OaExpense> {
 
     void approve(Long applyId, Long approverId, Integer status, String remark);
 
+    void approve(Long applyId, Long approverId, Integer status, String remark, Long taskId);
+
     IPage<OaExpense> pageList(int pageNum, int pageSize, Long empId, Integer status);
 
     void updateStatus(Long id, Integer status);

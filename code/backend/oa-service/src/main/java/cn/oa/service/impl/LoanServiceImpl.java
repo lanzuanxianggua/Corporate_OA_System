@@ -13,6 +13,7 @@ import cn.oa.mapper.OaApprovalRecordMapper;
 import cn.oa.mapper.OaLoanMapper;
 import cn.oa.mapper.OaLoanRepaymentMapper;
 import cn.oa.mapper.SysEmployeeMapper;
+import cn.oa.mapper.WfTaskMapper;
 import cn.oa.service.LoanService;
 import cn.oa.service.WorkflowService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -44,6 +45,9 @@ public class LoanServiceImpl extends ServiceImpl<OaLoanMapper, OaLoan> implement
     @Autowired
     private WorkflowService workflowService;
 
+    @Autowired
+    private WfTaskMapper wfTaskMapper;
+
     @Override
     @Transactional
     public void submit(OaLoan loan) {
@@ -61,7 +65,16 @@ public class LoanServiceImpl extends ServiceImpl<OaLoanMapper, OaLoan> implement
     @Override
     @Transactional
     public void approve(Long loanId, Long approverId, Integer status, String remark) {
+        approve(loanId, approverId, status, remark, null);
+    }
+
+    @Override
+    @Transactional
+    public void approve(Long loanId, Long approverId, Integer status, String remark, Long taskId) {
         WfTask task = workflowService.findPendingTask(BusinessType.LOAN, loanId, approverId);
+        if (task == null && taskId != null) {
+            task = wfTaskMapper.selectById(taskId);
+        }
         if (task != null) {
             workflowService.handleTask(task.getId(), approverId, status, remark);
         } else {

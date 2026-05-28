@@ -1,15 +1,15 @@
 <template>
   <view class="container">
     <view class="tabs">
-      <view :class="['tab', activeTab === 0 ? 'tab-active' : '']" @click="activeTab = 0; fetchList()">待审批</view>
-      <view :class="['tab', activeTab === 1 ? 'tab-active' : '']" @click="activeTab = 1; fetchList()">已审批</view>
+      <view :class="['tab', activeTab === 0 ? 'tab-active' : '']" @click="switchTab(0)">待审批</view>
+      <view :class="['tab', activeTab === 1 ? 'tab-active' : '']" @click="switchTab(1)">已审批</view>
     </view>
 
     <!-- Pending -->
     <template v-if="activeTab === 0">
       <view class="card" v-for="item in pendingList" :key="item.id" @click="goDetail(item)">
         <view class="flex-between">
-          <text class="item-title">{{ item.businessType || '审批' }}</text>
+          <text class="item-title">{{ formatBusinessType(item.businessType) }}</text>
           <text class="tag tag-primary">待处理</text>
         </view>
         <view class="mt-20">
@@ -23,18 +23,15 @@
 
     <!-- Done -->
     <template v-if="activeTab === 1">
-      <view class="card" v-for="item in historyList" :key="item.id">
+      <view class="card" v-for="item in historyList" :key="item.id" @click="goDetail(item)">
         <view class="flex-between">
-          <text class="item-title">{{ item.businessType || '审批' }}</text>
-          <text :class="['tag', item.status === '1' ? 'tag-success' : item.status === '2' ? 'tag-danger' : 'tag-info']">
-            {{ statusMap[item.status] || '已处理' }}
+          <text class="item-title">{{ formatBusinessType(item.businessType) }}</text>
+          <text :class="['tag', getStatusTagClass(item.status)]">
+            {{ getStatusLabel(item.status) }}
           </text>
         </view>
         <view class="mt-20">
-          <text class="text-gray">{{ item.nodeName || '-' }} · {{ item.assigneeName || '-' }}</text>
-        </view>
-        <view class="mt-10">
-          <text class="text-gray text-sm">{{ item.remark || '' }}</text>
+          <text class="text-gray">{{ item.nodeName || '-' }}</text>
         </view>
         <view class="mt-10">
           <text class="text-gray text-sm">{{ formatTime(item.actionTime) }}</text>
@@ -49,9 +46,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref } from "vue";
 import { onShow } from "@dcloudio/uni-app";
-import { getPendingTasks, getApprovalHistory } from "@/api/workflow";
+import { getPendingTasks, getHandledTasks } from "@/api/workflow";
 import { STATUS_MAP } from "@/utils/constants";
 
 const activeTab = ref(0);
@@ -59,7 +56,37 @@ const pendingList = ref<any[]>([]);
 const historyList = ref<any[]>([]);
 const loading = ref(false);
 
-const statusMap: Record<string, string> = STATUS_MAP as unknown as Record<string, string>;
+const BUSINESS_TYPE_MAP: Record<string, string> = {
+  leave: "请假",
+  trip: "出差",
+  outing: "外出",
+  purchase: "采购",
+  expense: "报销",
+  overtime: "加班",
+  loan: "借款",
+  contract: "合同"
+};
+
+const formatBusinessType = (type: string) => BUSINESS_TYPE_MAP[type] || type || "审批";
+
+const getStatusLabel = (status: string | number) => {
+  const key = typeof status === "string" ? parseInt(status, 10) : status;
+  return STATUS_MAP[key] || "已处理";
+};
+
+const getStatusTagClass = (status: string | number) => {
+  const key = typeof status === "string" ? parseInt(status, 10) : status;
+  if (key === 1) return "tag-success";
+  if (key === 2) return "tag-danger";
+  if (key === 3) return "tag-primary";
+  if (key === 5) return "tag-info";
+  return "tag-info";
+};
+
+const switchTab = (tab: number) => {
+  activeTab.value = tab;
+  fetchList();
+};
 
 const fetchList = async () => {
   loading.value = true;
@@ -68,28 +95,29 @@ const fetchList = async () => {
       const res: any = await getPendingTasks({ pageNum: 1, pageSize: 50 });
       pendingList.value = res.data?.list || [];
     } else {
-      const types = ["leave", "trip", "outing", "purchase", "expense", "overtime", "loan"];
-      const all: any[] = [];
-      for (const t of types) {
-        try {
-          const res: any = await getApprovalHistory({ businessType: t, businessId: 0 });
-          all.push(...(res.data || []));
-        } catch {}
-      }
-      historyList.value = all;
+      const res: any = await getHandledTasks({ pageNum: 1, pageSize: 50 });
+      historyList.value = res.data?.list || [];
     }
+  } catch (e: any) {
+    uni.showToast({ title: "加载失败", icon: "none" });
   } finally {
     loading.value = false;
   }
 };
 
 const goDetail = (item: any) => {
-  uni.navigateTo({ url: `/pages/approval/detail?instanceId=${item.instanceId}&taskId=${item.id}&businessType=${item.businessType || ''}` });
+  const params = new URLSearchParams();
+  if (item.instanceId) params.set("instanceId", String(item.instanceId));
+  if (item.id) params.set("taskId", String(item.id));
+  if (item.businessType) params.set("businessType", item.businessType);
+  // Look up businessId from the nested instance object if available
+  const bid = item.businessId || (item.instance && item.instance.businessId);
+  if (bid) params.set("businessId", String(bid));
+  uni.navigateTo({ url: `/pages/approval/detail?${params.toString()}` });
 };
 
 const formatTime = (t: string) => t ? t.replace("T", " ").substring(0, 16) : "";
 
-onMounted(fetchList);
 onShow(fetchList);
 </script>
 

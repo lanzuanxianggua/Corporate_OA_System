@@ -70,7 +70,7 @@ class OvertimeControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("审批加班申请 - 通过")
     void approveOvertimePass() throws Exception {
-        doNothing().when(overtimeService).approve(1L, 1L, 1, "同意");
+        doNothing().when(overtimeService).approve(1L, 1L, 1, "同意", null);
 
         Map<String, Object> params = Map.of("id", 1, "status", 1, "remark", "同意");
 
@@ -81,7 +81,7 @@ class OvertimeControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0));
 
-        verify(overtimeService, times(1)).approve(1L, 1L, 1, "同意");
+        verify(overtimeService, times(1)).approve(1L, 1L, 1, "同意", null);
     }
 
     @Test
