@@ -17,6 +17,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,9 +28,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/workflow")
 @Tag(name = "工作流管理")
@@ -47,8 +50,9 @@ public class WorkflowController {
     @PostMapping("/definition")
     @RequireAdmin
     @Operation(summary = "创建/更新流程定义")
-    public R<Void> saveDefinition(@RequestBody WfProcessDefinition definition) {
+    public R<Void> saveDefinition(@RequestBody @Valid WfProcessDefinition definition) {
         workflowService.saveDefinition(definition);
+        log.info("Workflow definition saved: processType={}", definition.getProcessType());
         return R.ok();
     }
 
@@ -71,7 +75,7 @@ public class WorkflowController {
 
     @PostMapping("/task/handle")
     @Operation(summary = "处理任务（审批/驳回）")
-    public R<Void> handleTask(@RequestBody Map<String, Object> params, HttpServletRequest request) {
+    public R<Void> handleTask(@RequestBody @Valid Map<String, Object> params, HttpServletRequest request) {
         if (params.get("taskId") == null) return R.fail("taskId不能为空");
         if (params.get("status") == null && params.get("action") == null) return R.fail("status不能为空");
         Long taskId = Long.valueOf(params.get("taskId").toString());
@@ -81,17 +85,19 @@ public class WorkflowController {
         Object handlerIdObj = request.getAttribute("empId");
         Long handlerId = (handlerIdObj instanceof Number) ? ((Number) handlerIdObj).longValue() : Long.valueOf(handlerIdObj.toString());
         workflowService.handleTask(taskId, handlerId, status, remark);
+        log.info("Workflow task handled: taskId={}, status={}, handlerId={}", taskId, status, handlerId);
         return R.ok();
     }
 
     @PostMapping("/definition/activate")
     @Operation(summary = "激活/停用流程定义")
-    public R<Void> activateDefinition(@RequestBody Map<String, Object> params) {
+    public R<Void> activateDefinition(@RequestBody @Valid Map<String, Object> params) {
         Long id = Long.valueOf(params.get("id").toString());
         WfProcessDefinition def = workflowService.getById(id);
         if (def == null) return R.fail("流程定义不存在");
         def.setStatus("0".equals(def.getStatus()) ? "1" : "0");
         workflowService.updateById(def);
+        log.info("Workflow definition activated/deactivated: id={}, status={}", id, def.getStatus());
         return R.ok();
     }
 
@@ -111,7 +117,7 @@ public class WorkflowController {
 
     @PostMapping("/withdraw")
     @Operation(summary = "撤回申请")
-    public R<Void> withdraw(@RequestBody Map<String, Object> params, HttpServletRequest request) {
+    public R<Void> withdraw(@RequestBody @Valid Map<String, Object> params, HttpServletRequest request) {
         if (params.get("businessType") == null) return R.fail("businessType不能为空");
         if (params.get("businessId") == null) return R.fail("businessId不能为空");
         String businessType = params.get("businessType").toString();
@@ -119,6 +125,7 @@ public class WorkflowController {
         Object empIdObj = request.getAttribute("empId");
         Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         workflowService.withdrawProcess(businessType, businessId, empId);
+        log.info("Workflow withdrawn: businessType={}, businessId={}, empId={}", businessType, businessId, empId);
         return R.ok();
     }
 
@@ -132,7 +139,7 @@ public class WorkflowController {
 
     @PostMapping("/task/transfer")
     @Operation(summary = "转办任务")
-    public R<Void> transferTask(@RequestBody Map<String, Object> params, HttpServletRequest request) {
+    public R<Void> transferTask(@RequestBody @Valid Map<String, Object> params, HttpServletRequest request) {
         if (params.get("taskId") == null) return R.fail("taskId不能为空");
         if (params.get("toAssigneeId") == null) return R.fail("toAssigneeId不能为空");
         Long taskId = Long.valueOf(params.get("taskId").toString());
@@ -141,12 +148,13 @@ public class WorkflowController {
         Object empIdObj = request.getAttribute("empId");
         Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         workflowService.transferTask(taskId, empId, toAssigneeId, reason);
+        log.info("Workflow task transferred: taskId={}, from={}, to={}", taskId, empId, toAssigneeId);
         return R.ok();
     }
 
     @PostMapping("/task/return")
     @Operation(summary = "退回任务到指定节点")
-    public R<Void> returnTask(@RequestBody Map<String, Object> params, HttpServletRequest request) {
+    public R<Void> returnTask(@RequestBody @Valid Map<String, Object> params, HttpServletRequest request) {
         if (params.get("taskId") == null) return R.fail("taskId不能为空");
         if (params.get("returnTarget") == null) return R.fail("returnTarget不能为空");
         Long taskId = Long.valueOf(params.get("taskId").toString());
@@ -155,12 +163,13 @@ public class WorkflowController {
         Object empIdObj = request.getAttribute("empId");
         Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         workflowService.returnTask(taskId, empId, returnTarget, remark);
+        log.info("Workflow task returned: taskId={}, target={}", taskId, returnTarget);
         return R.ok();
     }
 
     @PostMapping("/task/urge")
     @Operation(summary = "催办")
-    public R<Void> urgeTask(@RequestBody Map<String, Object> params, HttpServletRequest request) {
+    public R<Void> urgeTask(@RequestBody @Valid Map<String, Object> params, HttpServletRequest request) {
         String businessType = params.get("businessType").toString();
         Long businessId = Long.valueOf(params.get("businessId").toString());
         Object empIdObj = request.getAttribute("empId");
@@ -198,11 +207,12 @@ public class WorkflowController {
 
     @PostMapping("/delegation/set")
     @Operation(summary = "设置审批委托")
-    public R<Void> setDelegation(@RequestBody WfDelegation delegation, HttpServletRequest request) {
+    public R<Void> setDelegation(@RequestBody @Valid WfDelegation delegation, HttpServletRequest request) {
         Object delegatorIdObj = request.getAttribute("empId");
         Long delegatorId = (delegatorIdObj instanceof Number) ? ((Number) delegatorIdObj).longValue() : Long.valueOf(delegatorIdObj.toString());
         delegation.setDelegatorId(delegatorId);
         delegationService.setDelegation(delegation);
+        log.info("Delegation set: delegatorId={}, delegateToId={}", delegatorId, delegation.getDelegateToId());
         return R.ok();
     }
 
@@ -220,6 +230,7 @@ public class WorkflowController {
         Object empIdObj = request.getAttribute("empId");
         Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         delegationService.cancelDelegation(id, empId);
+        log.info("Delegation cancelled: id={}, empId={}", id, empId);
         return R.ok();
     }
 }

@@ -1,34 +1,25 @@
 import request from "@/utils/request";
-
-export interface DocumentVO {
-  id?: number;
-  docName: string;
-  fileType?: string;
-  uploaderId?: number;
-  uploaderName?: string;
-  uploadTime?: string;
-  fileSize?: number;
-  filePath?: string;
-}
+import type { ApiResponse, PageResult, Document } from "@/types/api";
 
 export const getDocumentPage = (params: {
   pageNum: number;
   pageSize: number;
+  keyword?: string;
 }) => {
-  return request.get<any, any>("/api/document/page", { params });
+  return request.get<unknown, ApiResponse<PageResult<Document>>>("/api/document/page", { params });
 };
 
 export const uploadDocument = (file: File, uploaderId: number) => {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("uploaderId", String(uploaderId));
-  return request.post("/api/document/upload", formData, {
+  return request.post<unknown, ApiResponse<Document>>("/api/document/upload", formData, {
     headers: { "Content-Type": "multipart/form-data" }
   });
 };
 
 export const deleteDocument = (id: number) => {
-  return request.delete(`/api/document/${id}`);
+  return request.delete<unknown, ApiResponse<void>>(`/api/document/${id}`);
 };
 
 export const downloadDocument = (id: string | number) => {

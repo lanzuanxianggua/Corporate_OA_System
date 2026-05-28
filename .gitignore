@@ -114,6 +114,8 @@ application-local.yaml
 uploads/
 
 # Environment files with potential secrets
+.env
+*.env
 .env.local
 .env.*.local
 

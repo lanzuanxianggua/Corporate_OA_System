@@ -1,5 +1,7 @@
 package cn.oa.service.impl;
 
+import lombok.extern.slf4j.Slf4j;
+
 import cn.oa.common.constant.BusinessType;
 import cn.oa.common.exception.BusinessException;
 import cn.oa.entity.OaApprovalRecord;
@@ -27,6 +29,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class BusinessTripServiceImpl extends ServiceImpl<OaBusinessTripMapper, OaBusinessTrip> implements BusinessTripService {
 
     @Autowired
@@ -43,13 +46,18 @@ public class BusinessTripServiceImpl extends ServiceImpl<OaBusinessTripMapper, O
     private AttendanceService attendanceService;
 
     @Override
+    @Transactional
     public void submit(OaBusinessTrip trip) {
+        if (trip.getStartTime() == null || trip.getEndTime() == null) {
+            throw new BusinessException("出差起止时间不能为空");
+        }
         trip.setStatus(0);
         this.save(trip);
         long days = java.time.temporal.ChronoUnit.DAYS.between(trip.getStartTime().toLocalDate(), trip.getEndTime().toLocalDate()) + 1;
         Map<String, Object> ctx = new HashMap<>();
         ctx.put("days", days);
         workflowService.startProcess(BusinessType.TRIP, trip.getId(), trip.getEmpId(), ctx);
+        log.info("Business trip submitted: id={}, empId={}", trip.getId(), trip.getEmpId());
     }
 
     @Override
@@ -68,6 +76,7 @@ public class BusinessTripServiceImpl extends ServiceImpl<OaBusinessTripMapper, O
     public void updateStatus(Long id, Integer status) {
         OaBusinessTrip trip = this.getById(id);
         if (trip == null) return;
+        if (trip.getStartTime() == null || trip.getEndTime() == null) return;
 
         Integer oldStatus = trip.getStatus();
         trip.setStatus(status);

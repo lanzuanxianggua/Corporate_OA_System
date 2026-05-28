@@ -25,7 +25,11 @@
     </view>
 
     <!-- Today attendance -->
-    <view class="card" v-if="attendance">
+    <view class="card" v-if="loading">
+      <view class="skeleton-block"></view>
+      <view class="skeleton-block short"></view>
+    </view>
+    <view class="card" v-else-if="attendance">
       <text class="section-title">今日考勤</text>
       <view class="flex-between mt-20">
         <view>
@@ -59,6 +63,7 @@ import { getTodoCount } from "@/api/todo";
 const userStore = useUserStore();
 const attendance = ref<any>(null);
 const todoCount = ref(0);
+const loading = ref(true);
 
 const greeting = computed(() => {
   const h = new Date().getHours();
@@ -93,6 +98,7 @@ const goTodo = () => {
 };
 
 const fetchData = async () => {
+  loading.value = true;
   try {
     const res: any = await getTodayAttendance();
     attendance.value = res.data || null;
@@ -100,7 +106,9 @@ const fetchData = async () => {
   try {
     const res: any = await getTodoCount();
     todoCount.value = res.data || 0;
-  } catch {}
+  } catch {} finally {
+    loading.value = false;
+  }
 };
 
 onMounted(fetchData);
@@ -122,4 +130,13 @@ onShow(fetchData);
 .quick-label { font-size: 24rpx; color: #606266; }
 .clock-time { display: block; font-size: 32rpx; font-weight: 600; color: #303133; margin-top: 4rpx; }
 .ml-20 { margin-left: 20rpx; }
+.skeleton-block {
+  height: 40rpx; border-radius: 8rpx; background: linear-gradient(90deg, #f2f2f2 25%, #e6e6e6 50%, #f2f2f2 75%);
+  background-size: 200% 100%; animation: skeleton-loading 1.5s infinite; margin-bottom: 16rpx;
+}
+.skeleton-block.short { width: 60%; }
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
 </style>

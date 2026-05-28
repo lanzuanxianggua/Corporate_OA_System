@@ -1,5 +1,7 @@
 package cn.oa.service.impl;
 
+import lombok.extern.slf4j.Slf4j;
+
 import cn.oa.common.constant.BusinessType;
 import cn.oa.common.exception.BusinessException;
 import cn.oa.entity.OaApprovalRecord;
@@ -28,6 +30,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class OvertimeServiceImpl extends ServiceImpl<OaOvertimeMapper, OaOvertime> implements OvertimeService {
 
     @Autowired
@@ -44,12 +47,17 @@ public class OvertimeServiceImpl extends ServiceImpl<OaOvertimeMapper, OaOvertim
     private LeaveBalanceService leaveBalanceService;
 
     @Override
+    @Transactional
     public void submit(OaOvertime overtime) {
+        if (overtime.getHours() == null) {
+            throw new BusinessException("加班时长不能为空");
+        }
         overtime.setStatus("0");
         this.save(overtime);
         Map<String, Object> ctx = new HashMap<>();
         ctx.put("hours", overtime.getHours().doubleValue());
         workflowService.startProcess(BusinessType.OVERTIME, overtime.getId(), overtime.getEmpId(), ctx);
+        log.info("Overtime submitted: id={}, empId={}", overtime.getId(), overtime.getEmpId());
     }
 
     @Override
@@ -68,6 +76,7 @@ public class OvertimeServiceImpl extends ServiceImpl<OaOvertimeMapper, OaOvertim
     public void updateStatus(Long id, Integer status) {
         OaOvertime overtime = this.getById(id);
         if (overtime == null) return;
+        if (overtime.getHours() == null || overtime.getOvertimeDate() == null) return;
 
         String oldStatus = overtime.getStatus();
         overtime.setStatus(String.valueOf(status));

@@ -26,21 +26,16 @@
 import { ref } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import { getLeavePage } from "@/api/leave";
+import { STATUS_MAP, STATUS_CLASS_MAP } from "@/utils/constants";
 
 const list = ref<any[]>([]);
 const loading = ref(false);
 const page = ref(1);
 const finished = ref(false);
 
-const statusText = (status: number) => {
-  const map: Record<number, string> = { 0: "待审批", 1: "已通过", 2: "已驳回" };
-  return map[status] ?? "未知";
-};
+const statusText = (status: number) => STATUS_MAP[status] ?? "未知";
 
-const statusClass = (status: number) => {
-  const map: Record<number, string> = { 0: "text-warning", 1: "text-success", 2: "text-danger" };
-  return map[status] ?? "text-gray";
-};
+const statusClass = (status: number) => STATUS_CLASS_MAP[status] ?? "text-gray";
 
 const fetchList = async () => {
   if (loading.value || finished.value) return;

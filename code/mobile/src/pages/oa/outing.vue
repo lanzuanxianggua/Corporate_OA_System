@@ -72,6 +72,14 @@ const handleSubmit = async () => {
     uni.showToast({ title: "请填写完整信息", icon: "none" });
     return;
   }
+  if (startTime >= endTime) {
+    uni.showToast({ title: "结束时间必须晚于开始时间", icon: "none" });
+    return;
+  }
+  if (reason.trim().length < 2) {
+    uni.showToast({ title: "外出事由至少2个字", icon: "none" });
+    return;
+  }
   submitting.value = true;
   try {
     await submitOuting({ destination, outingDate, startTime, endTime, reason });

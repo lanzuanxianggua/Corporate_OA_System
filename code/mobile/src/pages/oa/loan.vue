@@ -41,6 +41,15 @@ const handleSubmit = async () => {
     uni.showToast({ title: "请填写完整信息", icon: "none" });
     return;
   }
+  const numAmount = Number(loanAmount);
+  if (isNaN(numAmount) || numAmount <= 0) {
+    uni.showToast({ title: "借款金额必须大于0", icon: "none" });
+    return;
+  }
+  if (loanReason.trim().length < 2) {
+    uni.showToast({ title: "借款原因至少2个字", icon: "none" });
+    return;
+  }
   submitting.value = true;
   try {
     await submitLoan({ loanAmount: Number(loanAmount), loanReason, repaymentPlan });

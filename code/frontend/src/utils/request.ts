@@ -1,5 +1,5 @@
 import axios from "axios";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElLoading } from "element-plus";
 import router from "@/router";
 
 const request = axios.create({
@@ -9,6 +9,36 @@ const request = axios.create({
 
 let isRefreshing = false;
 let pendingRequests: Array<(token: string) => void> = [];
+
+// Global loading state
+let activeRequests = 0;
+let loadingInstance: ReturnType<typeof ElLoading.service> | null = null;
+let loadingTimer: ReturnType<typeof setTimeout> | null = null;
+
+function showLoading() {
+  activeRequests++;
+  if (loadingTimer) return; // already scheduled
+  loadingTimer = setTimeout(() => {
+    if (activeRequests > 0 && !loadingInstance) {
+      loadingInstance = ElLoading.service({ fullscreen: true, lock: true, text: "加载中..." });
+    }
+    loadingTimer = null;
+  }, 500);
+}
+
+function hideLoading() {
+  activeRequests = Math.max(0, activeRequests - 1);
+  if (activeRequests === 0) {
+    if (loadingTimer) {
+      clearTimeout(loadingTimer);
+      loadingTimer = null;
+    }
+    if (loadingInstance) {
+      loadingInstance.close();
+      loadingInstance = null;
+    }
+  }
+}
 
 function parseJwtExp(token: string): number | null {
   try {
@@ -28,6 +58,7 @@ function isTokenExpiringSoon(token: string): boolean {
 
 request.interceptors.request.use(
   async (config) => {
+    showLoading();
     let token = localStorage.getItem("token");
     if (token && isTokenExpiringSoon(token)) {
       const refreshToken = localStorage.getItem("refreshToken");
@@ -63,13 +94,17 @@ request.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    hideLoading();
+    return Promise.reject(error);
+  }
 );
 
 request.interceptors.response.use(
   (response) => {
+    hideLoading();
     if (response.config.responseType === "blob") {
-      return response.data;
+      return { data: response.data, headers: response.headers };
     }
     const res = response.data;
     if (res.code === 0 || res.code === 200) {
@@ -79,6 +114,7 @@ request.interceptors.response.use(
     return Promise.reject(new Error(res.message || "请求失败"));
   },
   (error) => {
+    hideLoading();
     if (error.response?.status === 401) {
       localStorage.removeItem("token");
       localStorage.removeItem("refreshToken");

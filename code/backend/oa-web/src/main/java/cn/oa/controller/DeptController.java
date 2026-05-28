@@ -6,6 +6,8 @@ import cn.oa.entity.SysDept;
 import cn.oa.service.DeptService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/dept")
 @Tag(name = "部门管理")
@@ -36,16 +39,18 @@ public class DeptController {
     @PostMapping
     @Operation(summary = "新增部门")
     @OperationLog(module = "部门管理", operation = "新增部门")
-    public R<Void> add(@RequestBody SysDept dept) {
+    public R<Void> add(@RequestBody @Valid SysDept dept) {
         deptService.save(dept);
+        log.info("Dept created: id={}", dept.getId());
         return R.ok();
     }
 
     @PutMapping
     @Operation(summary = "修改部门")
     @OperationLog(module = "部门管理", operation = "修改部门")
-    public R<Void> update(@RequestBody SysDept dept) {
+    public R<Void> update(@RequestBody @Valid SysDept dept) {
         deptService.updateById(dept);
+        log.info("Dept updated: id={}", dept.getId());
         return R.ok();
     }
 
@@ -54,6 +59,7 @@ public class DeptController {
     @OperationLog(module = "部门管理", operation = "删除部门")
     public R<Void> delete(@PathVariable Long id) {
         deptService.removeById(id);
+        log.info("Dept deleted: id={}", id);
         return R.ok();
     }
 }

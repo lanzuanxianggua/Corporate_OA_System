@@ -11,6 +11,9 @@
           </template>
 
           <el-table :data="tableData" v-loading="loading" stripe style="width: 100%" size="small" :header-cell-style="{ background: '#f5f7fa', color: '#606266' }">
+            <template #empty>
+              <el-empty description="暂无加班记录" :image-size="60" />
+            </template>
             <el-table-column label="开始时间" min-width="140">
               <template #default="{ row }">{{ formatTime(row.startTime) }}</template>
             </el-table-column>
@@ -100,6 +103,8 @@ const fetchList = async () => {
     const res: any = await getOvertimePage({ pageNum: pageNum.value, pageSize: pageSize.value });
     tableData.value = res.data?.list || [];
     total.value = res.data?.total || 0;
+  } catch (e) {
+    ElMessage.error("获取加班记录失败");
   } finally {
     loading.value = false;
   }
@@ -134,6 +139,8 @@ const handleSubmit = async () => {
     resetForm();
     pageNum.value = 1;
     fetchList();
+  } catch (e) {
+    ElMessage.error("提交加班申请失败");
   } finally {
     submitting.value = false;
   }

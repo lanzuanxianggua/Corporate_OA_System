@@ -9,6 +9,8 @@ import cn.oa.service.MessageService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/message")
 @Tag(name = "消息管理")
@@ -52,7 +55,7 @@ public class MessageController {
     @RequireAdmin
     @Operation(summary = "发送消息")
     @OperationLog(module = "消息管理", operation = "发送消息")
-    public R<Void> send(@RequestBody OaMessage message, HttpServletRequest request) {
+    public R<Void> send(@RequestBody @Valid OaMessage message, HttpServletRequest request) {
         Object empIdObj = request.getAttribute("empId");
         Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         message.setSenderId(empId);
@@ -60,6 +63,7 @@ public class MessageController {
             return R.fail("请输入接收人ID");
         }
         messageService.send(message);
+        log.info("Message sent: from={}, to={}", empId, message.getReceiverId());
         return R.ok();
     }
 

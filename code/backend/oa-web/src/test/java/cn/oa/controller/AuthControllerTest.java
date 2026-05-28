@@ -128,7 +128,7 @@ class AuthControllerTest extends BaseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(500))
+                .andExpect(jsonPath("$.code").value(-1))
                 .andExpect(jsonPath("$.message").value("密码错误"));
     }
 }

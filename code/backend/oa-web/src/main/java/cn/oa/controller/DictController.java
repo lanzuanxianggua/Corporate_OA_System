@@ -10,11 +10,14 @@ import cn.oa.service.DictTypeService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/dict")
 @Tag(name = "数据字典")
@@ -41,16 +44,18 @@ public class DictController {
     @PostMapping("/type")
     @Operation(summary = "新增字典类型")
     @RequireAdmin
-    public R<Void> addType(@RequestBody SysDictType type) {
+    public R<Void> addType(@RequestBody @Valid SysDictType type) {
         dictTypeService.save(type);
+        log.info("Dict type created: id={}", type.getId());
         return R.ok();
     }
 
     @PutMapping("/type")
     @Operation(summary = "修改字典类型")
     @RequireAdmin
-    public R<Void> updateType(@RequestBody SysDictType type) {
+    public R<Void> updateType(@RequestBody @Valid SysDictType type) {
         dictTypeService.updateById(type);
+        log.info("Dict type updated: id={}", type.getId());
         return R.ok();
     }
 
@@ -59,6 +64,7 @@ public class DictController {
     @RequireAdmin
     public R<Void> deleteType(@PathVariable Long id) {
         dictTypeService.removeById(id);
+        log.info("Dict type deleted: id={}", id);
         return R.ok();
     }
 
@@ -83,16 +89,18 @@ public class DictController {
     @PostMapping("/data")
     @Operation(summary = "新增字典数据")
     @RequireAdmin
-    public R<Void> addData(@RequestBody SysDictData data) {
+    public R<Void> addData(@RequestBody @Valid SysDictData data) {
         dictDataService.save(data);
+        log.info("Dict data created: id={}", data.getId());
         return R.ok();
     }
 
     @PutMapping("/data")
     @Operation(summary = "修改字典数据")
     @RequireAdmin
-    public R<Void> updateData(@RequestBody SysDictData data) {
+    public R<Void> updateData(@RequestBody @Valid SysDictData data) {
         dictDataService.updateById(data);
+        log.info("Dict data updated: id={}", data.getId());
         return R.ok();
     }
 
@@ -101,6 +109,7 @@ public class DictController {
     @RequireAdmin
     public R<Void> deleteData(@PathVariable Long id) {
         dictDataService.removeById(id);
+        log.info("Dict data deleted: id={}", id);
         return R.ok();
     }
 }

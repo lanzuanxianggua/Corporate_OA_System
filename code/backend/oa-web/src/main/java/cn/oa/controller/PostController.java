@@ -8,11 +8,14 @@ import cn.oa.service.PostService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/post")
 @Tag(name = "岗位管理")
@@ -40,16 +43,18 @@ public class PostController {
     @PostMapping
     @Operation(summary = "新增岗位")
     @RequireAdmin
-    public R<Void> add(@RequestBody SysPost post) {
+    public R<Void> add(@RequestBody @Valid SysPost post) {
         postService.save(post);
+        log.info("Post created: id={}", post.getId());
         return R.ok();
     }
 
     @PutMapping
     @Operation(summary = "修改岗位")
     @RequireAdmin
-    public R<Void> update(@RequestBody SysPost post) {
+    public R<Void> update(@RequestBody @Valid SysPost post) {
         postService.updateById(post);
+        log.info("Post updated: id={}", post.getId());
         return R.ok();
     }
 
@@ -58,6 +63,7 @@ public class PostController {
     @RequireAdmin
     public R<Void> delete(@PathVariable Long id) {
         postService.removeById(id);
+        log.info("Post deleted: id={}", id);
         return R.ok();
     }
 }

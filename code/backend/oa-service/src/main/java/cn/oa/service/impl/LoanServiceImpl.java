@@ -1,5 +1,7 @@
 package cn.oa.service.impl;
 
+import lombok.extern.slf4j.Slf4j;
+
 import cn.oa.common.constant.BusinessType;
 import cn.oa.common.exception.BusinessException;
 import cn.oa.entity.OaApprovalRecord;
@@ -27,6 +29,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class LoanServiceImpl extends ServiceImpl<OaLoanMapper, OaLoan> implements LoanService {
 
     @Autowired
@@ -42,12 +45,17 @@ public class LoanServiceImpl extends ServiceImpl<OaLoanMapper, OaLoan> implement
     private WorkflowService workflowService;
 
     @Override
+    @Transactional
     public void submit(OaLoan loan) {
+        if (loan.getLoanAmount() == null) {
+            throw new BusinessException("借支金额不能为空");
+        }
         loan.setStatus("0");
         this.save(loan);
         Map<String, Object> ctx = new HashMap<>();
         ctx.put("amount", loan.getLoanAmount().doubleValue());
         workflowService.startProcess(BusinessType.LOAN, loan.getId(), loan.getEmpId(), ctx);
+        log.info("Loan submitted: id={}, empId={}", loan.getId(), loan.getEmpId());
     }
 
     @Override
@@ -91,7 +99,7 @@ public class LoanServiceImpl extends ServiceImpl<OaLoanMapper, OaLoan> implement
     public void addRepayment(Long loanId, BigDecimal amount, String remark) {
         OaLoan loan = this.getById(loanId);
         if (loan == null) {
-            throw new RuntimeException("借支记录不存在");
+            throw new BusinessException("借支记录不存在");
         }
         OaLoanRepayment repayment = new OaLoanRepayment();
         repayment.setLoanId(loanId);
@@ -99,6 +107,7 @@ public class LoanServiceImpl extends ServiceImpl<OaLoanMapper, OaLoan> implement
         repayment.setRepayTime(LocalDateTime.now());
         repayment.setRemark(remark);
         repaymentMapper.insert(repayment);
+        log.info("Loan repayment added: loanId={}, amount={}", loanId, amount);
     }
 
     private void fillEmpNames(List<OaLoan> records) {

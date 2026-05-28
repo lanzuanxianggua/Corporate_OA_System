@@ -1,5 +1,7 @@
 package cn.oa.service.impl;
 
+import lombok.extern.slf4j.Slf4j;
+
 import cn.oa.common.constant.BusinessType;
 import cn.oa.service.*;
 import jakarta.annotation.PostConstruct;
@@ -11,6 +13,7 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 
 @Service
+@Slf4j
 public class WorkflowCallbackDispatcher implements WorkflowCallback {
 
     @Autowired private LeaveApplyService leaveApplyService;
@@ -36,18 +39,21 @@ public class WorkflowCallbackDispatcher implements WorkflowCallback {
 
     @Override
     public void onApproved(String businessType, Long businessId) {
+        log.info("Workflow approved: businessType={}, businessId={}", businessType, businessId);
         BiConsumer<Long, Integer> h = handlers.get(businessType);
         if (h != null) h.accept(businessId, 1);
     }
 
     @Override
     public void onRejected(String businessType, Long businessId) {
+        log.info("Workflow rejected: businessType={}, businessId={}", businessType, businessId);
         BiConsumer<Long, Integer> h = handlers.get(businessType);
         if (h != null) h.accept(businessId, 2);
     }
 
     @Override
     public void onWithdrawn(String businessType, Long businessId) {
+        log.info("Workflow withdrawn: businessType={}, businessId={}", businessType, businessId);
         BiConsumer<Long, Integer> h = handlers.get(businessType);
         if (h != null) h.accept(businessId, 4);
     }

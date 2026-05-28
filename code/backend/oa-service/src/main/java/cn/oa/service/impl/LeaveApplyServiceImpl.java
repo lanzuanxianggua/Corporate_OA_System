@@ -1,5 +1,7 @@
 package cn.oa.service.impl;
 
+import lombok.extern.slf4j.Slf4j;
+
 import cn.oa.common.constant.BusinessType;
 import cn.oa.common.exception.BusinessException;
 import cn.oa.entity.OaApprovalRecord;
@@ -32,6 +34,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class LeaveApplyServiceImpl extends ServiceImpl<OaLeaveApplyMapper, OaLeaveApply> implements LeaveApplyService {
 
     @Autowired
@@ -85,13 +88,18 @@ public class LeaveApplyServiceImpl extends ServiceImpl<OaLeaveApplyMapper, OaLea
     }
 
     @Override
+    @Transactional
     public void submit(OaLeaveApply apply) {
+        if (apply.getStartTime() == null || apply.getEndTime() == null) {
+            throw new BusinessException("请假起止时间不能为空");
+        }
         apply.setStatus(0);
         this.save(apply);
         BigDecimal days = calculateLeaveDays(apply);
         Map<String, Object> ctx = new HashMap<>();
         ctx.put("days", days);
         workflowService.startProcess(BusinessType.LEAVE, apply.getId(), apply.getEmpId(), ctx);
+        log.info("Leave submitted: id={}, empId={}, days={}", apply.getId(), apply.getEmpId(), days);
     }
 
     @Override
@@ -110,6 +118,7 @@ public class LeaveApplyServiceImpl extends ServiceImpl<OaLeaveApplyMapper, OaLea
     public void updateStatus(Long id, Integer status) {
         OaLeaveApply apply = this.getById(id);
         if (apply == null) return;
+        if (apply.getStartTime() == null || apply.getEndTime() == null) return;
 
         Integer oldStatus = apply.getStatus();
         apply.setStatus(status);

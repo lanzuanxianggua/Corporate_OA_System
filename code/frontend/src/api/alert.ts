@@ -1,19 +1,20 @@
 import request from "@/utils/request";
+import type { ApiResponse, PageResult, PageParams, AlertRule, AlertLog } from "@/types/api";
 
-export const getAlertRulePage = (params: any) =>
-  request.get<any, any>("/api/alert/rule/page", { params });
+export const getAlertRulePage = (params: PageParams & Partial<AlertRule>) =>
+  request.get<unknown, ApiResponse<PageResult<AlertRule>>>("/api/alert/rule/page", { params });
 
-export const addAlertRule = (data: any) =>
-  request.post("/api/alert/rule", data);
+export const addAlertRule = (data: Partial<AlertRule>) =>
+  request.post<unknown, ApiResponse<void>>("/api/alert/rule", data);
 
-export const updateAlertRule = (data: any) =>
-  request.put("/api/alert/rule", data);
+export const updateAlertRule = (data: Partial<AlertRule>) =>
+  request.put<unknown, ApiResponse<void>>("/api/alert/rule", data);
 
 export const deleteAlertRule = (id: number) =>
-  request.delete(`/api/alert/rule/${id}`);
+  request.delete<unknown, ApiResponse<void>>(`/api/alert/rule/${id}`);
 
-export const getAlertLogPage = (params: any) =>
-  request.get<any, any>("/api/alert/log/page", { params });
+export const getAlertLogPage = (params: PageParams & Partial<AlertLog>) =>
+  request.get<unknown, ApiResponse<PageResult<AlertLog>>>("/api/alert/log/page", { params });
 
-export const handleAlert = (data: any) =>
-  request.post("/api/alert/handle", data);
+export const handleAlert = (data: { id: number; status?: number; remark?: string }) =>
+  request.post<unknown, ApiResponse<void>>("/api/alert/handle", data);

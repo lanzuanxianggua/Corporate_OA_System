@@ -1,4 +1,14 @@
-const BASE_URL = "";
+/**
+ * Request utility for uni-app HTTP calls.
+ *
+ * BASE_URL logic:
+ * - H5 dev/prod: empty string — Vite devServer proxy or nginx forwards /api to backend.
+ *   Do NOT set VITE_API_BASE_URL for H5 builds.
+ * - Mini program: set VITE_API_BASE_URL in .env files to the full backend URL
+ *   (e.g. http://localhost:8080 for dev, https://api.example.com for production).
+ *   If unset, defaults to empty string (requests will fail on mini program).
+ */
+const BASE_URL: string = (import.meta as any).env?.VITE_API_BASE_URL || "";
 
 interface RequestOptions {
   url: string;
@@ -9,6 +19,14 @@ interface RequestOptions {
 
 function getToken(): string {
   return uni.getStorageSync("token") || "";
+}
+
+/** Clear auth state and redirect to login page */
+function handleUnauthorized(): void {
+  uni.removeStorageSync("token");
+  uni.removeStorageSync("refreshToken");
+  uni.removeStorageSync("userInfo");
+  uni.reLaunch({ url: "/pages/login/index" });
 }
 
 function request<T = any>(options: RequestOptions): Promise<T> {
@@ -29,10 +47,7 @@ function request<T = any>(options: RequestOptions): Promise<T> {
       header,
       success: (res) => {
         if (res.statusCode === 401) {
-          uni.removeStorageSync("token");
-          uni.removeStorageSync("refreshToken");
-          uni.removeStorageSync("userInfo");
-          uni.reLaunch({ url: "/pages/login/index" });
+          handleUnauthorized();
           reject(new Error("登录已过期"));
           return;
         }
@@ -40,10 +55,7 @@ function request<T = any>(options: RequestOptions): Promise<T> {
         if (data.code === 0 || data.code === 200) {
           resolve(data);
         } else if (data.code === 401) {
-          uni.removeStorageSync("token");
-          uni.removeStorageSync("refreshToken");
-          uni.removeStorageSync("userInfo");
-          uni.reLaunch({ url: "/pages/login/index" });
+          handleUnauthorized();
           reject(new Error(data.message || "未授权"));
         } else {
           uni.showToast({ title: data.message || "请求失败", icon: "none" });
@@ -86,6 +98,9 @@ export function upload(url: string, filePath: string, name: string = "file"): Pr
         const data = JSON.parse(res.data);
         if (data.code === 0 || data.code === 200) {
           resolve(data);
+        } else if (data.code === 401) {
+          handleUnauthorized();
+          reject(new Error(data.message || "未授权"));
         } else {
           uni.showToast({ title: data.message || "上传失败", icon: "none" });
           reject(new Error(data.message));

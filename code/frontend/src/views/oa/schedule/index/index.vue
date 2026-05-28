@@ -36,10 +36,10 @@
     </el-row>
 
     <el-dialog v-model="addDialogVisible" title="添加日程" width="500px">
-      <el-form :model="scheduleForm" label-width="80px">
-        <el-form-item label="日程标题"><el-input v-model="scheduleForm.title" /></el-form-item>
-        <el-form-item label="开始时间"><el-date-picker v-model="scheduleForm.startTime" type="datetime" style="width:100%" /></el-form-item>
-        <el-form-item label="结束时间"><el-date-picker v-model="scheduleForm.endTime" type="datetime" style="width:100%" /></el-form-item>
+      <el-form ref="formRef" :model="scheduleForm" :rules="formRules" label-width="80px">
+        <el-form-item label="日程标题" prop="title"><el-input v-model="scheduleForm.title" /></el-form-item>
+        <el-form-item label="开始时间" prop="startTime"><el-date-picker v-model="scheduleForm.startTime" type="datetime" style="width:100%" /></el-form-item>
+        <el-form-item label="结束时间" prop="endTime"><el-date-picker v-model="scheduleForm.endTime" type="datetime" style="width:100%" /></el-form-item>
         <el-form-item label="备注"><el-input v-model="scheduleForm.description" type="textarea" :rows="3" /></el-form-item>
       </el-form>
       <template #footer>
@@ -54,6 +54,7 @@
 import { ref, reactive, computed, onMounted } from "vue";
 import dayjs from "dayjs";
 import { ElMessage } from "element-plus";
+import type { FormInstance, FormRules } from "element-plus";
 import { Plus } from "@element-plus/icons-vue";
 import { getSchedulePage, addSchedule } from "@/api/schedule";
 import { useUserStore } from "@/store/user";
@@ -63,7 +64,14 @@ const selectedDate = ref(new Date());
 const allSchedules = ref<any[]>([]);
 const addDialogVisible = ref(false);
 const adding = ref(false);
+const formRef = ref<FormInstance>();
 const scheduleForm = reactive({ title: "", startTime: "", endTime: "", description: "" });
+
+const formRules = reactive<FormRules>({
+  title: [{ required: true, message: "请输入日程标题", trigger: "blur" }],
+  startTime: [{ required: true, message: "请选择开始时间", trigger: "change" }],
+  endTime: [{ required: true, message: "请选择结束时间", trigger: "change" }]
+});
 
 const daySchedules = computed(() => {
   const day = dayjs(selectedDate.value).format("YYYY-MM-DD");
@@ -85,7 +93,12 @@ const fetchSchedules = async () => {
 };
 
 const handleAdd = async () => {
-  if (!scheduleForm.title) { ElMessage.warning("请输入标题"); return; }
+  if (!formRef.value) return;
+  try {
+    await formRef.value.validate();
+  } catch {
+    return;
+  }
   adding.value = true;
   try {
     await addSchedule({

@@ -59,21 +59,24 @@
             </el-button>
           </template>
         </el-table-column>
-      </el-table>
+          <template #empty>
+            <el-empty description="暂无公告" />
+          </template>
+        </el-table>
 
-      <!-- 分页 -->
-      <div class="mt-4 flex justify-end">
-        <el-pagination
-          v-model:current-page="pageNum"
-          v-model:page-size="pageSize"
-          :total="total"
-          :page-sizes="[10, 20, 50]"
-          layout="total, sizes, prev, pager, next"
-          background
-          @change="fetchList"
-        />
-      </div>
-    </el-card>
+        <!-- Pagination -->
+        <div class="mt-4 flex justify-end">
+          <el-pagination
+            v-model:current-page="pageNum"
+            v-model:page-size="pageSize"
+            :total="total"
+            :page-sizes="[10, 20, 50]"
+            layout="total, sizes, prev, pager, next"
+            background
+            @change="fetchList"
+          />
+        </div>
+      </el-card>
 
     <!-- 新增/编辑弹窗 -->
     <el-dialog
@@ -204,8 +207,8 @@ const openDialog = (row?: NoticeVO) => {
   if (row) {
     isEdit.value = true;
     form.id = row.id;
-    form.title = row.title;
-    form.content = row.content;
+    form.title = row.title ?? "";
+    form.content = row.content ?? "";
     form.noticeType = row.noticeType ?? 0;
   } else {
     isEdit.value = false;

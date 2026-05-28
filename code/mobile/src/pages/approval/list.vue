@@ -52,16 +52,14 @@
 import { ref, onMounted } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import { getPendingTasks, getApprovalHistory } from "@/api/workflow";
-import { getLeavePage } from "@/api/leave";
+import { STATUS_MAP } from "@/utils/constants";
 
 const activeTab = ref(0);
 const pendingList = ref<any[]>([]);
 const historyList = ref<any[]>([]);
 const loading = ref(false);
 
-const statusMap: Record<string, string> = {
-  "1": "已通过", "2": "已驳回", "3": "已转办", "4": "已撤回", "5": "已退回"
-};
+const statusMap: Record<string, string> = STATUS_MAP as unknown as Record<string, string>;
 
 const fetchList = async () => {
   loading.value = true;

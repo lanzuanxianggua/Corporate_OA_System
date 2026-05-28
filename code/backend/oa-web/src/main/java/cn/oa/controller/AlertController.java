@@ -11,11 +11,14 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/alert")
 @Tag(name = "预警规则管理")
@@ -40,16 +43,18 @@ public class AlertController {
     @PostMapping("/rule")
     @RequireAdmin
     @Operation(summary = "新增预警规则")
-    public R<Void> addRule(@RequestBody RptAlertRule rule) {
+    public R<Void> addRule(@RequestBody @Valid RptAlertRule rule) {
         alertRuleService.save(rule);
+        log.info("Alert rule created: id={}", rule.getId());
         return R.ok();
     }
 
     @PutMapping("/rule")
     @RequireAdmin
     @Operation(summary = "修改预警规则")
-    public R<Void> updateRule(@RequestBody RptAlertRule rule) {
+    public R<Void> updateRule(@RequestBody @Valid RptAlertRule rule) {
         alertRuleService.updateById(rule);
+        log.info("Alert rule updated: id={}", rule.getId());
         return R.ok();
     }
 
@@ -58,6 +63,7 @@ public class AlertController {
     @Operation(summary = "删除预警规则")
     public R<Void> deleteRule(@PathVariable Long id) {
         alertRuleService.removeById(id);
+        log.info("Alert rule deleted: id={}", id);
         return R.ok();
     }
 
@@ -73,11 +79,12 @@ public class AlertController {
 
     @PostMapping("/log/handle/{id}")
     @Operation(summary = "处理预警")
-    public R<Void> handleLog(@PathVariable Long id, @RequestBody Map<String, String> params, HttpServletRequest request) {
+    public R<Void> handleLog(@PathVariable Long id, @RequestBody @Valid Map<String, String> params, HttpServletRequest request) {
         Object empIdObj = request.getAttribute("empId");
         Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         String handleRemark = params.get("handleRemark");
         alertLogService.handle(id, String.valueOf(empId), handleRemark);
+        log.info("Alert log handled: id={}, handler={}", id, empId);
         return R.ok();
     }
 }

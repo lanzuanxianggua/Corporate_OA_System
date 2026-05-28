@@ -1,5 +1,7 @@
 package cn.oa.service.impl;
 
+import lombok.extern.slf4j.Slf4j;
+
 import cn.oa.entity.OaContract;
 import cn.oa.mapper.OaContractMapper;
 import cn.oa.service.ContractService;
@@ -13,6 +15,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Service
+@Slf4j
 public class ContractServiceImpl extends ServiceImpl<OaContractMapper, OaContract> implements ContractService {
 
     @Override

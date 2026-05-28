@@ -17,15 +17,13 @@ class WebSocketClient {
   private doConnect() {
     if (!this.empId) return;
 
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const host = window.location.host.replace(/:8848$/, ":8080");
-    const url = `${protocol}//${host}/ws/notification?empId=${this.empId}`;
+    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${wsProtocol}//${window.location.host}/ws/notification?empId=${this.empId}`;
 
     try {
-      this.ws = new WebSocket(url);
+      this.ws = new WebSocket(wsUrl);
 
       this.ws.onopen = () => {
-        console.log("[WS] Connected");
         this.reconnectAttempts = 0;
       };
 
@@ -44,7 +42,6 @@ class WebSocketClient {
       };
 
       this.ws.onclose = () => {
-        console.log("[WS] Disconnected");
         this.tryReconnect();
       };
 
@@ -64,7 +61,6 @@ class WebSocketClient {
     this.reconnectAttempts++;
 
     this.reconnectTimer = setTimeout(() => {
-      console.log(`[WS] Reconnecting attempt ${this.reconnectAttempts}`);
       this.doConnect();
     }, delay);
   }

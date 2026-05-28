@@ -22,6 +22,9 @@
         style="width: 100%"
         :header-cell-style="{ background: '#f5f7fa', color: '#606266' }"
       >
+        <template #empty>
+          <el-empty description="暂无待审批记录" :image-size="60" />
+        </template>
         <el-table-column prop="empName" label="申请人" width="90" />
         <el-table-column prop="deptName" label="部门" width="100" />
         <el-table-column label="类型" width="70">
@@ -42,11 +45,11 @@
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
             <el-tag
-              :type="(statusTagType(row.status) as any)"
+              :type="(formatStatusTagType(row.status) as any)"
               size="small"
               effect="light"
             >
-              {{ statusText(row.status) }}
+              {{ formatStatusText(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -161,8 +164,10 @@ import {
   approveLeave,
   type LeaveApplyVO
 } from "@/api/leave";
+import { LEAVE_TYPE_MAP } from "@/utils/constants";
+import { formatStatusText, formatStatusTagType } from "@/utils/format";
 
-const leaveTypeMap: Record<number, string> = { 1: "事假", 2: "病假", 3: "年假", 4: "婚假", 5: "丧假", 6: "产假" };
+const leaveTypeMap = LEAVE_TYPE_MAP;
 
 const calcDays = (startTime?: string, endTime?: string) => {
   if (!startTime || !endTime) return "-";
@@ -192,8 +197,8 @@ const fetchList = async () => {
     const res: any = await getLeavePage(params);
     tableData.value = res.data?.list || [];
     total.value = res.data?.total || 0;
-  } catch {
-    // error handled by interceptor
+  } catch (e) {
+    ElMessage.error("获取审批列表失败");
   } finally {
     loading.value = false;
   }
@@ -237,24 +242,14 @@ const handleApprove = async () => {
     dialogVisible.value = false;
     tableData.value = [];
     fetchList();
-  } catch {
-    // error handled by interceptor
+  } catch (e) {
+    ElMessage.error("审批操作失败");
   } finally {
     approving.value = false;
   }
 };
 
 // --- 工具函数 ---
-const statusText = (status?: number) => {
-  const map: Record<number, string> = { 0: "待审批", 1: "已通过", 2: "已拒绝" };
-  return map[status ?? -1] || "未知";
-};
-
-const statusTagType = (status?: number) => {
-  const map: Record<number, string> = { 0: "warning", 1: "success", 2: "danger" };
-  return map[status ?? -1] || "info";
-};
-
 const formatTime = (time?: string) => {
   if (!time) return "-";
   return time.replace("T", " ").substring(0, 16);

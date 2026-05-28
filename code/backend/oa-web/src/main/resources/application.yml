@@ -36,7 +36,9 @@ oa:
     path: uploads
 
 jwt:
-  secret: "oa-system-jwt-secret-key-2024-secure!!"
+  # IMPORTANT: JWT_SECRET must be set via environment variable in production!
+  # Example: export JWT_SECRET=your-strong-random-secret-at-least-32-chars
+  secret: "${JWT_SECRET:oa-system-jwt-secret-key-default}"
 
 logging:
   level:

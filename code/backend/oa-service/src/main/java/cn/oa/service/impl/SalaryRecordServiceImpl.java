@@ -1,5 +1,7 @@
 package cn.oa.service.impl;
 
+import lombok.extern.slf4j.Slf4j;
+
 import cn.oa.entity.OaSalaryRecord;
 import cn.oa.entity.OaSalaryStructure;
 import cn.oa.mapper.OaSalaryRecordMapper;
@@ -17,6 +19,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Service
+@Slf4j
 public class SalaryRecordServiceImpl extends ServiceImpl<OaSalaryRecordMapper, OaSalaryRecord> implements SalaryRecordService {
 
     @Autowired
@@ -65,5 +68,6 @@ public class SalaryRecordServiceImpl extends ServiceImpl<OaSalaryRecordMapper, O
         record.setActualAmount(actualAmount);
         record.setPayTime(LocalDateTime.now());
         this.save(record);
+        log.info("Salary record generated: empId={}, month={}, amount={}", empId, month, actualAmount);
     }
 }

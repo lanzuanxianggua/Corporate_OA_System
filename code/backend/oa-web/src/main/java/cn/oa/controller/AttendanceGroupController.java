@@ -8,12 +8,15 @@ import cn.oa.service.AttendanceGroupService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/attendance-group")
 @Tag(name = "考勤组管理")
@@ -35,16 +38,18 @@ public class AttendanceGroupController {
     @PostMapping
     @RequireAdmin
     @Operation(summary = "新增考勤组")
-    public R<Void> add(@RequestBody OaAttendanceGroup group) {
+    public R<Void> add(@RequestBody @Valid OaAttendanceGroup group) {
         attendanceGroupService.save(group);
+        log.info("Attendance group created: id={}", group.getId());
         return R.ok();
     }
 
     @PutMapping
     @RequireAdmin
     @Operation(summary = "修改考勤组")
-    public R<Void> update(@RequestBody OaAttendanceGroup group) {
+    public R<Void> update(@RequestBody @Valid OaAttendanceGroup group) {
         attendanceGroupService.updateById(group);
+        log.info("Attendance group updated: id={}", group.getId());
         return R.ok();
     }
 
@@ -53,22 +58,25 @@ public class AttendanceGroupController {
     @Operation(summary = "删除考勤组")
     public R<Void> delete(@PathVariable Long id) {
         attendanceGroupService.removeById(id);
+        log.info("Attendance group deleted: id={}", id);
         return R.ok();
     }
 
     @PostMapping("/{id}/employees")
     @RequireAdmin
     @Operation(summary = "分配员工到考勤组")
-    public R<Void> assignEmployees(@PathVariable Long id, @RequestBody Map<String, List<Long>> params) {
+    public R<Void> assignEmployees(@PathVariable Long id, @RequestBody @Valid Map<String, List<Long>> params) {
         attendanceGroupService.assignEmployees(id, params.get("empIds"));
+        log.info("Employees assigned to attendance group: groupId={}, count={}", id, params.get("empIds") != null ? params.get("empIds").size() : 0);
         return R.ok();
     }
 
     @DeleteMapping("/{id}/employees")
     @RequireAdmin
     @Operation(summary = "从考勤组移除员工")
-    public R<Void> removeEmployees(@PathVariable Long id, @RequestBody Map<String, List<Long>> params) {
+    public R<Void> removeEmployees(@PathVariable Long id, @RequestBody @Valid Map<String, List<Long>> params) {
         attendanceGroupService.removeEmployees(id, params.get("empIds"));
+        log.info("Employees removed from attendance group: groupId={}, count={}", id, params.get("empIds") != null ? params.get("empIds").size() : 0);
         return R.ok();
     }
 }

@@ -13,6 +13,7 @@ import cn.oa.vo.ExpenseExportVO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,6 +24,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +36,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/expense")
 @Tag(name = "经费管理")
+@Slf4j
 public class ExpenseController {
 
     private static final String[] STATUS_TEXT = {"待审批", "已通过", "已拒绝", "", "已撤回"};
@@ -46,24 +50,26 @@ public class ExpenseController {
     @PostMapping("/submit")
     @Operation(summary = "提交经费申请")
     @OperationLog(module = "经费管理", operation = "提交经费申请")
-    public R<Void> submit(@RequestBody OaExpense expense, HttpServletRequest request) {
+    public R<Void> submit(@RequestBody @Valid OaExpense expense, HttpServletRequest request) {
         Object empIdObj = request.getAttribute("empId");
         Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         expense.setEmpId(empId);
         expenseService.submit(expense);
+        log.info("Expense submitted: empId={}", empId);
         return R.ok();
     }
 
     @PostMapping("/approve")
     @Operation(summary = "审批经费申请")
     @OperationLog(module = "经费管理", operation = "审批经费申请")
-    public R<Void> approve(@RequestBody Map<String, Object> params, HttpServletRequest request) {
+    public R<Void> approve(@RequestBody @Valid Map<String, Object> params, HttpServletRequest request) {
         Long applyId = Long.valueOf(params.get("id").toString());
         Integer status = Integer.valueOf(params.get("status").toString());
         String remark = params.get("remark") != null ? params.get("remark").toString() : null;
         Object approverIdObj = request.getAttribute("empId");
         Long approverId = (approverIdObj instanceof Number) ? ((Number) approverIdObj).longValue() : Long.valueOf(approverIdObj.toString());
         expenseService.approve(applyId, approverId, status, remark);
+        log.info("Expense approved: id={}, status={}, approverId={}", applyId, status, approverId);
         return R.ok();
     }
 
@@ -84,10 +90,14 @@ public class ExpenseController {
             @RequestParam(required = false) Long empId,
             @RequestParam(required = false) Integer status,
             HttpServletResponse response) throws IOException {
-        IPage<OaExpense> page = expenseService.pageList(1, 10000, empId, status);
+        // Export with reasonable limit to prevent OOM
+        IPage<OaExpense> page = expenseService.pageList(1, 5000, empId, status);
         List<OaExpense> records = page.getRecords();
-        if (records.size() > 10000) {
-            records = records.subList(0, 10000);
+        if (records.size() > 1000) {
+            log.warn("Export result count: {}, consider async export", records.size());
+        }
+        if (records.size() > 5000) {
+            records = records.subList(0, 5000);
         }
 
         // Build empId -> employee map

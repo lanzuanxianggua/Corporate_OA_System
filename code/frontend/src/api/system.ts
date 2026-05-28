@@ -1,18 +1,5 @@
 import request from "@/utils/request";
-
-export interface UserVO {
-  id?: number;
-  username?: string;
-  nickname?: string;
-  empName?: string;
-  phone?: string;
-  email?: string;
-  status?: number;
-  avatar?: string;
-  createTime?: string;
-  dept?: { id: number; name: string };
-  roles?: Array<{ id: number; name: string; code: string }>;
-}
+import type { ApiResponse, PageResult, UserVO, Role, Menu } from "@/types/api";
 
 export const getUserPage = (params: {
   page: number;
@@ -20,77 +7,57 @@ export const getUserPage = (params: {
   username?: string;
   status?: number;
 }) => {
-  return request.post<any, any>("/user", params);
+  return request.post<unknown, ApiResponse<PageResult<UserVO>>>("/user", params);
 };
 
 export const getAllRoles = () => {
-  return request.get<any, any>("/list-all-role");
+  return request.get<unknown, ApiResponse<Role[]>>("/list-all-role");
 };
 
 export const getRoles = () => {
-  return request.get<any, any>("/api/system/roles");
+  return request.get<unknown, ApiResponse<Role[]>>("/api/system/roles");
 };
 
 export const getEmpRoles = (empId: number) => {
-  return request.get<any, any>("/emp-roles", { params: { empId } });
+  return request.get<unknown, ApiResponse<number[]>>("/emp-roles", { params: { empId } });
 };
 
 export const assignRoles = (empId: number, roleIds: number[]) => {
-  return request.post<any, any>("/assign-roles", { empId, roleIds });
+  return request.post<unknown, ApiResponse<void>>("/assign-roles", { empId, roleIds });
 };
 
 export const getRoleByUserId = (userId: number) => {
-  return request.post<any, any>("/list-role-ids", { userId });
+  return request.post<unknown, ApiResponse<number[]>>("/list-role-ids", { userId });
 };
 
-export interface RoleVO {
-  id?: number;
-  name?: string;
-  code?: string;
-  status?: number;
-  remark?: string;
-  createTime?: string;
-}
-
-export const getRolePage = (params?: Record<string, any>) => {
-  return request.post<any, any>("/role", params || {});
+export const getRolePage = (params?: Partial<Role> & { page?: number; pageSize?: number }) => {
+  return request.post<unknown, ApiResponse<PageResult<Role>>>("/role", params || {});
 };
 
-export const addRole = (data: Record<string, any>) => {
-  return request.post<any, any>("/role/add", data);
+export const addRole = (data: Partial<Role>) => {
+  return request.post<unknown, ApiResponse<void>>("/role/add", data);
 };
 
-export const updateRole = (data: Record<string, any>) => {
-  return request.put<any, any>("/role/update", data);
+export const updateRole = (data: Partial<Role>) => {
+  return request.put<unknown, ApiResponse<void>>("/role/update", data);
 };
 
 export const deleteRole = (id: number) => {
-  return request.delete<any, any>(`/role/${id}`);
+  return request.delete<unknown, ApiResponse<void>>(`/role/${id}`);
 };
 
-export interface MenuVO {
-  id?: number;
-  menuName?: string;
-  menuType?: string;
-  path?: string;
-  component?: string;
-  orderNum?: number;
-  icon?: string;
-  children?: MenuVO[];
-}
-
 export const getMenuList = () => {
-  return request.post<any, any>("/menu", {});
+  return request.post<unknown, ApiResponse<Menu[]>>("/menu", {});
 };
 
 export const getDeptList = () => {
-  return request.post<any, any>("/dept", {});
+  return request.post<unknown, ApiResponse<import("@/types/api").Dept[]>>("/dept", {});
 };
 
 export const getMine = () => {
-  return request.get<any, any>("/mine");
+  return request.get<unknown, ApiResponse<UserVO>>("/mine");
 };
 
-export const getMineLogs = (params?: Record<string, any>) => {
-  return request.get<any, any>("/mine-logs", { params });
+export const getMineLogs = (params?: { page?: number; pageSize?: number }) => {
+  return request.get<unknown, ApiResponse<PageResult<import("@/types/api").LoginLog>>>("/mine-logs", { params });
 };

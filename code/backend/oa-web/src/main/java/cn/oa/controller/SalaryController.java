@@ -11,9 +11,12 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/salary")
 @Tag(name = "薪资管理")
@@ -39,16 +42,18 @@ public class SalaryController {
     @PostMapping("/structure")
     @RequireAdmin
     @Operation(summary = "新增薪资结构")
-    public R<Void> addStructure(@RequestBody OaSalaryStructure structure) {
+    public R<Void> addStructure(@RequestBody @Valid OaSalaryStructure structure) {
         salaryStructureService.save(structure);
+        log.info("Salary structure created: empId={}", structure.getEmpId());
         return R.ok();
     }
 
     @PutMapping("/structure")
     @RequireAdmin
     @Operation(summary = "修改薪资结构")
-    public R<Void> updateStructure(@RequestBody OaSalaryStructure structure) {
+    public R<Void> updateStructure(@RequestBody @Valid OaSalaryStructure structure) {
         salaryStructureService.updateById(structure);
+        log.info("Salary structure updated: id={}", structure.getId());
         return R.ok();
     }
 

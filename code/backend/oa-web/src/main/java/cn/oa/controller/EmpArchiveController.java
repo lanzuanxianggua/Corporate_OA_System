@@ -8,9 +8,12 @@ import cn.oa.service.EmpArchiveService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/emp-archive")
 @Tag(name = "员工档案管理")
@@ -27,16 +30,19 @@ public class EmpArchiveController {
 
     @PostMapping
     @Operation(summary = "创建/更新员工档案")
-    public R<Void> save(@RequestBody OaEmpArchive archive) {
+    public R<Void> save(@RequestBody @Valid OaEmpArchive archive) {
         if (archive.getId() != null) {
             empArchiveService.updateById(archive);
+            log.info("Emp archive updated: empId={}", archive.getEmpId());
         } else {
             OaEmpArchive existing = empArchiveService.getByEmpId(archive.getEmpId());
             if (existing != null) {
                 archive.setId(existing.getId());
                 empArchiveService.updateById(archive);
+                log.info("Emp archive updated: empId={}", archive.getEmpId());
             } else {
                 empArchiveService.save(archive);
+                log.info("Emp archive created: empId={}", archive.getEmpId());
             }
         }
         return R.ok();

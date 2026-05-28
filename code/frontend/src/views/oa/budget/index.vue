@@ -41,6 +41,9 @@
             </el-popconfirm>
           </template>
         </el-table-column>
+        <template #empty>
+          <el-empty description="暂无预算数据" />
+        </template>
       </el-table>
 
       <div class="mt-4 flex justify-end">
@@ -117,6 +120,9 @@ const fetchList = async () => {
     const res: any = await getBudgetPage({ pageNum: pageNum.value, pageSize: pageSize.value });
     tableData.value = res.data?.list || [];
     total.value = res.data?.total || 0;
+  } catch {
+    tableData.value = [];
+    total.value = 0;
   } finally {
     loading.value = false;
   }
@@ -152,15 +158,21 @@ const handleSave = async () => {
     ElMessage.success("保存成功");
     dialogVisible.value = false;
     fetchList();
+  } catch {
+    ElMessage.error("保存失败");
   } finally {
     saving.value = false;
   }
 };
 
 const handleDelete = async (id: number) => {
-  await deleteBudget(id);
-  ElMessage.success("删除成功");
-  fetchList();
+  try {
+    await deleteBudget(id);
+    ElMessage.success("删除成功");
+    fetchList();
+  } catch {
+    ElMessage.error("删除失败");
+  }
 };
 
 onMounted(() => { fetchList(); fetchDeptList(); });

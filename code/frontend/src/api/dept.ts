@@ -1,29 +1,18 @@
 import request from "@/utils/request";
-
-export interface DeptVO {
-  id?: number;
-  deptName?: string;
-  parentId?: number;
-  sort?: number;
-  leader?: string;
-  phone?: string;
-  status?: number;
-  createTime?: string;
-  children?: DeptVO[];
-}
+import type { ApiResponse, Dept } from "@/types/api";
 
 export const getDeptTree = () => {
-  return request.get<any, any>("/api/dept/tree");
+  return request.get<unknown, ApiResponse<Dept[]>>("/api/dept/tree");
 };
 
-export const addDept = (data: Partial<DeptVO>) => {
-  return request.post("/api/dept", data);
+export const addDept = (data: Partial<Dept>) => {
+  return request.post<unknown, ApiResponse<void>>("/api/dept", data);
 };
 
-export const updateDept = (data: Partial<DeptVO>) => {
-  return request.put("/api/dept", data);
+export const updateDept = (data: Partial<Dept>) => {
+  return request.put<unknown, ApiResponse<void>>("/api/dept", data);
 };
 
 export const deleteDept = (id: number) => {
-  return request.delete(`/api/dept/${id}`);
+  return request.delete<unknown, ApiResponse<void>>(`/api/dept/${id}`);
 };

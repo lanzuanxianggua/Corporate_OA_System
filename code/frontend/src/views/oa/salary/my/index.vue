@@ -47,7 +47,7 @@ const month = ref("");
 const fetchList = async () => {
   loading.value = true;
   try {
-    const res: any = await getMySalary({ salaryMonth: month.value || undefined });
+    const res: any = await getMySalary({ month: month.value || undefined });
     tableData.value = res.data?.list || res.data || [];
   } finally {
     loading.value = false;

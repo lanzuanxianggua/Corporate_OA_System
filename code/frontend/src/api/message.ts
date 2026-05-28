@@ -1,33 +1,21 @@
 import request from "@/utils/request";
-
-export interface MessageVO {
-  id?: string;
-  senderId?: string;
-  senderName?: string;
-  receiverId: number;
-  receiverName?: string;
-  msgType?: number;
-  title: string;
-  content: string;
-  isRead?: number;
-  createTime?: string;
-}
+import type { ApiResponse, PageResult, Message } from "@/types/api";
 
 export const getUnreadCount = () => {
-  return request.get<any, any>("/api/message/unread-count");
+  return request.get<unknown, ApiResponse<number>>("/api/message/unread-count");
 };
 
 export const getMessagePage = (params: {
   pageNum: number;
   pageSize: number;
 }) => {
-  return request.get<any, any>("/api/message/page", { params });
+  return request.get<unknown, ApiResponse<PageResult<Message>>>("/api/message/page", { params });
 };
 
-export const sendMessage = (data: Partial<MessageVO>) => {
-  return request.post("/api/message/send", data);
+export const sendMessage = (data: Partial<Message>) => {
+  return request.post<unknown, ApiResponse<void>>("/api/message/send", data);
 };
 
 export const markAsRead = (id: string | number) => {
-  return request.post(`/api/message/${id}/read`);
+  return request.post<unknown, ApiResponse<void>>(`/api/message/${id}/read`);
 };

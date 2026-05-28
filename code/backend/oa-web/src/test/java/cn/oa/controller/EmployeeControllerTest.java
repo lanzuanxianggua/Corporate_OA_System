@@ -1,6 +1,7 @@
 package cn.oa.controller;
 
 import cn.oa.entity.SysEmployee;
+import cn.oa.entity.dto.EmployeeDTO;
 import cn.oa.service.EmployeeService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -16,7 +17,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -45,6 +45,19 @@ class EmployeeControllerTest extends BaseControllerTest {
         emp.setDeptId(1L);
         emp.setStatus(1);
         return emp;
+    }
+
+    private EmployeeDTO buildEmpDTO(Long id, String code, String name) {
+        EmployeeDTO dto = new EmployeeDTO();
+        dto.setId(id);
+        dto.setEmpCode(code);
+        dto.setEmpName(name);
+        dto.setPhone("13800000000");
+        dto.setEmail("test@oa.com");
+        dto.setDeptId(1L);
+        dto.setStatus(1);
+        dto.setPostId(1L);
+        return dto;
     }
 
     @Test
@@ -99,11 +112,10 @@ class EmployeeControllerTest extends BaseControllerTest {
     @DisplayName("新增员工")
     void addEmployee() throws Exception {
         doNothing().when(employeeService).addEmployee(any(SysEmployee.class));
-        SysEmployee emp = buildEmp(null, "TEST001", "新员工");
 
         mockMvc.perform(post("/api/employee")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(emp)))
+                        .content(objectMapper.writeValueAsString(buildEmpDTO(null, "TEST001", "新员工"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0));
 
@@ -114,11 +126,10 @@ class EmployeeControllerTest extends BaseControllerTest {
     @DisplayName("修改员工")
     void updateEmployee() throws Exception {
         when(employeeService.updateById(any(SysEmployee.class))).thenReturn(true);
-        SysEmployee emp = buildEmp(1L, "admin", "管理员-修改");
 
         mockMvc.perform(put("/api/employee")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(emp)))
+                        .content(objectMapper.writeValueAsString(buildEmpDTO(1L, "admin", "管理员-修改"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0));
 

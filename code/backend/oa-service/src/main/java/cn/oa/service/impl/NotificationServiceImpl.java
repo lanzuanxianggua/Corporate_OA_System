@@ -2,6 +2,7 @@ package cn.oa.service.impl;
 
 import cn.oa.service.NotificationService;
 import cn.oa.service.notification.NotificationChannel;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -9,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 public class NotificationServiceImpl implements NotificationService {
 
@@ -42,7 +44,8 @@ public class NotificationServiceImpl implements NotificationService {
         for (NotificationChannel channel : channels) {
             try {
                 channel.send(empId, title, content, extra);
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                log.warn("Failed to send notification via channel: {}", e.getMessage());
             }
         }
     }

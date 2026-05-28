@@ -12,11 +12,14 @@ import cn.oa.service.OnlineUserService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 
+@Slf4j
 @RestController
 @CrossOrigin
 @Tag(name = "系统监控")
@@ -33,7 +36,7 @@ public class MonitorController {
     private OperationLogService operationLogService;
 
     @PostMapping("/online-logs")
-    public R<Map<String, Object>> onlineLogs(@RequestBody(required = false) Map<String, Object> params) {
+    public R<Map<String, Object>> onlineLogs(@RequestBody(required = false) @Valid Map<String, Object> params) {
         List<OnlineUserVO> onlineUsers = onlineUserService.getOnlineUsers();
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("list", onlineUsers);
@@ -44,7 +47,7 @@ public class MonitorController {
     }
 
     @PostMapping("/login-logs")
-    public R<Map<String, Object>> loginLogs(@RequestBody(required = false) Map<String, Object> params) {
+    public R<Map<String, Object>> loginLogs(@RequestBody(required = false) @Valid Map<String, Object> params) {
         int pageNum = params != null && params.get("page") != null ? ((Number) params.get("page")).intValue() : 1;
         int pageSize = params != null && params.get("pageSize") != null ? ((Number) params.get("pageSize")).intValue() : 10;
 
@@ -53,17 +56,17 @@ public class MonitorController {
         Page<OaLoginLog> page = loginLogMapper.selectPage(new Page<>(pageNum, pageSize), wrapper);
 
         List<Map<String, Object>> list = new ArrayList<>();
-        for (OaLoginLog log : page.getRecords()) {
+        for (OaLoginLog loginLog : page.getRecords()) {
             Map<String, Object> item = new LinkedHashMap<>();
-            item.put("id", log.getId());
-            item.put("username", log.getUsername());
-            item.put("ip", log.getIp());
+            item.put("id", loginLog.getId());
+            item.put("username", loginLog.getUsername());
+            item.put("ip", loginLog.getIp());
             item.put("address", "内网");
-            item.put("system", log.getOs());
-            item.put("browser", log.getBrowser());
-            item.put("status", log.getStatus());
-            item.put("behavior", log.getMessage());
-            item.put("loginTime", log.getLoginTime() != null ? log.getLoginTime().toString() : "");
+            item.put("system", loginLog.getOs());
+            item.put("browser", loginLog.getBrowser());
+            item.put("status", loginLog.getStatus());
+            item.put("behavior", loginLog.getMessage());
+            item.put("loginTime", loginLog.getLoginTime() != null ? loginLog.getLoginTime().toString() : "");
             list.add(item);
         }
 
@@ -76,7 +79,7 @@ public class MonitorController {
     }
 
     @PostMapping("/operation-logs")
-    public R<Map<String, Object>> operationLogs(@RequestBody(required = false) Map<String, Object> params) {
+    public R<Map<String, Object>> operationLogs(@RequestBody(required = false) @Valid Map<String, Object> params) {
         int pageNum = params != null && params.get("page") != null ? ((Number) params.get("page")).intValue() : 1;
         int pageSize = params != null && params.get("pageSize") != null ? ((Number) params.get("pageSize")).intValue() : 10;
 
@@ -84,18 +87,18 @@ public class MonitorController {
         PageResult<OaOperationLog> pageResult = operationLogService.pageList(pageNum, pageSize, module, null, null);
 
         List<Map<String, Object>> list = new ArrayList<>();
-        for (OaOperationLog log : pageResult.getList()) {
+        for (OaOperationLog opLog : pageResult.getList()) {
             Map<String, Object> item = new LinkedHashMap<>();
-            item.put("id", log.getId());
-            item.put("username", log.getEmpName());
-            item.put("ip", log.getIp());
+            item.put("id", opLog.getId());
+            item.put("username", opLog.getEmpName());
+            item.put("ip", opLog.getIp());
             item.put("address", "内网");
             item.put("system", "系统");
             item.put("browser", "");
-            item.put("status", log.getStatus());
-            item.put("summary", log.getOperation());
-            item.put("module", log.getModule());
-            item.put("operatingTime", log.getCreateTime() != null ? log.getCreateTime().toString() : "");
+            item.put("status", opLog.getStatus());
+            item.put("summary", opLog.getOperation());
+            item.put("module", opLog.getModule());
+            item.put("operatingTime", opLog.getCreateTime() != null ? opLog.getCreateTime().toString() : "");
             list.add(item);
         }
 
@@ -108,7 +111,7 @@ public class MonitorController {
     }
 
     @PostMapping("/system-logs")
-    public R<Map<String, Object>> systemLogs(@RequestBody(required = false) Map<String, Object> params) {
+    public R<Map<String, Object>> systemLogs(@RequestBody(required = false) @Valid Map<String, Object> params) {
         // 系统日志暂时使用操作日志的数据
         int pageNum = params != null && params.get("page") != null ? ((Number) params.get("page")).intValue() : 1;
         int pageSize = params != null && params.get("pageSize") != null ? ((Number) params.get("pageSize")).intValue() : 10;
@@ -116,19 +119,19 @@ public class MonitorController {
         PageResult<OaOperationLog> pageResult = operationLogService.pageList(pageNum, pageSize, null, null, null);
 
         List<Map<String, Object>> list = new ArrayList<>();
-        for (OaOperationLog log : pageResult.getList()) {
+        for (OaOperationLog opLog : pageResult.getList()) {
             Map<String, Object> item = new LinkedHashMap<>();
-            item.put("id", log.getId());
-            item.put("level", log.getStatus() == 1 ? 0 : 1);
-            item.put("module", log.getModule());
-            item.put("url", log.getRequestUrl());
-            item.put("method", log.getMethod());
-            item.put("ip", log.getIp());
+            item.put("id", opLog.getId());
+            item.put("level", opLog.getStatus() == 1 ? 0 : 1);
+            item.put("module", opLog.getModule());
+            item.put("url", opLog.getRequestUrl());
+            item.put("method", opLog.getMethod());
+            item.put("ip", opLog.getIp());
             item.put("address", "内网");
             item.put("system", "系统");
             item.put("browser", "");
-            item.put("takesTime", log.getCostTime() + "ms");
-            item.put("requestTime", log.getCreateTime() != null ? log.getCreateTime().toString() : "");
+            item.put("takesTime", opLog.getCostTime() + "ms");
+            item.put("requestTime", opLog.getCreateTime() != null ? opLog.getCreateTime().toString() : "");
             list.add(item);
         }
 
@@ -141,7 +144,7 @@ public class MonitorController {
     }
 
     @PostMapping("/system-logs-detail")
-    public R<Map<String, Object>> systemLogsDetail(@RequestBody Map<String, Object> params) {
+    public R<Map<String, Object>> systemLogsDetail(@RequestBody @Valid Map<String, Object> params) {
         Map<String, Object> detail = new LinkedHashMap<>();
         detail.put("id", params.get("id"));
         detail.put("level", 1);

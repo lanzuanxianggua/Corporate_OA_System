@@ -5,10 +5,13 @@ import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
 import cn.oa.entity.OaNotice;
+import cn.oa.entity.dto.NoticeDTO;
 import cn.oa.service.NoticeService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/notice")
 @Tag(name = "公告管理")
@@ -57,11 +61,16 @@ public class NoticeController {
     @RequireAdmin
     @Operation(summary = "新增公告")
     @OperationLog(module = "公告管理", operation = "新增公告")
-    public R<Void> add(@RequestBody OaNotice notice, HttpServletRequest request) {
+    public R<Void> add(@RequestBody @Valid NoticeDTO dto, HttpServletRequest request) {
         Object empIdObj = request.getAttribute("empId");
         Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        OaNotice notice = new OaNotice();
+        notice.setTitle(dto.getTitle());
+        notice.setContent(dto.getContent());
+        notice.setNoticeType(dto.getNoticeType());
         notice.setPublisherId(empId);
         noticeService.save(notice);
+        log.info("Notice created: id={}, publisherId={}", notice.getId(), empId);
         return R.ok();
     }
 
@@ -69,8 +78,15 @@ public class NoticeController {
     @RequireAdmin
     @Operation(summary = "修改公告")
     @OperationLog(module = "公告管理", operation = "修改公告")
-    public R<Void> update(@RequestBody OaNotice notice) {
+    public R<Void> update(@RequestBody @Valid NoticeDTO dto) {
+        OaNotice notice = new OaNotice();
+        notice.setId(dto.getId());
+        notice.setTitle(dto.getTitle());
+        notice.setContent(dto.getContent());
+        notice.setNoticeType(dto.getNoticeType());
+        notice.setStatus(dto.getStatus());
         noticeService.updateById(notice);
+        log.info("Notice updated: id={}", dto.getId());
         return R.ok();
     }
 
@@ -80,6 +96,7 @@ public class NoticeController {
     @OperationLog(module = "公告管理", operation = "删除公告")
     public R<Void> delete(@PathVariable Long id) {
         noticeService.removeById(id);
+        log.info("Notice deleted: id={}", id);
         return R.ok();
     }
 

@@ -6,12 +6,14 @@ import cn.oa.service.StatisticsService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class StatisticsServiceImpl implements StatisticsService {
 
@@ -151,8 +153,8 @@ public class StatisticsServiceImpl implements StatisticsService {
 
         List<OaLeaveApply> leaveList = leaveApplyMapper.selectList(leaveWrapper);
         leave.put("total", leaveList.size());
-        leave.put("pending", leaveList.stream().filter(l -> l.getStatus() == 0).count());
-        leave.put("approved", leaveList.stream().filter(l -> l.getStatus() == 1).count());
+        leave.put("pending", leaveList.stream().filter(l -> l.getStatus() != null && l.getStatus() == 0).count());
+        leave.put("approved", leaveList.stream().filter(l -> l.getStatus() != null && l.getStatus() == 1).count());
 
         // 按类型统计
         Map<String, Long> byType = new LinkedHashMap<>();

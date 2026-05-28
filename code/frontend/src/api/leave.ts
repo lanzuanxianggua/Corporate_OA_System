@@ -1,22 +1,8 @@
 import request from "@/utils/request";
+import type { ApiResponse, PageResult, LeaveApply } from "@/types/api";
 
-export interface LeaveApplyVO {
-  id?: number;
-  empId?: number;
-  empName?: string;
-  leaveType?: number;
-  startTime?: string;
-  endTime?: string;
-  reason?: string;
-  status?: number;
-  createTime?: string;
-  remark?: string;
-}
-
-export interface PageResult<T> {
-  list: T[];
-  total: number;
-}
+/** @deprecated Use LeaveApply from @/types/api instead */
+export type LeaveApplyVO = LeaveApply;
 
 export const getLeavePage = (params: {
   pageNum: number;
@@ -24,11 +10,11 @@ export const getLeavePage = (params: {
   empId?: number;
   status?: number;
 }) => {
-  return request.get<any, any>("/api/leave/page", { params });
+  return request.get<unknown, ApiResponse<PageResult<LeaveApply>>>("/api/leave/page", { params });
 };
 
-export const submitLeave = (data: Partial<LeaveApplyVO>) => {
-  return request.post("/api/leave/submit", data);
+export const submitLeave = (data: Partial<LeaveApply>) => {
+  return request.post<unknown, ApiResponse<void>>("/api/leave/submit", data);
 };
 
 export const approveLeave = (data: {
@@ -36,5 +22,5 @@ export const approveLeave = (data: {
   status: number;
   remark?: string;
 }) => {
-  return request.post("/api/leave/approve", data);
+  return request.post<unknown, ApiResponse<void>>("/api/leave/approve", data);
 };

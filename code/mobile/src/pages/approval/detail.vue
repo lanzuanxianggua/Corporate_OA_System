@@ -51,6 +51,7 @@ import { ref, onMounted } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import { getApprovalChain, handleTask, getPendingTasks } from "@/api/workflow";
 import { useUserStore } from "@/store/user";
+import { STATUS_MAP } from "@/utils/constants";
 
 const rejectPopup = ref<any>(null);
 const userStore = useUserStore();
@@ -108,10 +109,7 @@ const getDotClass = (status: number) => {
   return "primary";
 };
 
-const getStatusLabel = (status: number) => {
-  const map: Record<number, string> = { 1: "已通过", 2: "已驳回", 3: "已转办", 4: "已撤回", 5: "已退回" };
-  return map[status] || "已处理";
-};
+const getStatusLabel = (status: number) => STATUS_MAP[status] || "已处理";
 
 const formatTime = (t: string) => t ? t.replace("T", " ").substring(0, 16) : "";
 

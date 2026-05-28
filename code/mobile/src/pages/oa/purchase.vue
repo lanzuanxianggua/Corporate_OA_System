@@ -47,6 +47,20 @@ const handleSubmit = async () => {
     uni.showToast({ title: "请填写完整信息", icon: "none" });
     return;
   }
+  if (itemName.trim().length < 2) {
+    uni.showToast({ title: "物品名称至少2个字", icon: "none" });
+    return;
+  }
+  const numQty = Number(quantity);
+  if (isNaN(numQty) || numQty <= 0) {
+    uni.showToast({ title: "数量必须大于0", icon: "none" });
+    return;
+  }
+  const numAmount = Number(amount);
+  if (isNaN(numAmount) || numAmount <= 0) {
+    uni.showToast({ title: "预算金额必须大于0", icon: "none" });
+    return;
+  }
   submitting.value = true;
   try {
     await submitPurchase({ itemName, quantity: Number(quantity), amount: Number(amount), reason });

@@ -1,17 +1,5 @@
 import request from "@/utils/request";
-
-export interface EmployeeVO {
-  id?: number;
-  empCode?: string;
-  empName?: string;
-  password?: string;
-  phone?: string;
-  email?: string;
-  deptId?: number;
-  avatar?: string;
-  status?: number;
-  createTime?: string;
-}
+import type { ApiResponse, PageResult, Employee } from "@/types/api";
 
 export const getEmployeePage = (params: {
   pageNum: number;
@@ -19,24 +7,24 @@ export const getEmployeePage = (params: {
   empName?: string;
   deptId?: number;
 }) => {
-  return request.get<any, any>("/api/employee/page", { params });
+  return request.get<unknown, ApiResponse<PageResult<Employee>>>("/api/employee/page", { params });
 };
 
 export const getEmployeeById = (id: number) => {
-  return request.get<any, any>(`/api/employee/${id}`);
+  return request.get<unknown, ApiResponse<Employee>>(`/api/employee/${id}`);
 };
 
-export const addEmployee = (data: Partial<EmployeeVO>) => {
-  return request.post("/api/employee", data);
+export const addEmployee = (data: Partial<Employee>) => {
+  return request.post<unknown, ApiResponse<void>>("/api/employee", data);
 };
 
-export const updateEmployee = (data: Partial<EmployeeVO>) => {
-  return request.put("/api/employee", data);
+export const updateEmployee = (data: Partial<Employee>) => {
+  return request.put<unknown, ApiResponse<void>>("/api/employee", data);
 };
 
 export const deleteEmployee = (id: number) => {
-  return request.delete(`/api/employee/${id}`);
+  return request.delete<unknown, ApiResponse<void>>(`/api/employee/${id}`);
 };
 
 export const updatePassword = (oldPwd: string, newPwd: string) =>
-  request.post("/api/auth/change-password", { oldPassword: oldPwd, newPassword: newPwd });
+  request.post<unknown, ApiResponse<void>>("/api/auth/change-password", { oldPassword: oldPwd, newPassword: newPwd });

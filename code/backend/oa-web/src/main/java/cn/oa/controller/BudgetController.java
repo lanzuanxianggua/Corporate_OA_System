@@ -8,9 +8,12 @@ import cn.oa.service.BudgetService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/budget")
 @Tag(name = "预算管理")
@@ -33,16 +36,18 @@ public class BudgetController {
     @PostMapping
     @RequireAdmin
     @Operation(summary = "新增预算")
-    public R<Void> add(@RequestBody OaBudget budget) {
+    public R<Void> add(@RequestBody @Valid OaBudget budget) {
         budgetService.save(budget);
+        log.info("Budget created: id={}", budget.getId());
         return R.ok();
     }
 
     @PutMapping
     @RequireAdmin
     @Operation(summary = "修改预算")
-    public R<Void> update(@RequestBody OaBudget budget) {
+    public R<Void> update(@RequestBody @Valid OaBudget budget) {
         budgetService.updateById(budget);
+        log.info("Budget updated: id={}", budget.getId());
         return R.ok();
     }
 
@@ -51,6 +56,7 @@ public class BudgetController {
     @Operation(summary = "删除预算")
     public R<Void> delete(@PathVariable Long id) {
         budgetService.removeById(id);
+        log.info("Budget deleted: id={}", id);
         return R.ok();
     }
 

@@ -29,10 +29,13 @@
             <el-button type="primary" link size="small" @click="handleActivate(row)">{{ row.status === "0" ? "停用" : "激活" }}</el-button>
           </template>
         </el-table-column>
+        <template #empty>
+          <el-empty description="暂无流程定义" />
+        </template>
       </el-table>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑流程定义' : '新增流程定义'" width="900px" :close-on-click-modal="false" top="5vh">
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑流程定义' : '新增流程定义'" width="900px" :close-on-click-modal="false" top="5vh" destroy-on-close>
       <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
         <div class="flex gap-4 mb-3">
           <el-form-item label="流程名称" prop="processName" class="flex-1">
@@ -61,7 +64,7 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item label="审批流程" prop="nodeConfig">
-          <WorkflowDesigner v-if="designMode === 'simple'" v-model="form.nodeConfig" :process-type="form.processType" />
+          <WorkflowDesigner v-if="designMode === 'simple'" ref="designerRef" v-model="form.nodeConfig" :process-type="form.processType" />
           <FlowDesigner v-else v-model="form.nodeConfig" />
         </el-form-item>
       </el-form>
@@ -91,6 +94,8 @@ const fetchList = async () => {
   try {
     const res: any = await getDefinitions({});
     tableData.value = res.data || [];
+  } catch {
+    ElMessage.error("获取流程定义失败");
   } finally {
     loading.value = false;
   }
@@ -116,6 +121,7 @@ const saving = ref(false);
 const isEdit = ref(false);
 const editingId = ref<number | undefined>(undefined);
 const formRef = ref<FormInstance>();
+const designerRef = ref<InstanceType<typeof WorkflowDesigner>>();
 const form = reactive({ processName: "", processKey: "", processType: "", nodeConfig: "" });
 const rules = reactive<FormRules>({
   processName: [{ required: true, message: "请输入流程名称", trigger: "blur" }],
@@ -146,6 +152,9 @@ const openDialog = (row?: any) => {
 const handleSave = async () => {
   if (!formRef.value) return;
   await formRef.value.validate();
+  if (designMode.value === "simple" && designerRef.value) {
+    if (!designerRef.value.validateNodes()) return;
+  }
   saving.value = true;
   try {
     if (isEdit.value && editingId.value) {
@@ -157,6 +166,8 @@ const handleSave = async () => {
     }
     dialogVisible.value = false;
     fetchList();
+  } catch {
+    ElMessage.error("保存失败");
   } finally {
     saving.value = false;
   }

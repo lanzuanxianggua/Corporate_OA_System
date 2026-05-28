@@ -11,13 +11,16 @@
           </template>
 
           <el-table :data="tableData" v-loading="loading" stripe style="width: 100%" size="small" :header-cell-style="{ background: '#f5f7fa', color: '#606266' }">
+            <template #empty>
+              <el-empty description="暂无借支记录" :image-size="60" />
+            </template>
             <el-table-column label="金额" width="100" align="right">
               <template #default="{ row }">{{ formatAmount(row.loanAmount) }}</template>
             </el-table-column>
             <el-table-column prop="loanReason" label="原因" min-width="120" show-overflow-tooltip />
             <el-table-column label="状态" width="160" align="center">
               <template #default="{ row }">
-                <el-tag :type="(statusTagType(row.status) as any)" size="small" effect="light">{{ statusText(row.status) }}</el-tag>
+                <el-tag :type="(formatStatusTagType(row.status) as any)" size="small" effect="light">{{ formatStatusText(row.status) }}</el-tag>
                 <el-button v-if="row.status !== 0" type="info" link size="small" class="ml-1" @click="showDetail(row)">详情</el-button>
                 <el-button v-if="row.status === 0" type="warning" link size="small" @click="handleWithdraw(row)">撤回</el-button>
                 <el-button v-if="row.status === 0" type="info" link size="small" @click="handleUrge(row)">催办</el-button>
@@ -72,6 +75,7 @@ import ApprovalTimeline from "@/components/ApprovalTimeline.vue";
 import { withdrawApplication, urgeTask } from "@/api/workflow";
 import { submitLoan, getLoanPage } from "@/api/loan";
 import { useUserStore } from "@/store/user";
+import { formatStatusText, formatStatusTagType } from "@/utils/format";
 
 const userStore = useUserStore();
 
@@ -87,19 +91,11 @@ const fetchList = async () => {
     const res: any = await getLoanPage({ pageNum: pageNum.value, pageSize: pageSize.value });
     tableData.value = res.data?.list || [];
     total.value = res.data?.total || 0;
+  } catch (e) {
+    ElMessage.error("获取借支记录失败");
   } finally {
     loading.value = false;
   }
-};
-
-const statusText = (status?: number) => {
-  const map: Record<number, string> = { 0: "待审批", 1: "已通过", 2: "已拒绝" };
-  return map[status ?? -1] || "未知";
-};
-
-const statusTagType = (status?: number) => {
-  const map: Record<number, string> = { 0: "warning", 1: "success", 2: "danger" };
-  return map[status ?? -1] || "info";
 };
 
 const formatAmount = (amount?: number) => {
@@ -134,6 +130,8 @@ const handleSubmit = async () => {
     resetForm();
     pageNum.value = 1;
     fetchList();
+  } catch (e) {
+    ElMessage.error("提交借支申请失败");
   } finally {
     submitting.value = false;
   }

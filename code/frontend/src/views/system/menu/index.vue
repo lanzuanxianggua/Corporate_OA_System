@@ -2,23 +2,30 @@
   <div class="h-full">
     <el-card shadow="never">
       <template #header>
-        <span class="text-base font-semibold text-[#303133]">菜单权限</span>
+        <div class="flex items-center justify-between">
+          <span class="text-base font-semibold text-[#303133]">菜单权限</span>
+          <div class="flex items-center gap-3">
+            <el-button @click="toggleExpandAll">{{ isAllExpanded ? "全部折叠" : "全部展开" }}</el-button>
+            <el-button type="primary" @click="openDialog()">新增菜单</el-button>
+          </div>
+        </div>
       </template>
 
-      <div class="mb-4 flex justify-between">
-        <el-input v-model="searchKey" placeholder="搜索菜单名称" style="width: 240px" clearable @clear="fetchMenuTree" @keyup.enter="fetchMenuTree">
-          <template #append>
-            <el-button @click="fetchMenuTree">
-              <el-icon><Search /></el-icon>
-            </el-button>
-          </template>
-        </el-input>
-        <el-button type="primary" @click="openDialog()">新增菜单</el-button>
+      <div class="mb-4">
+        <el-input v-model="searchKey" placeholder="搜索菜单名称" style="width: 240px" clearable :prefix-icon="Search" @clear="handleSearch" @keyup.enter="handleSearch" />
       </div>
 
-      <el-table :data="menuTree" v-loading="loading" row-key="id" :tree-props="{ children: 'children' }" :header-cell-style="{ background: '#f5f7fa', color: '#606266' }">
-        <el-table-column prop="name" label="菜单名称" min-width="150" />
-        <el-table-column prop="path" label="路由路径" min-width="150" />
+      <el-table
+        ref="tableRef"
+        :data="filteredMenuTree"
+        v-loading="loading"
+        row-key="id"
+        :tree-props="{ children: 'children' }"
+        :default-expand-all="isAllExpanded"
+        :header-cell-style="{ background: '#f5f7fa', color: '#606266' }"
+      >
+        <el-table-column prop="name" label="菜单名称" min-width="180" />
+        <el-table-column prop="path" label="路由路径" min-width="150" show-overflow-tooltip />
         <el-table-column prop="component" label="组件路径" min-width="180" show-overflow-tooltip />
         <el-table-column prop="sort" label="排序" width="80" align="center" />
         <el-table-column label="类型" width="80" align="center">
@@ -28,24 +35,37 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" align="center">
+        <el-table-column label="权限标识" prop="permission" min-width="150" show-overflow-tooltip />
+        <el-table-column label="操作" width="220" align="center">
           <template #default="{ row }">
             <el-button v-if="row.type !== 2" type="primary" link size="small" @click="openDialog(undefined, row.id)">新增子菜单</el-button>
             <el-button type="primary" link size="small" @click="openDialog(row)">编辑</el-button>
-            <el-popconfirm title="确定删除?" @confirm="handleDelete(row.id)">
+            <el-popconfirm title="确定删除该菜单？" @confirm="handleDelete(row.id)">
               <template #reference>
                 <el-button type="danger" link size="small">删除</el-button>
               </template>
             </el-popconfirm>
           </template>
         </el-table-column>
+        <template #empty>
+          <el-empty description="暂无菜单数据" />
+        </template>
       </el-table>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑菜单' : '新增菜单'" width="560px" :close-on-click-modal="false">
+    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑菜单' : '新增菜单'" width="560px" :close-on-click-modal="false" destroy-on-close>
       <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
         <el-form-item label="上级菜单">
-          <el-input v-model="form.parentId" placeholder="上级菜单ID（空为顶级）" />
+          <el-tree-select
+            v-model="form.parentId"
+            :data="menuTreeData"
+            :props="{ label: 'name', children: 'children' }"
+            node-key="id"
+            check-strictly
+            clearable
+            placeholder="无（顶级菜单）"
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="菜单类型" prop="type">
           <el-radio-group v-model="form.type">
@@ -64,10 +84,10 @@
           <el-input v-model="form.component" placeholder="请输入组件路径" />
         </el-form-item>
         <el-form-item label="排序" prop="sort">
-          <el-input-number v-model="form.sort" :min="0" />
+          <el-input-number v-model="form.sort" :min="0" style="width: 100%" />
         </el-form-item>
-        <el-form-item label="权限标识">
-          <el-input v-model="form.permission" placeholder="请输入权限标识" />
+        <el-form-item v-if="form.type === 2" label="权限标识">
+          <el-input v-model="form.permission" placeholder="请输入权限标识，如 system:user:add" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -79,7 +99,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, computed, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import type { FormInstance, FormRules } from "element-plus";
 import { Search } from "@element-plus/icons-vue";
@@ -88,15 +108,49 @@ import { getMenuTree, addMenu, updateMenu, deleteMenu } from "@/api/menu";
 const loading = ref(false);
 const menuTree = ref<any[]>([]);
 const searchKey = ref("");
+const isAllExpanded = ref(true);
+const tableRef = ref<any>();
+
+const menuTreeData = computed(() => menuTree.value);
+
+const filteredMenuTree = computed(() => {
+  if (!searchKey.value.trim()) return menuTree.value;
+  return filterByName(menuTree.value, searchKey.value.trim().toLowerCase());
+});
+
+const filterByName = (list: any[], key: string): any[] => {
+  return list
+    .map(item => {
+      const children = item.children?.length ? filterByName(item.children, key) : [];
+      if (item.name?.toLowerCase().includes(key) || children.length > 0) {
+        return { ...item, children: children.length > 0 ? children : item.children?.length ? children : undefined };
+      }
+      return null;
+    })
+    .filter(Boolean) as any[];
+};
 
 const fetchMenuTree = async () => {
   loading.value = true;
   try {
     const res: any = await getMenuTree();
     menuTree.value = res.data || [];
+  } catch {
+    ElMessage.error("获取菜单树失败");
   } finally {
     loading.value = false;
   }
+};
+
+const handleSearch = () => {
+  // Filtering is reactive via computed
+};
+
+const toggleExpandAll = () => {
+  isAllExpanded.value = !isAllExpanded.value;
+  const data = [...menuTree.value];
+  menuTree.value = [];
+  setTimeout(() => { menuTree.value = data; }, 0);
 };
 
 const dialogVisible = ref(false);
@@ -146,15 +200,21 @@ const handleSave = async () => {
     ElMessage.success("保存成功");
     dialogVisible.value = false;
     fetchMenuTree();
+  } catch {
+    ElMessage.error("保存失败");
   } finally {
     saving.value = false;
   }
 };
 
 const handleDelete = async (id: number) => {
-  await deleteMenu(id);
-  ElMessage.success("删除成功");
-  fetchMenuTree();
+  try {
+    await deleteMenu(id);
+    ElMessage.success("删除成功");
+    fetchMenuTree();
+  } catch {
+    ElMessage.error("删除失败");
+  }
 };
 
 onMounted(() => { fetchMenuTree(); });

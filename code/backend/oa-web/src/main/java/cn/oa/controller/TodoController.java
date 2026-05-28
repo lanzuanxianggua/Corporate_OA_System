@@ -7,6 +7,7 @@ import cn.oa.service.TodoService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/todo")
 @Tag(name = "待办中心")
@@ -49,6 +51,7 @@ public class TodoController {
     @Operation(summary = "标记待办完成")
     public R<Void> done(@PathVariable Long id) {
         todoService.doneTodo(id);
+        log.info("Todo marked done: id={}", id);
         return R.ok();
     }
 
@@ -56,6 +59,7 @@ public class TodoController {
     @Operation(summary = "忽略待办")
     public R<Void> ignore(@PathVariable Long id) {
         todoService.ignoreTodo(id);
+        log.info("Todo ignored: id={}", id);
         return R.ok();
     }
 }

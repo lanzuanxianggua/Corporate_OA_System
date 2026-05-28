@@ -1,22 +1,23 @@
 import request from "@/utils/request";
+import type { ApiResponse, PageResult, PageParams, Asset, AssetBorrow } from "@/types/api";
 
-export const getAssetPage = (params: any) =>
-  request.get<any, any>("/api/asset/page", { params });
+export const getAssetPage = (params: PageParams & Partial<Asset>) =>
+  request.get<unknown, ApiResponse<PageResult<Asset>>>("/api/asset/page", { params });
 
-export const addAsset = (data: any) =>
-  request.post("/api/asset", data);
+export const addAsset = (data: Partial<Asset>) =>
+  request.post<unknown, ApiResponse<void>>("/api/asset", data);
 
-export const updateAsset = (data: any) =>
-  request.put("/api/asset", data);
+export const updateAsset = (data: Partial<Asset>) =>
+  request.put<unknown, ApiResponse<void>>("/api/asset", data);
 
 export const deleteAsset = (id: number) =>
-  request.delete(`/api/asset/${id}`);
+  request.delete<unknown, ApiResponse<void>>(`/api/asset/${id}`);
 
-export const borrowAsset = (data: any) =>
-  request.post("/api/asset/borrow", data);
+export const borrowAsset = (data: Partial<AssetBorrow>) =>
+  request.post<unknown, ApiResponse<void>>("/api/asset/borrow", data);
 
 export const returnAsset = (borrowId: number) =>
-  request.post(`/api/asset/return/${borrowId}`);
+  request.post<unknown, ApiResponse<void>>(`/api/asset/return/${borrowId}`);
 
-export const getBorrowPage = (params: any) =>
-  request.get<any, any>("/api/asset/borrow/page", { params });
+export const getBorrowPage = (params: PageParams & Partial<AssetBorrow>) =>
+  request.get<unknown, ApiResponse<PageResult<AssetBorrow>>>("/api/asset/borrow/page", { params });

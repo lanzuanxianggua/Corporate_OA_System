@@ -8,9 +8,12 @@ import cn.oa.service.ConfigService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/config")
 @Tag(name = "系统参数")
@@ -38,16 +41,18 @@ public class ConfigController {
     @PostMapping
     @Operation(summary = "新增参数")
     @RequireAdmin
-    public R<Void> add(@RequestBody SysConfig config) {
+    public R<Void> add(@RequestBody @Valid SysConfig config) {
         configService.save(config);
+        log.info("Config created: key={}", config.getConfigKey());
         return R.ok();
     }
 
     @PutMapping
     @Operation(summary = "修改参数")
     @RequireAdmin
-    public R<Void> update(@RequestBody SysConfig config) {
+    public R<Void> update(@RequestBody @Valid SysConfig config) {
         configService.updateById(config);
+        log.info("Config updated: key={}", config.getConfigKey());
         return R.ok();
     }
 
@@ -56,6 +61,7 @@ public class ConfigController {
     @RequireAdmin
     public R<Void> delete(@PathVariable Long id) {
         configService.removeById(id);
+        log.info("Config deleted: id={}", id);
         return R.ok();
     }
 }

@@ -1,5 +1,7 @@
 package cn.oa.service.impl;
 
+import lombok.extern.slf4j.Slf4j;
+
 import cn.oa.entity.WfDelegation;
 import cn.oa.mapper.WfDelegationMapper;
 import cn.oa.service.DelegationService;
@@ -11,6 +13,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
+@Slf4j
 public class DelegationServiceImpl extends ServiceImpl<WfDelegationMapper, WfDelegation> implements DelegationService {
 
     @Override
@@ -18,6 +21,7 @@ public class DelegationServiceImpl extends ServiceImpl<WfDelegationMapper, WfDel
         delegation.setStatus("0");
         delegation.setCreateTime(LocalDateTime.now());
         this.save(delegation);
+        log.info("Delegation set: delegatorId={}, delegateToId={}", delegation.getDelegatorId(), delegation.getDelegateToId());
     }
 
     @Override
@@ -34,6 +38,7 @@ public class DelegationServiceImpl extends ServiceImpl<WfDelegationMapper, WfDel
         if (delegation != null && delegation.getDelegatorId().equals(delegatorId)) {
             delegation.setStatus("1");
             this.updateById(delegation);
+            log.info("Delegation cancelled: id={}, delegatorId={}", id, delegatorId);
         }
     }
 

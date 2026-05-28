@@ -65,6 +65,14 @@ const handleSubmit = async () => {
     uni.showToast({ title: "请填写完整信息", icon: "none" });
     return;
   }
+  if (new Date(endDate) < new Date(startDate)) {
+    uni.showToast({ title: "结束日期不能早于开始日期", icon: "none" });
+    return;
+  }
+  if (destination.trim().length < 2) {
+    uni.showToast({ title: "目的地至少2个字", icon: "none" });
+    return;
+  }
   submitting.value = true;
   try {
     await submitBusinessTrip({ destination, startDate, endDate, reason });

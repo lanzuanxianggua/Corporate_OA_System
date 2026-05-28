@@ -24,6 +24,8 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -37,6 +39,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/attendance")
 @Tag(name = "考勤管理")
+@Slf4j
 public class AttendanceController {
 
     private static final String[] STATUS_TEXT = {"正常", "迟到", "早退", "缺勤", "休息", "请假", "出差"};
@@ -56,6 +59,7 @@ public class AttendanceController {
         Object empIdObj = request.getAttribute("empId");
         Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         attendanceService.clockIn(empId);
+        log.info("Clock in: empId={}", empId);
         return R.ok();
     }
 
@@ -66,6 +70,7 @@ public class AttendanceController {
         Object empIdObj = request.getAttribute("empId");
         Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         attendanceService.clockOut(empId);
+        log.info("Clock out: empId={}", empId);
         return R.ok();
     }
 
@@ -115,8 +120,11 @@ public class AttendanceController {
             ExcelExportUtil.export(response, "考勤数据", AttendanceExportVO.class, new ArrayList<>());
             return;
         }
-        if (records.size() > 10000) {
-            records = records.subList(0, 10000);
+        if (records.size() > 1000) {
+            log.warn("Export result count: {}, consider async export", records.size());
+        }
+        if (records.size() > 5000) {
+            records = records.subList(0, 5000);
         }
 
         // Build empId -> employee map

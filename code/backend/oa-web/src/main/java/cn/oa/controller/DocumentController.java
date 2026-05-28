@@ -9,6 +9,7 @@ import cn.oa.service.DocumentService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
@@ -30,6 +31,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/document")
 @Tag(name = "文档管理")
@@ -57,6 +59,7 @@ public class DocumentController {
     public R<Void> upload(@RequestParam("file") MultipartFile file,
                           @RequestParam Long uploaderId) {
         documentService.upload(file, uploaderId);
+        log.info("Document uploaded: name={}, uploaderId={}", file.getOriginalFilename(), uploaderId);
         return R.ok();
     }
 
@@ -66,6 +69,7 @@ public class DocumentController {
     @OperationLog(module = "文档管理", operation = "删除文档")
     public R<Void> delete(@PathVariable Long id) {
         documentService.removeById(id);
+        log.info("Document deleted: id={}", id);
         return R.ok();
     }
 

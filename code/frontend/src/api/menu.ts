@@ -1,19 +1,20 @@
 import request from "@/utils/request";
+import type { ApiResponse, Menu } from "@/types/api";
 
 export const getMenuTree = () =>
-  request.get<any, any>("/api/menu/tree");
+  request.get<unknown, ApiResponse<Menu[]>>("/api/menu/tree");
 
 export const getMenuByRole = (roleId: number) =>
-  request.get<any, any>(`/api/menu/role/${roleId}`);
+  request.get<unknown, ApiResponse<Menu[]>>(`/api/menu/role/${roleId}`);
 
-export const addMenu = (data: any) =>
-  request.post("/api/menu", data);
+export const addMenu = (data: Partial<Menu>) =>
+  request.post<unknown, ApiResponse<void>>("/api/menu", data);
 
-export const updateMenu = (data: any) =>
-  request.put("/api/menu", data);
+export const updateMenu = (data: Partial<Menu>) =>
+  request.put<unknown, ApiResponse<void>>("/api/menu", data);
 
 export const deleteMenu = (id: number) =>
-  request.delete(`/api/menu/${id}`);
+  request.delete<unknown, ApiResponse<void>>(`/api/menu/${id}`);
 
 export const assignRoleMenus = (data: { roleId: number; menuIds: number[] }) =>
-  request.put(`/api/menu/role/${data.roleId}`, data.menuIds);
+  request.put<unknown, ApiResponse<void>>(`/api/menu/role/${data.roleId}`, data.menuIds);

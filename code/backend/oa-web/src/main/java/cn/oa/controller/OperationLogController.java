@@ -7,9 +7,11 @@ import cn.oa.entity.OaOperationLog;
 import cn.oa.service.OperationLogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/operation-log")
 @Tag(name = "操作日志")

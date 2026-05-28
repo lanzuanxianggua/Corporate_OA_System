@@ -1,22 +1,23 @@
 import request from "@/utils/request";
+import type { ApiResponse, PageResult, PageParams, MeetingRoom, Meeting } from "@/types/api";
 
 export const getRooms = () =>
-  request.get<any, any>("/api/meeting/room/list");
+  request.get<unknown, ApiResponse<MeetingRoom[]>>("/api/meeting/room/list");
 
-export const addRoom = (data: any) =>
-  request.post("/api/meeting/room", data);
+export const addRoom = (data: Partial<MeetingRoom>) =>
+  request.post<unknown, ApiResponse<void>>("/api/meeting/room", data);
 
-export const updateRoom = (data: any) =>
-  request.put("/api/meeting/room", data);
+export const updateRoom = (data: Partial<MeetingRoom>) =>
+  request.put<unknown, ApiResponse<void>>("/api/meeting/room", data);
 
 export const deleteRoom = (id: number) =>
-  request.delete(`/api/meeting/room/${id}`);
+  request.delete<unknown, ApiResponse<void>>(`/api/meeting/room/${id}`);
 
-export const submitMeeting = (data: any) =>
-  request.post("/api/meeting/submit", data);
+export const submitMeeting = (data: Partial<Meeting>) =>
+  request.post<unknown, ApiResponse<void>>("/api/meeting/submit", data);
 
-export const getMeetingPage = (params: any) =>
-  request.get<any, any>("/api/meeting/page", { params });
+export const getMeetingPage = (params: PageParams & Partial<Meeting>) =>
+  request.get<unknown, ApiResponse<PageResult<Meeting>>>("/api/meeting/page", { params });
 
 export const cancelMeeting = (id: number) =>
-  request.post(`/api/meeting/cancel/${id}`);
+  request.post<unknown, ApiResponse<void>>(`/api/meeting/cancel/${id}`);

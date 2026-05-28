@@ -12,6 +12,9 @@
           </template>
 
           <el-table :data="tableData" v-loading="loading" stripe style="width: 100%" size="small" :header-cell-style="{ background: '#f5f7fa', color: '#606266' }">
+            <template #empty>
+              <el-empty description="暂无外出记录" :image-size="60" />
+            </template>
             <el-table-column prop="destination" label="外出地点" min-width="100" show-overflow-tooltip />
             <el-table-column prop="reason" label="事由" min-width="120" show-overflow-tooltip />
             <el-table-column label="开始时间" min-width="140">
@@ -100,8 +103,8 @@ const fetchList = async () => {
     const res: any = await getOutingPage({ pageNum: pageNum.value, pageSize: pageSize.value });
     tableData.value = res.data?.list || [];
     total.value = res.data?.total || 0;
-  } catch {
-    // error handled by interceptor
+  } catch (e) {
+    ElMessage.error("获取外出记录失败");
   } finally {
     loading.value = false;
   }
@@ -160,8 +163,8 @@ const handleSubmit = async () => {
     resetForm();
     pageNum.value = 1;
     fetchList();
-  } catch {
-    // error handled by interceptor
+  } catch (e) {
+    ElMessage.error("提交外出申请失败");
   } finally {
     submitting.value = false;
   }

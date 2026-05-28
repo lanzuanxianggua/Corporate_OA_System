@@ -16,6 +16,9 @@
 
       <!-- 审批列表 -->
       <el-table :data="tableData" v-loading="loading" stripe style="width: 100%" :header-cell-style="{ background: '#f5f7fa', color: '#606266' }">
+        <template #empty>
+          <el-empty description="暂无待审批记录" :image-size="60" />
+        </template>
         <el-table-column prop="empName" label="申请人" width="90" />
         <el-table-column prop="itemName" label="采购物品" min-width="100" show-overflow-tooltip />
         <el-table-column label="数量" width="70" align="center">
@@ -27,7 +30,7 @@
         <el-table-column prop="reason" label="原因" min-width="120" show-overflow-tooltip />
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
-            <el-tag :type="(statusTagType(row.status) as any)" size="small" effect="light">{{ statusText(row.status) }}</el-tag>
+            <el-tag :type="(formatStatusTagType(row.status) as any)" size="small" effect="light">{{ formatStatusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="160" align="center" fixed="right">
@@ -52,6 +55,7 @@
       <template v-if="currentRow">
         <el-descriptions :column="2" border size="small" class="mb-4">
           <el-descriptions-item label="申请人">{{ currentRow.empName }}</el-descriptions-item>
+          <el-descriptions-item label="部门">{{ (currentRow as any).deptName ?? "-" }}</el-descriptions-item>
           <el-descriptions-item label="采购物品">{{ currentRow.itemName }}</el-descriptions-item>
           <el-descriptions-item label="数量">{{ currentRow.quantity }}</el-descriptions-item>
           <el-descriptions-item label="预估金额">{{ formatAmount(currentRow.amount) }}</el-descriptions-item>
@@ -81,6 +85,7 @@ import { ref, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import ApprovalTimeline from "@/components/ApprovalTimeline.vue";
 import { getPurchasePage, approvePurchase } from "@/api/purchase";
+import { formatStatusText, formatStatusTagType } from "@/utils/format";
 
 // --- 列表 ---
 const loading = ref(false);
@@ -98,8 +103,8 @@ const fetchList = async () => {
     const res: any = await getPurchasePage(params);
     tableData.value = res.data?.list || [];
     total.value = res.data?.total || 0;
-  } catch {
-    // error handled by interceptor
+  } catch (e) {
+    ElMessage.error("获取审批列表失败");
   } finally {
     loading.value = false;
   }
@@ -140,24 +145,14 @@ const handleApprove = async () => {
     ElMessage.success(approveAction.value === 1 ? "已通过该采购申请" : "已拒绝该采购申请");
     dialogVisible.value = false;
     fetchList();
-  } catch {
-    // error handled by interceptor
+  } catch (e) {
+    ElMessage.error("审批操作失败");
   } finally {
     approving.value = false;
   }
 };
 
 // --- 工具函数 ---
-const statusText = (status?: number) => {
-  const map: Record<number, string> = { 0: "待审批", 1: "已通过", 2: "已拒绝" };
-  return map[status ?? -1] || "未知";
-};
-
-const statusTagType = (status?: number) => {
-  const map: Record<number, string> = { 0: "warning", 1: "success", 2: "danger" };
-  return map[status ?? -1] || "info";
-};
-
 const formatAmount = (amount?: number) => {
   if (amount == null) return "-";
   return `￥${amount.toFixed(2)}`;

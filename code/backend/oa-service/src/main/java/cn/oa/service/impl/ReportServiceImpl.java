@@ -151,10 +151,10 @@ public class ReportServiceImpl implements ReportService {
         List<OaAttendance> records = attendanceMapper.selectList(wrapper);
 
         AdminReportVO.AttendanceSummary summary = new AdminReportVO.AttendanceSummary();
-        long normalCount = records.stream().filter(a -> a.getStatus() == 0).count();
-        long lateCount = records.stream().filter(a -> a.getStatus() == 1).count();
-        long earlyLeaveCount = records.stream().filter(a -> a.getStatus() == 2).count();
-        long absentCount = records.stream().filter(a -> a.getStatus() == 3).count();
+        long normalCount = records.stream().filter(a -> a.getStatus() != null && a.getStatus() == 0).count();
+        long lateCount = records.stream().filter(a -> a.getStatus() != null && a.getStatus() == 1).count();
+        long earlyLeaveCount = records.stream().filter(a -> a.getStatus() != null && a.getStatus() == 2).count();
+        long absentCount = records.stream().filter(a -> a.getStatus() != null && a.getStatus() == 3).count();
         long total = records.size();
 
         summary.setTotalRecords(total);
@@ -257,7 +257,7 @@ public class ReportServiceImpl implements ReportService {
                    .between(OaAttendance::getWorkDate, start, end);
             List<OaAttendance> records = attendanceMapper.selectList(wrapper);
 
-            long normal = records.stream().filter(a -> a.getStatus() == 0).count();
+            long normal = records.stream().filter(a -> a.getStatus() != null && a.getStatus() == 0).count();
             double rate = records.isEmpty() ? 0 : Math.round((double) normal / records.size() * 10000) / 100.0;
 
             Map<String, Object> item = new LinkedHashMap<>();
@@ -320,7 +320,7 @@ public class ReportServiceImpl implements ReportService {
                    .between(OaAttendance::getWorkDate, start, end);
             List<OaAttendance> records = attendanceMapper.selectList(wrapper);
 
-            long normal = records.stream().filter(a -> a.getStatus() == 0).count();
+            long normal = records.stream().filter(a -> a.getStatus() != null && a.getStatus() == 0).count();
             double rate = records.isEmpty() ? 0 : Math.round((double) normal / records.size() * 10000) / 100.0;
 
             Map<String, Object> item = new LinkedHashMap<>();

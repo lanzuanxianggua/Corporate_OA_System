@@ -2,10 +2,23 @@
 import { onLaunch } from "@dcloudio/uni-app";
 
 onLaunch(() => {
-  const token = uni.getStorageSync("token");
-  if (!token) {
-    uni.reLaunch({ url: "/pages/login/index" });
-  }
+  // Add navigation interceptors for authentication guard
+  const authInterceptor = {
+    invoke(args: any) {
+      const token = uni.getStorageSync("token");
+      const url: string = args.url || "";
+      if (!token && !url.includes("/pages/login/")) {
+        uni.reLaunch({ url: "/pages/login/index" });
+        return false;
+      }
+      return true;
+    }
+  };
+
+  uni.addInterceptor("navigateTo", authInterceptor);
+  uni.addInterceptor("redirectTo", authInterceptor);
+  uni.addInterceptor("reLaunch", authInterceptor);
+  uni.addInterceptor("switchTab", authInterceptor);
 });
 </script>
 

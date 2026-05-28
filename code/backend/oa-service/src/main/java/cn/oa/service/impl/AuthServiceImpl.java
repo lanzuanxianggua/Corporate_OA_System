@@ -1,5 +1,7 @@
 package cn.oa.service.impl;
 
+import lombok.extern.slf4j.Slf4j;
+
 import cn.oa.common.exception.BusinessException;
 import cn.oa.common.utils.JwtUtil;
 import cn.oa.entity.*;
@@ -23,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class AuthServiceImpl implements AuthService {
 
     @Autowired
@@ -96,6 +99,7 @@ public class AuthServiceImpl implements AuthService {
 
         // 记录登录日志
         recordLoginLog(employee.getId(), username, request, 1, "登录成功");
+        log.info("User login successful: username={}, empId={}", username, employee.getId());
 
         LoginVO vo = new LoginVO();
         vo.setAccessToken(token);
@@ -114,6 +118,7 @@ public class AuthServiceImpl implements AuthService {
         redisTemplate.delete("token:" + empId);
         redisTemplate.delete("roles:" + empId);
         onlineUserService.userLogout(empId);
+        log.info("User logout: empId={}", empId);
     }
 
     @Override

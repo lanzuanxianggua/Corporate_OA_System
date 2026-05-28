@@ -56,8 +56,9 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import { submitLeave } from "@/api/leave";
+import { LEAVE_TYPE_MAP } from "@/utils/constants";
 
-const leaveTypes = ["事假", "病假", "年假", "婚假", "产假", "丧假"];
+const leaveTypes = LEAVE_TYPE_MAP;
 
 const form = ref({
   leaveType: 0,
@@ -97,6 +98,19 @@ const handleSubmit = async () => {
   const { leaveType, startDate, endDate, days, reason } = form.value;
   if (!startDate || !endDate || !days || !reason) {
     uni.showToast({ title: "请填写完整信息", icon: "none" });
+    return;
+  }
+  if (new Date(endDate) < new Date(startDate)) {
+    uni.showToast({ title: "结束日期不能早于开始日期", icon: "none" });
+    return;
+  }
+  const leavePeriod = Number(days);
+  if (isNaN(leavePeriod) || leavePeriod < 0.5) {
+    uni.showToast({ title: "请假天数不能少于0.5天", icon: "none" });
+    return;
+  }
+  if (reason.trim().length < 2) {
+    uni.showToast({ title: "请假原因至少2个字", icon: "none" });
     return;
   }
   submitting.value = true;

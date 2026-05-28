@@ -16,6 +16,9 @@
 
       <!-- 审批列表 -->
       <el-table :data="tableData" v-loading="loading" stripe style="width: 100%" :header-cell-style="{ background: '#f5f7fa', color: '#606266' }">
+        <template #empty>
+          <el-empty description="暂无待审批记录" :image-size="60" />
+        </template>
         <el-table-column prop="empName" label="申请人" width="90" />
         <el-table-column prop="destination" label="目的地" width="100" show-overflow-tooltip />
         <el-table-column prop="purpose" label="事由" min-width="120" show-overflow-tooltip />
@@ -32,7 +35,7 @@
         </el-table-column>
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
-            <el-tag :type="(statusTagType(row.status) as any)" size="small" effect="light">{{ statusText(row.status) }}</el-tag>
+            <el-tag :type="(formatStatusTagType(row.status) as any)" size="small" effect="light">{{ formatStatusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="160" align="center" fixed="right">
@@ -57,6 +60,7 @@
       <template v-if="currentRow">
         <el-descriptions :column="2" border size="small" class="mb-4">
           <el-descriptions-item label="申请人">{{ currentRow.empName }}</el-descriptions-item>
+          <el-descriptions-item label="部门">{{ (currentRow as any).deptName ?? "-" }}</el-descriptions-item>
           <el-descriptions-item label="目的地">{{ currentRow.destination }}</el-descriptions-item>
           <el-descriptions-item label="出差天数">{{ calcDays(currentRow.startTime, currentRow.endTime) }} 天</el-descriptions-item>
           <el-descriptions-item label="出发时间" :span="2">{{ formatTime(currentRow.startTime) }}</el-descriptions-item>
@@ -87,6 +91,7 @@ import { ref, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import ApprovalTimeline from "@/components/ApprovalTimeline.vue";
 import { getBusinessTripPage, approveBusinessTrip } from "@/api/businessTrip";
+import { formatStatusText, formatStatusTagType } from "@/utils/format";
 
 const calcDays = (startTime?: string, endTime?: string) => {
   if (!startTime || !endTime) return "-";
@@ -110,8 +115,8 @@ const fetchList = async () => {
     const res: any = await getBusinessTripPage(params);
     tableData.value = res.data?.list || [];
     total.value = res.data?.total || 0;
-  } catch {
-    // error handled by interceptor
+  } catch (e) {
+    ElMessage.error("获取审批列表失败");
   } finally {
     loading.value = false;
   }
@@ -152,24 +157,14 @@ const handleApprove = async () => {
     ElMessage.success(approveAction.value === 1 ? "已通过该出差申请" : "已拒绝该出差申请");
     dialogVisible.value = false;
     fetchList();
-  } catch {
-    // error handled by interceptor
+  } catch (e) {
+    ElMessage.error("审批操作失败");
   } finally {
     approving.value = false;
   }
 };
 
 // --- 工具函数 ---
-const statusText = (status?: number) => {
-  const map: Record<number, string> = { 0: "待审批", 1: "已通过", 2: "已拒绝" };
-  return map[status ?? -1] || "未知";
-};
-
-const statusTagType = (status?: number) => {
-  const map: Record<number, string> = { 0: "warning", 1: "success", 2: "danger" };
-  return map[status ?? -1] || "info";
-};
-
 const formatTime = (time?: string) => {
   if (!time) return "-";
   return time.replace("T", " ").substring(0, 16);

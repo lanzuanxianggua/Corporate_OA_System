@@ -1,5 +1,7 @@
 package cn.oa.service.impl;
 
+import lombok.extern.slf4j.Slf4j;
+
 import cn.oa.common.constant.BusinessType;
 import cn.oa.common.exception.BusinessException;
 import cn.oa.entity.OaApprovalRecord;
@@ -24,6 +26,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class OutingServiceImpl extends ServiceImpl<OaOutingMapper, OaOuting> implements OutingService {
 
     @Autowired
@@ -36,13 +39,18 @@ public class OutingServiceImpl extends ServiceImpl<OaOutingMapper, OaOuting> imp
     private WorkflowService workflowService;
 
     @Override
+    @Transactional
     public void submit(OaOuting outing) {
+        if (outing.getStartTime() == null || outing.getEndTime() == null) {
+            throw new BusinessException("外出起止时间不能为空");
+        }
         outing.setStatus(0);
         this.save(outing);
         long days = java.time.temporal.ChronoUnit.DAYS.between(outing.getStartTime().toLocalDate(), outing.getEndTime().toLocalDate()) + 1;
         Map<String, Object> ctx = new HashMap<>();
         ctx.put("days", days);
         workflowService.startProcess(BusinessType.OUTING, outing.getId(), outing.getEmpId(), ctx);
+        log.info("Outing submitted: id={}, empId={}", outing.getId(), outing.getEmpId());
     }
 
     @Override

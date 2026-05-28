@@ -43,6 +43,14 @@ const handleLogin = async () => {
     uni.showToast({ title: "请输入用户名和密码", icon: "none" });
     return;
   }
+  if (form.username.trim().length < 2) {
+    uni.showToast({ title: "用户名至少2个字符", icon: "none" });
+    return;
+  }
+  if (form.password.length < 6) {
+    uni.showToast({ title: "密码至少6个字符", icon: "none" });
+    return;
+  }
   loading.value = true;
   try {
     await userStore.login(form.username, form.password, form.captchaUuid, form.captchaCode);

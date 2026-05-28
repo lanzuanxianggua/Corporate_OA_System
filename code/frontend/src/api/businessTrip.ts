@@ -1,10 +1,11 @@
 import request from "@/utils/request";
+import type { ApiResponse, PageResult, PageParams, BusinessTrip } from "@/types/api";
 
-export const getBusinessTripPage = (params: any) =>
-  request.get<any, any>("/api/business-trip/page", { params });
+export const getBusinessTripPage = (params: PageParams & Partial<BusinessTrip>) =>
+  request.get<unknown, ApiResponse<PageResult<BusinessTrip>>>("/api/business-trip/page", { params });
 
-export const submitBusinessTrip = (data: any) =>
-  request.post("/api/business-trip/submit", data);
+export const submitBusinessTrip = (data: Partial<BusinessTrip>) =>
+  request.post<unknown, ApiResponse<void>>("/api/business-trip/submit", data);
 
-export const approveBusinessTrip = (data: any) =>
-  request.post("/api/business-trip/approve", data);
+export const approveBusinessTrip = (data: { id: number; status: number; remark?: string }) =>
+  request.post<unknown, ApiResponse<void>>("/api/business-trip/approve", data);

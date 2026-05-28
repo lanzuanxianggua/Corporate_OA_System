@@ -1,6 +1,7 @@
 package cn.oa.controller;
 
 import cn.oa.entity.OaNotice;
+import cn.oa.entity.dto.NoticeDTO;
 import cn.oa.service.NoticeService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -46,6 +47,16 @@ class NoticeControllerTest extends BaseControllerTest {
         return notice;
     }
 
+    private NoticeDTO buildNoticeDTO(Long id, String title) {
+        NoticeDTO dto = new NoticeDTO();
+        dto.setId(id);
+        dto.setTitle(title);
+        dto.setContent("公告内容");
+        dto.setNoticeType(1);
+        dto.setStatus(0);
+        return dto;
+    }
+
     @Test
     @DisplayName("分页查询公告")
     void pageNotice() throws Exception {
@@ -83,7 +94,7 @@ class NoticeControllerTest extends BaseControllerTest {
         mockMvc.perform(post("/api/notice")
                         .requestAttr("empId", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(buildNotice(null, "新公告"))))
+                        .content(objectMapper.writeValueAsString(buildNoticeDTO(null, "新公告"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0));
 
@@ -97,7 +108,7 @@ class NoticeControllerTest extends BaseControllerTest {
 
         mockMvc.perform(put("/api/notice")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(buildNotice(1L, "修改后"))))
+                        .content(objectMapper.writeValueAsString(buildNoticeDTO(1L, "修改后"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0));
 

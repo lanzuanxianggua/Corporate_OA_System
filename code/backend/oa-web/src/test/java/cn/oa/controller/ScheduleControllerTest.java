@@ -1,6 +1,7 @@
 package cn.oa.controller;
 
 import cn.oa.entity.OaSchedule;
+import cn.oa.entity.dto.ScheduleDTO;
 import cn.oa.service.ScheduleService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -39,6 +40,18 @@ class ScheduleControllerTest extends BaseControllerTest {
 
     @MockitoBean
     private RedisTemplate<String, Object> redisTemplate;
+
+    private ScheduleDTO buildScheduleDTO(Long id, String title) {
+        ScheduleDTO dto = new ScheduleDTO();
+        dto.setId(id);
+        dto.setEmpId(1L);
+        dto.setTitle(title);
+        dto.setContent("日程描述");
+        dto.setStartTime(LocalDateTime.of(2026, 6, 1, 9, 0, 0));
+        dto.setEndTime(LocalDateTime.of(2026, 6, 1, 10, 0, 0));
+        dto.setStatus(0);
+        return dto;
+    }
 
     private OaSchedule buildSchedule(Long id, String title) {
         OaSchedule schedule = new OaSchedule();
@@ -97,7 +110,7 @@ class ScheduleControllerTest extends BaseControllerTest {
 
         mockMvc.perform(post("/api/schedule")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(buildSchedule(null, "新日程"))))
+                        .content(objectMapper.writeValueAsString(buildScheduleDTO(null, "新日程"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0));
 
@@ -111,7 +124,7 @@ class ScheduleControllerTest extends BaseControllerTest {
 
         mockMvc.perform(put("/api/schedule")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(buildSchedule(1L, "修改后"))))
+                        .content(objectMapper.writeValueAsString(buildScheduleDTO(1L, "修改后"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0));
 

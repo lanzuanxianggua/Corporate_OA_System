@@ -10,11 +10,14 @@ import cn.oa.service.AssetService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/asset")
 @Tag(name = "资产管理")
@@ -41,16 +44,18 @@ public class AssetController {
     @PostMapping
     @RequireAdmin
     @Operation(summary = "新增资产")
-    public R<Void> add(@RequestBody OaAsset asset) {
+    public R<Void> add(@RequestBody @Valid OaAsset asset) {
         assetService.save(asset);
+        log.info("Asset created: assetCode={}", asset.getAssetCode());
         return R.ok();
     }
 
     @PutMapping
     @RequireAdmin
     @Operation(summary = "修改资产")
-    public R<Void> update(@RequestBody OaAsset asset) {
+    public R<Void> update(@RequestBody @Valid OaAsset asset) {
         assetService.updateById(asset);
+        log.info("Asset updated: id={}", asset.getId());
         return R.ok();
     }
 
@@ -59,16 +64,18 @@ public class AssetController {
     @Operation(summary = "删除资产")
     public R<Void> delete(@PathVariable Long id) {
         assetService.removeById(id);
+        log.info("Asset deleted: id={}", id);
         return R.ok();
     }
 
     @PostMapping("/borrow")
     @Operation(summary = "借出资产")
-    public R<Void> borrow(@RequestBody OaAssetBorrow borrow, HttpServletRequest request) {
+    public R<Void> borrow(@RequestBody @Valid OaAssetBorrow borrow, HttpServletRequest request) {
         Object empIdObj = request.getAttribute("empId");
         Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         borrow.setBorrowerId(empId);
         assetBorrowService.borrowAsset(borrow);
+        log.info("Asset borrowed: assetId={}, borrowerId={}", borrow.getAssetId(), empId);
         return R.ok();
     }
 
@@ -76,6 +83,7 @@ public class AssetController {
     @Operation(summary = "归还资产")
     public R<Void> returnAsset(@PathVariable Long borrowId) {
         assetBorrowService.returnAsset(borrowId);
+        log.info("Asset returned: borrowId={}", borrowId);
         return R.ok();
     }
 

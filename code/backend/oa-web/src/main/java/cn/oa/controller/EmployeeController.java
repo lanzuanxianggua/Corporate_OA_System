@@ -4,10 +4,13 @@ import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
 import cn.oa.entity.SysEmployee;
+import cn.oa.entity.dto.EmployeeDTO;
 import cn.oa.service.EmployeeService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/employee")
 @Tag(name = "员工管理")
@@ -47,16 +51,39 @@ public class EmployeeController {
     @PostMapping
     @Operation(summary = "新增员工")
     @OperationLog(module = "员工管理", operation = "新增员工")
-    public R<Void> add(@RequestBody SysEmployee employee) {
+    public R<Void> add(@RequestBody @Valid EmployeeDTO dto) {
+        SysEmployee employee = new SysEmployee();
+        employee.setEmpCode(dto.getEmpCode());
+        employee.setEmpName(dto.getEmpName());
+        employee.setPassword(dto.getPassword());
+        employee.setPhone(dto.getPhone());
+        employee.setEmail(dto.getEmail());
+        employee.setDeptId(dto.getDeptId());
+        employee.setAvatar(dto.getAvatar());
+        employee.setStatus(dto.getStatus());
+        employee.setPostId(dto.getPostId());
         employeeService.addEmployee(employee);
+        log.info("Employee created: empCode={}", employee.getEmpCode());
         return R.ok();
     }
 
     @PutMapping
     @Operation(summary = "修改员工")
     @OperationLog(module = "员工管理", operation = "修改员工")
-    public R<Void> update(@RequestBody SysEmployee employee) {
+    public R<Void> update(@RequestBody @Valid EmployeeDTO dto) {
+        SysEmployee employee = new SysEmployee();
+        employee.setId(dto.getId());
+        employee.setEmpCode(dto.getEmpCode());
+        employee.setEmpName(dto.getEmpName());
+        employee.setPassword(dto.getPassword());
+        employee.setPhone(dto.getPhone());
+        employee.setEmail(dto.getEmail());
+        employee.setDeptId(dto.getDeptId());
+        employee.setAvatar(dto.getAvatar());
+        employee.setStatus(dto.getStatus());
+        employee.setPostId(dto.getPostId());
         employeeService.updateById(employee);
+        log.info("Employee updated: id={}", employee.getId());
         return R.ok();
     }
 
@@ -65,6 +92,7 @@ public class EmployeeController {
     @OperationLog(module = "员工管理", operation = "删除员工")
     public R<Void> delete(@PathVariable Long id) {
         employeeService.removeById(id);
+        log.info("Employee deleted: id={}", id);
         return R.ok();
     }
 
@@ -74,6 +102,7 @@ public class EmployeeController {
                                   @RequestParam String oldPwd,
                                   @RequestParam String newPwd) {
         employeeService.updatePassword(empId, oldPwd, newPwd);
+        log.info("Employee password changed: empId={}", empId);
         return R.ok();
     }
 }

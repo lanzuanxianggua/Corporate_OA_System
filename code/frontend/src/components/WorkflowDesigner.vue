@@ -190,6 +190,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
 import { ArrowUp, ArrowDown, Delete } from "@element-plus/icons-vue";
+import { ElMessage } from "element-plus";
 import { getRoles } from "@/api/system";
 import request from "@/utils/request";
 
@@ -296,6 +297,25 @@ const parseModelValue = (val: string) => {
   } catch {
     nodes.value = [];
   }
+};
+
+const validateNodes = (): boolean => {
+  if (nodes.value.length === 0) {
+    ElMessage.warning("请至少添加一个审批节点");
+    return false;
+  }
+  for (let i = 0; i < nodes.value.length; i++) {
+    const node = nodes.value[i];
+    if (!node.nodeName.trim()) {
+      ElMessage.warning(`节点 ${i + 1}: 请输入节点名称`);
+      return false;
+    }
+    if (!node.assigneeType) {
+      ElMessage.warning(`节点 ${i + 1}: 请选择审批人类型`);
+      return false;
+    }
+  }
+  return true;
 };
 
 const emitUpdate = () => {
@@ -406,6 +426,8 @@ const searchEmployee = async (query: string) => {
 onMounted(() => {
   fetchRoles();
 });
+
+defineExpose({ validateNodes });
 </script>
 
 <style scoped>

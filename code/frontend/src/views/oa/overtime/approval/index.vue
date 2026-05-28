@@ -14,6 +14,9 @@
       </template>
 
       <el-table :data="tableData" v-loading="loading" stripe :header-cell-style="{ background: '#f5f7fa', color: '#606266' }">
+        <template #empty>
+          <el-empty description="暂无待审批记录" :image-size="60" />
+        </template>
         <el-table-column prop="empName" label="申请人" width="90" />
         <el-table-column label="开始时间" min-width="140">
           <template #default="{ row }">{{ formatTime(row.startTime) }}</template>
@@ -27,7 +30,7 @@
         <el-table-column prop="reason" label="原因" min-width="120" show-overflow-tooltip />
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
-            <el-tag :type="(statusTagType(row.status) as any)" size="small" effect="light">{{ statusText(row.status) }}</el-tag>
+            <el-tag :type="(formatStatusTagType(row.status) as any)" size="small" effect="light">{{ formatStatusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="160" align="center" fixed="right">
@@ -50,6 +53,7 @@
       <template v-if="currentRow">
         <el-descriptions :column="2" border size="small" class="mb-4">
           <el-descriptions-item label="申请人">{{ currentRow.empName }}</el-descriptions-item>
+          <el-descriptions-item label="部门">{{ (currentRow as any).deptName ?? "-" }}</el-descriptions-item>
           <el-descriptions-item label="加班时长">{{ currentRow.hours || "-" }} 小时</el-descriptions-item>
           <el-descriptions-item label="开始时间" :span="2">{{ formatTime(currentRow.startTime) }}</el-descriptions-item>
           <el-descriptions-item label="结束时间" :span="2">{{ formatTime(currentRow.endTime) }}</el-descriptions-item>
@@ -78,6 +82,7 @@ import { ref, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import ApprovalTimeline from "@/components/ApprovalTimeline.vue";
 import { getOvertimePage, approveOvertime } from "@/api/overtime";
+import { formatStatusText, formatStatusTagType } from "@/utils/format";
 
 const loading = ref(false);
 const tableData = ref<any[]>([]);
@@ -94,6 +99,8 @@ const fetchList = async () => {
     const res: any = await getOvertimePage(params);
     tableData.value = res.data?.list || [];
     total.value = res.data?.total || 0;
+  } catch (e) {
+    ElMessage.error("获取审批列表失败");
   } finally {
     loading.value = false;
   }
@@ -126,19 +133,11 @@ const handleApprove = async () => {
     ElMessage.success(approveAction.value === 1 ? "已通过" : "已拒绝");
     dialogVisible.value = false;
     fetchList();
+  } catch (e) {
+    ElMessage.error("审批操作失败");
   } finally {
     approving.value = false;
   }
-};
-
-const statusText = (status?: number) => {
-  const map: Record<number, string> = { 0: "待审批", 1: "已通过", 2: "已拒绝" };
-  return map[status ?? -1] || "未知";
-};
-
-const statusTagType = (status?: number) => {
-  const map: Record<number, string> = { 0: "warning", 1: "success", 2: "danger" };
-  return map[status ?? -1] || "info";
 };
 
 const formatTime = (time?: string) => {

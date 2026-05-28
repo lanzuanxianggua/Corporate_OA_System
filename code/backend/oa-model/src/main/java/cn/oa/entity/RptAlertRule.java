@@ -1,6 +1,8 @@
 package cn.oa.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -13,6 +15,7 @@ public class RptAlertRule {
     @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
+    @NotBlank(message = "规则名称不能为空")
     private String ruleName;
 
     private String ruleType;
@@ -21,6 +24,7 @@ public class RptAlertRule {
 
     private String conditionType;
 
+    @NotNull(message = "阈值不能为空")
     private BigDecimal threshold;
 
     private BigDecimal thresholdMax;

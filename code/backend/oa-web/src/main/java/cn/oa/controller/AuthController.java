@@ -15,11 +15,15 @@ import cn.hutool.crypto.digest.BCrypt;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+@Slf4j
 @RestController
 @CrossOrigin
 @Tag(name = "认证管理")
@@ -44,17 +48,18 @@ public class AuthController {
     @PostMapping("/login")
     @Operation(summary = "登录")
     @OperationLog(module = "认证管理", operation = "用户登录")
-    public R<LoginVO> login(@RequestBody LoginDTO dto, HttpServletRequest request) {
+    public R<LoginVO> login(@RequestBody @Valid LoginDTO dto, HttpServletRequest request) {
         if (!CaptchaUtil.verify(redisService, dto.getCaptchaUuid(), dto.getCaptchaCode())) {
             return R.fail("验证码错误或已过期");
         }
         LoginVO vo = authService.login(dto.getUsername(), dto.getPassword(), request);
+        log.info("User logged in: username={}", dto.getUsername());
         return R.ok(vo);
     }
 
     @PostMapping("/refresh-token")
     @Operation(summary = "刷新Token")
-    public R<LoginVO> refreshToken(@RequestBody RefreshTokenDTO dto) {
+    public R<LoginVO> refreshToken(@RequestBody @Valid RefreshTokenDTO dto) {
         LoginVO vo = authService.refreshToken(dto.getRefreshToken());
         return R.ok(vo);
     }
@@ -67,6 +72,7 @@ public class AuthController {
         Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : (empIdObj != null ? Long.valueOf(empIdObj.toString()) : null);
         if (empId != null) {
             authService.logout(empId);
+            log.info("User logged out: empId={}", empId);
         }
         return R.ok();
     }
@@ -74,7 +80,7 @@ public class AuthController {
     @PostMapping("/api/auth/change-password")
     @Operation(summary = "修改密码")
     @OperationLog(module = "认证管理", operation = "修改密码")
-    public R<Void> changePassword(@RequestBody ChangePasswordDTO dto, HttpServletRequest request) {
+    public R<Void> changePassword(@RequestBody @Valid ChangePasswordDTO dto, HttpServletRequest request) {
         Object empIdObj = request.getAttribute("empId");
         Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : (empIdObj != null ? Long.valueOf(empIdObj.toString()) : null);
         if (empId == null) {
@@ -94,17 +100,21 @@ public class AuthController {
         PasswordUtil.validatePassword(dto.getNewPassword());
         employee.setPassword(BCrypt.hashpw(dto.getNewPassword()));
         employeeService.updateById(employee);
+        log.info("Password changed: empId={}", empId);
         return R.ok();
     }
 
     @lombok.Data
     public static class RefreshTokenDTO {
+        @NotBlank(message = "refreshToken不能为空")
         private String refreshToken;
     }
 
     @lombok.Data
     public static class ChangePasswordDTO {
+        @NotBlank(message = "旧密码不能为空")
         private String oldPassword;
+        @NotBlank(message = "新密码不能为空")
         private String newPassword;
     }
 }

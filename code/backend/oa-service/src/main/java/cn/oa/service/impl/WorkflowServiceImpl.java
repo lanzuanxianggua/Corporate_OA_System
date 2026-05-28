@@ -1,5 +1,7 @@
 package cn.oa.service.impl;
 
+import lombok.extern.slf4j.Slf4j;
+
 import cn.oa.common.exception.BusinessException;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
@@ -38,6 +40,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, WfProcessDefinition> implements WorkflowService {
 
@@ -121,6 +124,7 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
         instanceMapper.insert(instance);
 
         createTaskForNode(instance, applicableNodes.get(0), 0);
+        log.info("Process started: businessType={}, businessId={}, initiatorId={}", businessType, businessId, initiatorId);
 
         return instance;
     }
@@ -641,7 +645,9 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
             if (todo != null) {
                 todoService.doneTodo(todo.getId());
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            log.warn("Failed to complete todo for instance {}: {}", instanceId, e.getMessage());
+        }
     }
 
     @Override

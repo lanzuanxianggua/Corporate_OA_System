@@ -1,5 +1,7 @@
 package cn.oa.service.impl;
 
+import lombok.extern.slf4j.Slf4j;
+
 import cn.oa.common.constant.BusinessType;
 import cn.oa.common.exception.BusinessException;
 import cn.oa.entity.OaApprovalRecord;
@@ -29,6 +31,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class PurchaseServiceImpl extends ServiceImpl<OaPurchaseMapper, OaPurchase> implements PurchaseService {
 
     @Autowired
@@ -45,13 +48,18 @@ public class PurchaseServiceImpl extends ServiceImpl<OaPurchaseMapper, OaPurchas
     private BudgetService budgetService;
 
     @Override
+    @Transactional
     public void submit(OaPurchase purchase) {
+        if (purchase.getAmount() == null) {
+            throw new BusinessException("采购金额不能为空");
+        }
         purchase.setStatus(0);
         this.save(purchase);
         Map<String, Object> ctx = new HashMap<>();
         ctx.put("amount", purchase.getAmount().doubleValue());
         ctx.put("quantity", purchase.getQuantity());
         workflowService.startProcess(BusinessType.PURCHASE, purchase.getId(), purchase.getEmpId(), ctx);
+        log.info("Purchase submitted: id={}, empId={}", purchase.getId(), purchase.getEmpId());
     }
 
     @Override

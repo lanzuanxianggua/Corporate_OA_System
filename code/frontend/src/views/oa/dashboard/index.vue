@@ -10,91 +10,96 @@
           <el-radio-button value="year">本年</el-radio-button>
         </el-radio-group>
         <el-date-picker v-if="period === 'year'" v-model="selectedYear" type="year" placeholder="选择年份" format="YYYY年" value-format="YYYY" @change="fetchAllData" />
+        <el-button :icon="Refresh" circle @click="fetchAllData" />
       </div>
     </div>
 
-    <el-row :gutter="16" class="mb-5">
-      <el-col v-for="item in statsCards" :key="item.label" :span="4">
-        <div class="bg-white rounded-lg p-4" style="box-shadow:0 2px 12px rgba(0,0,0,.06)">
-          <div class="text-sm text-[#909399] mb-1">{{ item.label }}</div>
-          <div class="text-2xl font-bold" :style="{ color: item.color }">{{ item.value }}</div>
-        </div>
-      </el-col>
-    </el-row>
+    <div v-loading="loading" element-loading-text="加载看板数据中...">
+      <el-row :gutter="16" class="mb-5">
+        <el-col v-for="item in statsCards" :key="item.label" :span="4">
+          <div class="bg-white rounded-lg p-4" style="box-shadow:0 2px 12px rgba(0,0,0,.06)">
+            <div class="text-sm text-[#909399] mb-1">{{ item.label }}</div>
+            <div class="text-2xl font-bold" :style="{ color: item.color }">{{ item.value }}</div>
+          </div>
+        </el-col>
+      </el-row>
 
-    <el-row :gutter="20" class="mb-5">
-      <el-col :span="12">
-        <el-card>
-          <template #header><span class="font-medium">{{ trendTitle }}</span></template>
-          <div ref="trendChartRef" style="height: 280px"></div>
-        </el-card>
-      </el-col>
-      <el-col :span="12">
-        <el-card>
-          <template #header><span class="font-medium">部门人员分布</span></template>
-          <div ref="deptChartRef" style="height: 280px"></div>
-        </el-card>
-      </el-col>
-    </el-row>
+      <el-row :gutter="20" class="mb-5">
+        <el-col :span="12">
+          <el-card>
+            <template #header><span class="font-medium">{{ trendTitle }}</span></template>
+            <div ref="trendChartRef" style="height: 280px"></div>
+          </el-card>
+        </el-col>
+        <el-col :span="12">
+          <el-card>
+            <template #header><span class="font-medium">部门人员分布</span></template>
+            <div ref="deptChartRef" style="height: 280px"></div>
+          </el-card>
+        </el-col>
+      </el-row>
 
-    <el-row :gutter="20" class="mb-5">
-      <el-col :span="12">
-        <el-card>
-          <template #header><span class="font-medium">考勤状态分布</span></template>
-          <div ref="attStatusChartRef" style="height: 280px"></div>
-        </el-card>
-      </el-col>
-      <el-col :span="12">
-        <el-card>
-          <template #header><span class="font-medium">请假统计</span></template>
-          <div ref="leaveTypeChartRef" style="height: 280px"></div>
-        </el-card>
-      </el-col>
-    </el-row>
+      <el-row :gutter="20" class="mb-5">
+        <el-col :span="12">
+          <el-card>
+            <template #header><span class="font-medium">考勤状态分布</span></template>
+            <div ref="attStatusChartRef" style="height: 280px"></div>
+          </el-card>
+        </el-col>
+        <el-col :span="12">
+          <el-card>
+            <template #header><span class="font-medium">请假统计</span></template>
+            <div ref="leaveTypeChartRef" style="height: 280px"></div>
+          </el-card>
+        </el-col>
+      </el-row>
 
-    <el-row :gutter="20">
-      <el-col :span="8">
-        <el-card>
-          <template #header><span class="font-medium">本月请假人数</span></template>
-          <div ref="leaveCountChartRef" style="height: 280px"></div>
-        </el-card>
-      </el-col>
-      <el-col :span="8">
-        <el-card>
-          <template #header><span class="font-medium">本月出差人数</span></template>
-          <div ref="tripCountChartRef" style="height: 280px"></div>
-        </el-card>
-      </el-col>
-      <el-col :span="8">
-        <el-card>
-          <template #header><span class="font-medium">待审批 / 本月新员工</span></template>
-          <div ref="approvalNewChartRef" style="height: 280px"></div>
-        </el-card>
-      </el-col>
-    </el-row>
+      <el-row :gutter="20">
+        <el-col :span="8">
+          <el-card>
+            <template #header><span class="font-medium">本月请假人数</span></template>
+            <div ref="leaveCountChartRef" style="height: 280px"></div>
+          </el-card>
+        </el-col>
+        <el-col :span="8">
+          <el-card>
+            <template #header><span class="font-medium">本月出差人数</span></template>
+            <div ref="tripCountChartRef" style="height: 280px"></div>
+          </el-card>
+        </el-col>
+        <el-col :span="8">
+          <el-card>
+            <template #header><span class="font-medium">待审批 / 本月新员工</span></template>
+            <div ref="approvalNewChartRef" style="height: 280px"></div>
+          </el-card>
+        </el-col>
+      </el-row>
 
-    <el-row :gutter="20" class="mt-5">
-      <el-col :span="12">
-        <el-card>
-          <template #header><span class="font-medium">{{ periodLabel }}迟到排行</span></template>
-          <div ref="lateRankChartRef" style="height: 300px"></div>
-        </el-card>
-      </el-col>
-      <el-col :span="12">
-        <el-card>
-          <template #header><span class="font-medium">{{ periodLabel }}出勤排行</span></template>
-          <div ref="attendanceRankChartRef" style="height: 300px"></div>
-        </el-card>
-      </el-col>
-    </el-row>
+      <el-row :gutter="20" class="mt-5">
+        <el-col :span="12">
+          <el-card>
+            <template #header><span class="font-medium">{{ periodLabel }}迟到排行</span></template>
+            <div ref="lateRankChartRef" style="height: 300px"></div>
+          </el-card>
+        </el-col>
+        <el-col :span="12">
+          <el-card>
+            <template #header><span class="font-medium">{{ periodLabel }}出勤排行</span></template>
+            <div ref="attendanceRankChartRef" style="height: 300px"></div>
+          </el-card>
+        </el-col>
+      </el-row>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import * as echarts from "echarts";
+import { Refresh } from "@element-plus/icons-vue";
 import { getDashboardStats } from "@/api/statistics";
 
+const loading = ref(false);
 const period = ref("today");
 const selectedYear = ref(new Date().getFullYear().toString());
 const trendChartRef = ref<HTMLDivElement>();
@@ -127,12 +132,12 @@ const statsCards = computed(() => {
   const d = cachedData.value;
   if (!d) {
     return [
-      { label: "总人数", value: "0", color: "#409EFF" },
-      { label: "今日已打卡", value: "0", color: "#67C23A" },
-      { label: "未打卡", value: "0", color: "#909399" },
-      { label: "今日迟到", value: "0", color: "#E6A23C" },
-      { label: "本月请假", value: "0", color: "#9254de" },
-      { label: "待审批", value: "0", color: "#F56C6C" }
+      { label: "总人数", value: "-", color: "#409EFF" },
+      { label: "已打卡", value: "-", color: "#67C23A" },
+      { label: "未打卡", value: "-", color: "#909399" },
+      { label: "迟到", value: "-", color: "#E6A23C" },
+      { label: "本月请假", value: "-", color: "#9254de" },
+      { label: "待审批", value: "-", color: "#F56C6C" }
     ];
   }
   const att = d.attendance || {};
@@ -156,13 +161,15 @@ const destroyCharts = () => {
 
 const fetchAllData = async () => {
   destroyCharts();
+  loading.value = true;
   try {
     const yearParam = period.value === 'year' ? Number(selectedYear.value) : undefined;
     const r: any = await getDashboardStats(period.value, yearParam);
     if (r.data) {
       cachedData.value = r.data;
     }
-  } catch {}
+  } catch { /* error handled silently for dashboard */ }
+  finally { loading.value = false; }
   await nextTick();
   initTrendChart();
   initDeptChart();
@@ -220,6 +227,10 @@ const initDeptChart = () => {
   const chart = echarts.init(deptChartRef.value);
   charts.push(chart);
   const dept = cachedData.value?.departmentDistribution || [];
+  if (!dept.length) {
+    chart.setOption({ title: { text: "暂无部门数据", left: "center", top: "center", textStyle: { color: "#c0c4cc", fontSize: 14 } } });
+    return;
+  }
   chart.setOption({
     tooltip: { trigger: "item", formatter: "{b}: {c}人 ({d}%)" },
     legend: { bottom: 0, type: "scroll" },
@@ -237,19 +248,21 @@ const initAttStatusChart = () => {
   const chart = echarts.init(attStatusChartRef.value);
   charts.push(chart);
   const att = cachedData.value?.attendance || {};
+  const dataItems = [
+    { value: Number(att.clockedIn) || 0, name: "正常出勤" },
+    { value: Number(att.late) || 0, name: "迟到" },
+    { value: Number(att.earlyLeave) || 0, name: "早退" },
+    { value: Number(att.absent) || 0, name: "缺勤" }
+  ].filter(d => d.value > 0);
+  if (!dataItems.length) {
+    chart.setOption({ title: { text: "暂无考勤数据", left: "center", top: "center", textStyle: { color: "#c0c4cc", fontSize: 14 } } });
+    return;
+  }
   chart.setOption({
     tooltip: { trigger: "item", formatter: "{b}: {c}人次 ({d}%)" },
     legend: { bottom: 0 },
     color: ["#67C23A", "#E6A23C", "#F56C6C", "#909399"],
-    series: [{
-      type: "pie", radius: "60%",
-      data: [
-        { value: Number(att.clockedIn) || 0, name: "正常出勤" },
-        { value: Number(att.late) || 0, name: "迟到" },
-        { value: Number(att.earlyLeave) || 0, name: "早退" },
-        { value: Number(att.absent) || 0, name: "缺勤" }
-      ].filter(d => d.value > 0)
-    }]
+    series: [{ type: "pie", radius: "60%", data: dataItems }]
   });
 };
 

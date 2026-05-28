@@ -9,12 +9,15 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/leave-balance")
 @Tag(name = "假期余额管理")
@@ -46,10 +49,11 @@ public class LeaveBalanceController {
     @PostMapping("/init")
     @RequireAdmin
     @Operation(summary = "初始化员工年度假期余额")
-    public R<Void> init(@RequestBody Map<String, Object> params) {
+    public R<Void> init(@RequestBody @Valid Map<String, Object> params) {
         Long empId = Long.valueOf(params.get("empId").toString());
         Integer year = Integer.valueOf(params.get("year").toString());
         leaveBalanceService.initYearBalance(empId, year);
+        log.info("Leave balance initialized: empId={}, year={}", empId, year);
         return R.ok();
     }
 }

@@ -5,12 +5,18 @@ import { getPurchasePage, approvePurchase } from "@/api/purchase";
 import { getExpensePage, approveExpense } from "@/api/expense";
 import { getOvertimePage, approveOvertime } from "@/api/overtime";
 import { getLoanPage, approveLoan } from "@/api/loan";
+import type { ApiResponse, PageResult } from "@/types/api";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type PageFn = (params: any) => Promise<ApiResponse<PageResult<any>>>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ApproveFn = (data: any) => Promise<ApiResponse<void>>;
 
 export interface ApprovalTypeConfig {
   label: string;
   businessType: string;
-  getPage: (params: any) => any;
-  approve: (data: any) => any;
+  getPage: PageFn;
+  approve: ApproveFn;
 }
 
 export const approvalTypeConfigs: Record<string, ApprovalTypeConfig> = {
