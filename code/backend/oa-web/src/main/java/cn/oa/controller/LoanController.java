@@ -3,7 +3,10 @@ package cn.oa.controller;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaLoan;
+import cn.oa.entity.dto.ApproveDTO;
+import cn.oa.entity.dto.RepaymentDTO;
 import cn.oa.service.LoanService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,8 +16,6 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @Slf4j
 @RestController
@@ -28,8 +29,7 @@ public class LoanController {
     @PostMapping("/submit")
     @Operation(summary = "提交借支申请")
     public R<Void> submit(@RequestBody @Valid OaLoan loan, HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         loan.setEmpId(empId);
         loanService.submit(loan);
         log.info("Loan submitted: empId={}", empId);
@@ -38,15 +38,10 @@ public class LoanController {
 
     @PostMapping("/approve")
     @Operation(summary = "审批借支申请")
-    public R<Void> approve(@RequestBody @Valid Map<String, Object> params, HttpServletRequest request) {
-        Long loanId = Long.valueOf(params.get("id").toString());
-        Integer status = Integer.valueOf(params.get("status").toString());
-        String remark = params.get("remark") != null ? params.get("remark").toString() : null;
-        Long taskId = params.get("taskId") != null ? Long.valueOf(params.get("taskId").toString()) : null;
-        Object approverIdObj = request.getAttribute("empId");
-        Long approverId = (approverIdObj instanceof Number) ? ((Number) approverIdObj).longValue() : Long.valueOf(approverIdObj.toString());
-        loanService.approve(loanId, approverId, status, remark, taskId);
-        log.info("Loan approved: id={}, status={}, approverId={}, taskId={}", loanId, status, approverId, taskId);
+    public R<Void> approve(@RequestBody @Valid ApproveDTO dto, HttpServletRequest request) {
+        Long approverId = WebUtil.getEmpId(request);
+        loanService.approve(dto.getId(), approverId, dto.getStatus(), dto.getRemark(), dto.getTaskId());
+        log.info("Loan approved: id={}, status={}, approverId={}, taskId={}", dto.getId(), dto.getStatus(), approverId, dto.getTaskId());
         return R.ok();
     }
 
@@ -63,12 +58,9 @@ public class LoanController {
     @PostMapping("/repayment")
     @RequireAdmin
     @Operation(summary = "添加还款记录")
-    public R<Void> repayment(@RequestBody @Valid Map<String, Object> params) {
-        Long loanId = Long.valueOf(params.get("loanId").toString());
-        java.math.BigDecimal amount = new java.math.BigDecimal(params.get("amount").toString());
-        String remark = params.get("remark") != null ? params.get("remark").toString() : null;
-        loanService.addRepayment(loanId, amount, remark);
-        log.info("Loan repayment added: loanId={}, amount={}", loanId, amount);
+    public R<Void> repayment(@RequestBody @Valid RepaymentDTO dto) {
+        loanService.addRepayment(dto.getLoanId(), dto.getAmount(), dto.getRemark());
+        log.info("Loan repayment added: loanId={}, amount={}", dto.getLoanId(), dto.getAmount());
         return R.ok();
     }
 }

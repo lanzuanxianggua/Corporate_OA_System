@@ -16,7 +16,13 @@ export const useUserStore = defineStore("user", {
   state: () => ({
     token: uni.getStorageSync("token") || "",
     refreshToken: uni.getStorageSync("refreshToken") || "",
-    userInfo: (uni.getStorageSync("userInfo") || {}) as UserInfo
+    userInfo: (() => {
+      try {
+        return JSON.parse(uni.getStorageSync("userInfo") || "{}");
+      } catch {
+        return {};
+      }
+    })() as UserInfo
   }),
 
   getters: {
@@ -28,21 +34,25 @@ export const useUserStore = defineStore("user", {
   actions: {
     async login(username: string, password: string, captchaUuid: string, captchaCode: string) {
       const res: any = await post("/login", { username, password, captchaUuid, captchaCode });
-      this.token = res.data.accessToken;
-      this.refreshToken = res.data.refreshToken;
+      // Backend LoginVO fields: accessToken, refreshToken, username, nickname, avatar, roles, permissions
+      const data = res.data;
+      this.token = data.accessToken;
+      this.refreshToken = data.refreshToken || "";
       this.userInfo = {
-        id: res.data.id,
-        empName: res.data.nickname || res.data.username,
-        empCode: res.data.username,
-        roles: res.data.roles || []
+        empName: data.nickname || data.username,
+        empCode: data.username,
+        avatar: data.avatar || "",
+        roles: data.roles || []
       };
       uni.setStorageSync("token", this.token);
       uni.setStorageSync("refreshToken", this.refreshToken);
-      uni.setStorageSync("userInfo", this.userInfo);
+      uni.setStorageSync("userInfo", JSON.stringify(this.userInfo));
     },
 
     async logout() {
-      try { await post("/logout"); } catch {}
+      try {
+        await post("/logout");
+      } catch {}
       this.token = "";
       this.refreshToken = "";
       this.userInfo = {};
@@ -54,12 +64,15 @@ export const useUserStore = defineStore("user", {
 
     async fetchUserInfo() {
       try {
-        const res: any = await get("/mine");
+        // Use the employee endpoint to get current user info from token
+        const res: any = await get("/api/employee/me");
         if (res.data) {
           this.userInfo = { ...this.userInfo, ...res.data };
-          uni.setStorageSync("userInfo", this.userInfo);
+          uni.setStorageSync("userInfo", JSON.stringify(this.userInfo));
         }
-      } catch {}
+      } catch {
+        // Endpoint may not exist — silently ignore
+      }
     }
   }
 });

@@ -11,22 +11,18 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
 public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAttendance> implements AttendanceService {
-
-    @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
 
     @Autowired
     private SysEmployeeMapper employeeMapper;
@@ -35,6 +31,7 @@ public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAtt
     private static final LocalTime SIX_OCLOCK = LocalTime.of(18, 0);
 
     @Override
+    @Transactional
     public void clockIn(Long empId) {
         OaAttendance existing = getTodayAttendance(empId);
         if (existing != null) {
@@ -51,6 +48,7 @@ public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAtt
     }
 
     @Override
+    @Transactional
     public void clockOut(Long empId) {
         OaAttendance attendance = getTodayAttendance(empId);
         if (attendance == null) {
@@ -61,8 +59,8 @@ public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAtt
         }
         LocalDateTime now = LocalDateTime.now();
         attendance.setClockOut(now);
-        // 如果下班时间早于18:00，标记为早退(2)；如果之前是迟到(1)，保持迟到
-        if (now.toLocalTime().isBefore(SIX_OCLOCK)) {
+        // Only mark early leave (2) if currently normal (0); preserve late (1) status
+        if (now.toLocalTime().isBefore(SIX_OCLOCK) && Integer.valueOf(0).equals(attendance.getStatus())) {
             attendance.setStatus(2);
         }
         this.updateById(attendance);
@@ -87,12 +85,10 @@ public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAtt
 
     @Override
     public IPage<Map<String, Object>> adminPage(int pageNum, int pageSize, String empName, Integer status, LocalDate startDate, LocalDate endDate) {
-        // 查出所有员工，构建 empId -> {empName, deptId} 映射
         List<SysEmployee> allEmps = employeeMapper.selectList(null);
         Map<Long, SysEmployee> empMap = allEmps.stream()
                 .collect(Collectors.toMap(SysEmployee::getId, e -> e));
 
-        // 如果有姓名过滤，先过滤出匹配的empId集合
         Set<Long> matchEmpIds = null;
         if (empName != null && !empName.isBlank()) {
             matchEmpIds = allEmps.stream()
@@ -121,7 +117,6 @@ public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAtt
 
         IPage<OaAttendance> page = this.page(new Page<>(pageNum, pageSize), wrapper);
 
-        // 转换为 Map，附加 empName / deptId
         List<Map<String, Object>> records = page.getRecords().stream().map(att -> {
             Map<String, Object> map = new LinkedHashMap<>();
             map.put("id", att.getId());
@@ -144,16 +139,19 @@ public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAtt
     }
 
     @Override
+    @Transactional
     public void markLeaveAttendance(Long empId, LocalDate startDate, LocalDate endDate) {
         markAutoAttendance(empId, startDate, endDate, 5, "请假自动标记");
     }
 
     @Override
+    @Transactional
     public void markTripAttendance(Long empId, LocalDate startDate, LocalDate endDate) {
         markAutoAttendance(empId, startDate, endDate, 6, "出差自动标记");
     }
 
     @Override
+    @Transactional
     public void removeMarkedAttendance(Long empId, LocalDate startDate, LocalDate endDate, Integer status) {
         this.remove(new LambdaQueryWrapper<OaAttendance>()
                 .eq(OaAttendance::getEmpId, empId)
@@ -164,17 +162,14 @@ public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAtt
 
     private void markAutoAttendance(Long empId, LocalDate startDate, LocalDate endDate, int status, String remark) {
         for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
-            // Skip weekends
             DayOfWeek dow = date.getDayOfWeek();
             if (dow == DayOfWeek.SATURDAY || dow == DayOfWeek.SUNDAY) {
                 continue;
             }
-            // Check if attendance record exists for this date
             OaAttendance existing = this.getOne(new LambdaQueryWrapper<OaAttendance>()
                     .eq(OaAttendance::getEmpId, empId)
                     .eq(OaAttendance::getWorkDate, date));
             if (existing == null) {
-                // Insert new attendance record
                 OaAttendance attendance = new OaAttendance();
                 attendance.setEmpId(empId);
                 attendance.setWorkDate(date);
@@ -182,7 +177,6 @@ public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAtt
                 attendance.setRemark(remark);
                 this.save(attendance);
             } else if (existing.getStatus() != null && existing.getStatus() == 3) {
-                // status=3 means absent; update it to the auto-marked status
                 existing.setStatus(status);
                 existing.setRemark(remark);
                 this.updateById(existing);

@@ -72,7 +72,7 @@ class DocumentControllerTest extends BaseControllerTest {
 
         mockMvc.perform(multipart("/api/document/upload")
                         .file(file)
-                        .param("uploaderId", "1"))
+                        .requestAttr("empId", 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0));
 

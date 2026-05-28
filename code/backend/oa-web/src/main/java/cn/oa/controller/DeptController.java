@@ -1,6 +1,7 @@
 package cn.oa.controller;
 
 import cn.oa.common.annotation.OperationLog;
+import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.R;
 import cn.oa.entity.SysDept;
 import cn.oa.service.DeptService;
@@ -37,6 +38,7 @@ public class DeptController {
     }
 
     @PostMapping
+    @RequireAdmin
     @Operation(summary = "新增部门")
     @OperationLog(module = "部门管理", operation = "新增部门")
     public R<Void> add(@RequestBody @Valid SysDept dept) {
@@ -46,6 +48,7 @@ public class DeptController {
     }
 
     @PutMapping
+    @RequireAdmin
     @Operation(summary = "修改部门")
     @OperationLog(module = "部门管理", operation = "修改部门")
     public R<Void> update(@RequestBody @Valid SysDept dept) {
@@ -55,6 +58,7 @@ public class DeptController {
     }
 
     @DeleteMapping("/{id}")
+    @RequireAdmin
     @Operation(summary = "删除部门")
     @OperationLog(module = "部门管理", operation = "删除部门")
     public R<Void> delete(@PathVariable Long id) {

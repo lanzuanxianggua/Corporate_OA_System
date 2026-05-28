@@ -7,7 +7,7 @@
       </view>
       <view class="flex-between mt-20">
         <text class="text-gray">{{ item.author || '系统管理员' }}</text>
-        <text class="text-gray">{{ item.createTime }}</text>
+        <text class="text-gray">{{ formatTime(item.createTime) }}</text>
       </view>
     </view>
 
@@ -28,23 +28,25 @@ import { getNoticePage } from "@/api/notice";
 
 const list = ref<any[]>([]);
 const loading = ref(false);
-const page = ref(1);
+const pageNum = ref(1);
 const finished = ref(false);
 
 const fetchList = async () => {
   if (loading.value || finished.value) return;
   loading.value = true;
   try {
-    const res: any = await getNoticePage({ page: page.value, pageSize: 20 });
-    const records = res.data?.records || res.data || [];
-    if (page.value === 1) {
+    const res: any = await getNoticePage({ pageNum: pageNum.value, pageSize: 20 });
+    const records = res.data?.list || [];
+    if (pageNum.value === 1) {
       list.value = records;
     } else {
       list.value.push(...records);
     }
     if (records.length < 20) finished.value = true;
-    else page.value++;
-  } catch {} finally {
+    else pageNum.value++;
+  } catch {
+    // silently handle
+  } finally {
     loading.value = false;
   }
 };
@@ -52,6 +54,8 @@ const fetchList = async () => {
 const goDetail = (id: number) => {
   uni.navigateTo({ url: `/pages/oa/notice-detail?id=${id}` });
 };
+
+const formatTime = (t: string) => t ? t.replace("T", " ").substring(0, 16) : "";
 
 onShow(fetchList);
 </script>

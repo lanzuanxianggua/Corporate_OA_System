@@ -39,6 +39,7 @@ public class ContractController {
     @PostMapping
     @RequireAdmin
     @Operation(summary = "新增合同")
+    @cn.oa.common.annotation.OperationLog(module = "合同管理", operation = "新增合同")
     public R<Void> add(@RequestBody @Valid OaContract contract) {
         contractService.save(contract);
         log.info("Contract created: id={}", contract.getId());
@@ -48,6 +49,7 @@ public class ContractController {
     @PutMapping
     @RequireAdmin
     @Operation(summary = "修改合同")
+    @cn.oa.common.annotation.OperationLog(module = "合同管理", operation = "修改合同")
     public R<Void> update(@RequestBody @Valid OaContract contract) {
         contractService.updateById(contract);
         log.info("Contract updated: id={}", contract.getId());
@@ -57,6 +59,7 @@ public class ContractController {
     @DeleteMapping("/{id}")
     @RequireAdmin
     @Operation(summary = "删除合同")
+    @cn.oa.common.annotation.OperationLog(module = "合同管理", operation = "删除合同")
     public R<Void> delete(@PathVariable Long id) {
         contractService.removeById(id);
         log.info("Contract deleted: id={}", id);

@@ -28,9 +28,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { getOperationLogs } from "@/api/monitor";
+import type { OperationLog } from "@/types/api";
 
 const searchModule = ref("");
-const logList = ref<any[]>([]);
+const logList = ref<OperationLog[]>([]);
 const page = ref(1);
 const pageSize = ref(10);
 const total = ref(0);

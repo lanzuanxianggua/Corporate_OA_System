@@ -144,7 +144,7 @@ const fetchStructList = async () => {
 const structDialogVisible = ref(false);
 const structSaving = ref(false);
 const structFormRef = ref<FormInstance>();
-const structForm = reactive({ id: undefined as number | undefined, empId: undefined as number | undefined, baseSalary: 0, postSalary: 0, meritSalary: 0, allowance: 0, effectiveDate: "", status: "0" });
+const structForm = reactive({ id: undefined as number | undefined, empId: undefined as number | undefined, baseSalary: 0, postSalary: 0, meritSalary: 0, allowance: 0, effectiveDate: "", status: 0 as number | string });
 const structRules = reactive<FormRules>({
   empId: [{ required: true, message: "请输入员工ID", trigger: "blur" }],
   baseSalary: [{ required: true, message: "请输入基本工资", trigger: "blur" }],
@@ -156,7 +156,7 @@ const openStructDialog = (row?: any) => {
   if (row) {
     Object.assign(structForm, { id: row.id, empId: row.empId, baseSalary: row.baseSalary, postSalary: row.postSalary, meritSalary: row.meritSalary, allowance: row.allowance, effectiveDate: row.effectiveDate, status: row.status });
   } else {
-    Object.assign(structForm, { id: undefined, empId: undefined, baseSalary: 0, postSalary: 0, meritSalary: 0, allowance: 0, effectiveDate: "", status: "0" });
+    Object.assign(structForm, { id: undefined, empId: undefined, baseSalary: 0, postSalary: 0, meritSalary: 0, allowance: 0, effectiveDate: "", status: 0 });
   }
   structDialogVisible.value = true;
 };
@@ -166,8 +166,9 @@ const handleSaveStruct = async () => {
   await structFormRef.value.validate();
   structSaving.value = true;
   try {
-    if (structForm.id) await updateStructure(structForm);
-    else await addStructure(structForm);
+    const payload = { ...structForm, status: Number(structForm.status) };
+    if (structForm.id) await updateStructure(payload);
+    else await addStructure(payload);
     ElMessage.success("保存成功");
     structDialogVisible.value = false;
     fetchStructList();

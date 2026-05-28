@@ -25,32 +25,51 @@
         text-color="#303133"
         active-text-color="#409EFF"
       >
-        <template v-for="(item, idx) in menuConfig">
-          <el-sub-menu
-            v-if="item.children && (!item.roles || userStore.hasAnyRole(item.roles))"
-            :key="'sub-' + idx"
-            :index="'menu-' + idx"
-          >
-            <template #title>
-              <el-icon><component :is="item.icon" /></el-icon>
-              <span>{{ item.title }}</span>
-            </template>
+        <template v-for="(item, idx) in menuConfig" :key="'root-' + idx">
+          <template v-if="!item.roles || userStore.hasAnyRole(item.roles)">
+            <!-- No children: standalone menu item -->
             <el-menu-item
-              v-for="(child, cidx) in item.children"
-              :key="'menu-' + idx + '-' + cidx"
-              :index="child.path ?? ''"
+              v-if="!item.children"
+              :index="item.path ?? ''"
             >
-              {{ child.title }}
+              <el-icon><component :is="item.icon" /></el-icon>
+              <template #title>{{ item.title }}</template>
             </el-menu-item>
-          </el-sub-menu>
-          <el-menu-item
-            v-else-if="!item.children && (!item.roles || userStore.hasAnyRole(item.roles))"
-            :key="'item-' + idx"
-            :index="item.path ?? ''"
-          >
-            <el-icon><component :is="item.icon" /></el-icon>
-            <template #title>{{ item.title }}</template>
-          </el-menu-item>
+
+            <!-- Has children: sub-menu -->
+            <el-sub-menu v-else :index="'menu-' + idx">
+              <template #title>
+                <el-icon><component :is="item.icon" /></el-icon>
+                <span>{{ item.title }}</span>
+              </template>
+              <template v-for="(child, cidx) in item.children" :key="'menu-' + idx + '-' + cidx">
+                <!-- Nested sub-menu (children with children) -->
+                <el-sub-menu
+                  v-if="child.children && child.children.length"
+                  :index="'menu-' + idx + '-' + cidx"
+                >
+                  <template #title>{{ child.title }}</template>
+                  <el-menu-item
+                    v-for="(nested, nidx) in child.children"
+                    v-show="!nested.roles || userStore.hasAnyRole(nested.roles)"
+                    :key="'menu-' + idx + '-' + cidx + '-' + nidx"
+                    :index="nested.path ?? ''"
+                  >
+                    {{ nested.title }}
+                  </el-menu-item>
+                </el-sub-menu>
+
+                <!-- Direct child item -->
+                <el-menu-item
+                  v-else
+                  v-show="!child.roles || userStore.hasAnyRole(child.roles)"
+                  :index="child.path ?? ''"
+                >
+                  {{ child.title }}
+                </el-menu-item>
+              </template>
+            </el-sub-menu>
+          </template>
         </template>
       </el-menu>
     </div>

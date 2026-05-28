@@ -1,11 +1,6 @@
 <template>
   <view class="container">
-    <view
-      class="card"
-      v-for="item in list"
-      :key="item.id"
-      @click="handleRead(item)"
-    >
+    <view class="card" v-for="item in list" :key="item.id" @click="handleRead(item)">
       <view class="flex-between">
         <text class="msg-sender">{{ item.senderName || item.sender || '系统' }}</text>
         <text :class="item.isRead ? 'text-gray' : 'text-primary'">
@@ -13,7 +8,7 @@
         </text>
       </view>
       <text class="msg-content mt-20">{{ item.content }}</text>
-      <text class="text-gray mt-20">{{ item.createTime }}</text>
+      <text class="text-gray mt-20">{{ formatTime(item.createTime) }}</text>
     </view>
 
     <view class="empty" v-if="!loading && list.length === 0">
@@ -33,23 +28,27 @@ import { getMessagePage, markAsRead } from "@/api/message";
 
 const list = ref<any[]>([]);
 const loading = ref(false);
-const page = ref(1);
+const pageNum = ref(1);
 const finished = ref(false);
+
+const formatTime = (t: string) => t ? t.replace("T", " ").substring(0, 16) : "";
 
 const fetchList = async () => {
   if (loading.value || finished.value) return;
   loading.value = true;
   try {
-    const res: any = await getMessagePage({ page: page.value, pageSize: 20 });
-    const records = res.data?.records || res.data || [];
-    if (page.value === 1) {
+    const res: any = await getMessagePage({ pageNum: pageNum.value, pageSize: 20 });
+    const records = res.data?.list || [];
+    if (pageNum.value === 1) {
       list.value = records;
     } else {
       list.value.push(...records);
     }
     if (records.length < 20) finished.value = true;
-    else page.value++;
-  } catch {} finally {
+    else pageNum.value++;
+  } catch {
+    // silently handle
+  } finally {
     loading.value = false;
   }
 };
@@ -59,7 +58,9 @@ const handleRead = async (item: any) => {
   try {
     await markAsRead(item.id);
     item.isRead = true;
-  } catch {}
+  } catch {
+    // silently handle
+  }
 };
 
 onShow(fetchList);

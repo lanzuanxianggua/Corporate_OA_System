@@ -26,7 +26,11 @@ public class NotificationServiceImpl implements NotificationService {
         extra.put("action", action);
         extra.put("remark", remark);
         String title = "审批通知";
-        String content = "您的 " + businessType + " 申请已" + ("approved".equals(action) ? "通过" : "rejected".equals(action) ? "驳回" : "更新");
+        String content = "您的 " + businessType + " 申请已" +
+                ("approved".equals(action) ? "通过" :
+                 "rejected".equals(action) ? "驳回" :
+                 "withdrawn".equals(action) ? "撤回" :
+                 "returned".equals(action) ? "退回" : "更新");
         dispatch(empId, title, content, extra);
     }
 

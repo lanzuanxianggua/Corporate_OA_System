@@ -11,7 +11,7 @@
       </view>
       <view class="flex-between mt-20">
         <text class="text-gray">{{ formatSize(item.fileSize || item.size) }}</text>
-        <text class="text-gray">{{ item.uploadTime || item.createTime }}</text>
+        <text class="text-gray">{{ formatTime(item.uploadTime || item.createTime) }}</text>
       </view>
     </view>
 
@@ -32,7 +32,7 @@ import { getDocumentPage, uploadDocument, deleteDocument } from "@/api/document"
 
 const list = ref<any[]>([]);
 const loading = ref(false);
-const page = ref(1);
+const pageNum = ref(1);
 const finished = ref(false);
 
 const formatSize = (size: number) => {
@@ -42,20 +42,24 @@ const formatSize = (size: number) => {
   return (size / (1024 * 1024)).toFixed(1) + "MB";
 };
 
+const formatTime = (t: string) => t ? t.replace("T", " ").substring(0, 16) : "";
+
 const fetchList = async () => {
   if (loading.value || finished.value) return;
   loading.value = true;
   try {
-    const res: any = await getDocumentPage({ page: page.value, pageSize: 20 });
-    const records = res.data?.records || res.data || [];
-    if (page.value === 1) {
+    const res: any = await getDocumentPage({ pageNum: pageNum.value, pageSize: 20 });
+    const records = res.data?.list || [];
+    if (pageNum.value === 1) {
       list.value = records;
     } else {
       list.value.push(...records);
     }
     if (records.length < 20) finished.value = true;
-    else page.value++;
-  } catch {} finally {
+    else pageNum.value++;
+  } catch {
+    // silently handle
+  } finally {
     loading.value = false;
   }
 };
@@ -69,7 +73,7 @@ const handleUpload = () => {
       try {
         await uploadDocument(filePath);
         uni.showToast({ title: "上传成功", icon: "success" });
-        page.value = 1;
+        pageNum.value = 1;
         finished.value = false;
         fetchList();
       } catch {

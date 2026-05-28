@@ -57,10 +57,11 @@
 import { ref, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { getMyDelegations, setDelegation, cancelDelegation } from "@/api/workflow";
-import request from "@/utils/request";
+import { getEmployeePage } from "@/api/employee";
+import type { Delegation } from "@/types/api";
 
 const loading = ref(false);
-const delegations = ref<any[]>([]);
+const delegations = ref<Delegation[]>([]);
 const showDialog = ref(false);
 const employeeOptions = ref<any[]>([]);
 
@@ -82,7 +83,7 @@ const fetchList = async () => {
 
 const searchEmployee = async (query: string) => {
   if (!query) return;
-  const res: any = await request.get("/api/employee/page", { params: { pageNum: 1, pageSize: 10, empName: query } });
+  const res: any = await getEmployeePage({ pageNum: 1, pageSize: 10, empName: query });
   employeeOptions.value = res.data?.records || res.data?.list || [];
 };
 
@@ -100,10 +101,10 @@ const handleSubmit = async () => {
   fetchList();
 };
 
-const handleCancel = async (row: any) => {
+const handleCancel = async (row: Delegation) => {
   try {
     await ElMessageBox.confirm("确定取消此委托？", "确认", { type: "warning" });
-    await cancelDelegation(row.id);
+    await cancelDelegation(row.id!);
     ElMessage.success("已取消");
     fetchList();
   } catch {}

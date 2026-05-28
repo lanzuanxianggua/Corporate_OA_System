@@ -1,24 +1,12 @@
 package cn.oa.service.impl;
 
-import lombok.extern.slf4j.Slf4j;
-
 import cn.oa.common.constant.BusinessType;
 import cn.oa.common.exception.BusinessException;
-import cn.oa.entity.OaApprovalRecord;
 import cn.oa.entity.OaOvertime;
-import cn.oa.entity.WfTask;
-import cn.oa.entity.SysEmployee;
-import cn.oa.mapper.OaApprovalRecordMapper;
 import cn.oa.mapper.OaOvertimeMapper;
-import cn.oa.mapper.SysEmployeeMapper;
-import cn.oa.mapper.WfTaskMapper;
 import cn.oa.service.LeaveBalanceService;
 import cn.oa.service.OvertimeService;
-import cn.oa.service.WorkflowService;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -26,29 +14,101 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
-@Slf4j
-public class OvertimeServiceImpl extends ServiceImpl<OaOvertimeMapper, OaOvertime> implements OvertimeService {
-
-    @Autowired
-    private OaApprovalRecordMapper approvalRecordMapper;
-
-    @Autowired
-    private SysEmployeeMapper employeeMapper;
-
-    @Autowired
-    private WorkflowService workflowService;
-
-    @Autowired
-    private WfTaskMapper wfTaskMapper;
+public class OvertimeServiceImpl extends BaseApprovalServiceImpl<OaOvertimeMapper, OaOvertime>
+        implements OvertimeService {
 
     @Lazy
     @Autowired
     private LeaveBalanceService leaveBalanceService;
+
+    public OvertimeServiceImpl() {
+        this.empIdGetter = OaOvertime::getEmpId;
+        // Note: OaOvertime.status is String, so statusGetter won't work directly with Integer filter.
+        // We override doPageList to handle this.
+        this.createTimeGetter = OaOvertime::getCreateTime;
+        this.idGetter = OaOvertime::getId;
+    }
+
+    @Override
+    protected String getBusinessType() {
+        return BusinessType.OVERTIME;
+    }
+
+    @Override
+    protected void setStatus(OaOvertime entity, Integer status) {
+        entity.setStatus(String.valueOf(status));
+    }
+
+    @Override
+    protected void setEmpName(OaOvertime entity, String name) {
+        entity.setEmpName(name);
+    }
+
+    @Override
+    protected void setRemark(OaOvertime entity, String remark) {
+        // OaOvertime has no remark transient field — no-op
+    }
+
+    @Override
+    protected Map<String, Object> buildConditionContext(OaOvertime entity) {
+        Map<String, Object> ctx = new HashMap<>();
+        ctx.put("hours", entity.getHours().doubleValue());
+        return ctx;
+    }
+
+    @Override
+    protected void onUpdateStatus(OaOvertime entity, Integer newStatus, Integer oldStatus) {
+        if (entity.getHours() == null || entity.getOvertimeDate() == null) return;
+
+        BigDecimal hours = entity.getHours();
+        BigDecimal days = hours.divide(BigDecimal.valueOf(8), 1, RoundingMode.HALF_UP);
+        int year = entity.getOvertimeDate().getYear();
+
+        String oldStr = String.valueOf(oldStatus);
+
+        if (newStatus == 1 && !"1".equals(oldStr)) {
+            leaveBalanceService.addCompensatoryBalance(entity.getEmpId(), year, days);
+        }
+
+        if ((newStatus == 2 || newStatus == 3) && "1".equals(oldStr)) {
+            leaveBalanceService.deductBalance(entity.getEmpId(), 5, year, days);
+        }
+    }
+
+    /**
+     * Override fillRemarks — OaOvertime has no remark field.
+     */
+    @Override
+    protected void fillRemarks(java.util.List<OaOvertime> records) {
+        // no-op
+    }
+
+    /**
+     * Override pageList to handle String status properly.
+     */
+    @Override
+    public IPage<OaOvertime> doPageList(int pageNum, int pageSize, Long empId, Integer status) {
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<OaOvertime> page =
+                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(pageNum, pageSize);
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<OaOvertime> wrapper =
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        if (empId != null) {
+            wrapper.eq(OaOvertime::getEmpId, empId);
+        }
+        if (status != null) {
+            wrapper.eq(OaOvertime::getStatus, String.valueOf(status));
+        }
+        if (createTimeGetter != null) {
+            wrapper.orderByDesc(createTimeGetter);
+        }
+        IPage<OaOvertime> result = this.page(page, wrapper);
+        fillEmpNames(result.getRecords());
+        return result;
+    }
 
     @Override
     @Transactional
@@ -56,109 +116,29 @@ public class OvertimeServiceImpl extends ServiceImpl<OaOvertimeMapper, OaOvertim
         if (overtime.getHours() == null) {
             throw new BusinessException("加班时长不能为空");
         }
-        overtime.setStatus("0");
-        this.save(overtime);
-        Map<String, Object> ctx = new HashMap<>();
-        ctx.put("hours", overtime.getHours().doubleValue());
-        workflowService.startProcess(BusinessType.OVERTIME, overtime.getId(), overtime.getEmpId(), ctx);
-        log.info("Overtime submitted: id={}, empId={}", overtime.getId(), overtime.getEmpId());
+        doSubmit(overtime);
     }
 
     @Override
     @Transactional
     public void approve(Long overtimeId, Long approverId, Integer status, String remark) {
-        approve(overtimeId, approverId, status, remark, null);
+        doApprove(overtimeId, approverId, status, remark);
     }
 
     @Override
     @Transactional
     public void approve(Long overtimeId, Long approverId, Integer status, String remark, Long taskId) {
-        WfTask task = null;
-        // First try to find task assigned to this user
-        if (taskId != null) {
-            task = wfTaskMapper.selectById(taskId);
-        }
-        if (task == null) {
-            task = workflowService.findPendingTask(BusinessType.OVERTIME, overtimeId, approverId);
-        }
-        // If still not found, try to find any pending task for this business (admin override)
-        if (task == null) {
-            cn.oa.entity.WfProcessInstance instance = workflowService.getByBusiness(BusinessType.OVERTIME, overtimeId);
-            if (instance != null) {
-                LambdaQueryWrapper<WfTask> wrapper = new LambdaQueryWrapper<>();
-                wrapper.eq(WfTask::getInstanceId, instance.getId())
-                       .eq(WfTask::getStatus, "0")
-                       .orderByAsc(WfTask::getCreateTime)
-                       .last("LIMIT 1");
-                task = wfTaskMapper.selectOne(wrapper);
-            }
-        }
-        if (task != null) {
-            workflowService.handleTask(task.getId(), approverId, status, remark);
-        } else {
-            throw new BusinessException("未找到待审批的任务");
-        }
+        doApprove(overtimeId, approverId, status, remark);
     }
 
     @Override
     @Transactional
     public void updateStatus(Long id, Integer status) {
-        OaOvertime overtime = this.getById(id);
-        if (overtime == null) return;
-        if (overtime.getHours() == null || overtime.getOvertimeDate() == null) return;
-
-        String oldStatus = overtime.getStatus();
-        overtime.setStatus(String.valueOf(status));
-        this.updateById(overtime);
-
-        // Convert hours to days: hours / 8, rounded to nearest 0.5
-        BigDecimal hours = overtime.getHours();
-        BigDecimal days = hours.divide(BigDecimal.valueOf(8), 1, RoundingMode.HALF_UP);
-        int year = overtime.getOvertimeDate().getYear();
-
-        // When approved (status=1): add compensatory leave balance (leaveType=5)
-        if (status == 1 && !"1".equals(oldStatus)) {
-            leaveBalanceService.addCompensatoryBalance(overtime.getEmpId(), year, days);
-        }
-
-        // When rejected(2) or withdrawn(4) after being approved(1): reverse the compensatory leave
-        if ((status == 2 || status == 4) && "1".equals(oldStatus)) {
-            leaveBalanceService.deductBalance(overtime.getEmpId(), 5, year, days);
-        }
+        doUpdateStatus(id, status);
     }
 
     @Override
     public IPage<OaOvertime> pageList(int pageNum, int pageSize, Long empId, Integer status) {
-        Page<OaOvertime> page = new Page<>(pageNum, pageSize);
-        LambdaQueryWrapper<OaOvertime> wrapper = new LambdaQueryWrapper<>();
-        if (empId != null) {
-            wrapper.eq(OaOvertime::getEmpId, empId);
-        }
-        if (status != null) {
-            wrapper.eq(OaOvertime::getStatus, status);
-        }
-        wrapper.orderByDesc(OaOvertime::getCreateTime);
-        IPage<OaOvertime> result = this.page(page, wrapper);
-        fillEmpNames(result.getRecords());
-        return result;
-    }
-
-    private void fillEmpNames(List<OaOvertime> records) {
-        if (records == null || records.isEmpty()) return;
-        Set<Long> empIds = records.stream()
-                .map(OaOvertime::getEmpId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-        if (empIds.isEmpty()) return;
-
-        List<SysEmployee> employees = employeeMapper.selectBatchIds(empIds);
-        Map<Long, String> nameMap = employees.stream()
-                .collect(Collectors.toMap(SysEmployee::getId, SysEmployee::getEmpName, (a, b) -> a));
-
-        for (OaOvertime record : records) {
-            if (record.getEmpId() != null) {
-                record.setEmpName(nameMap.getOrDefault(record.getEmpId(), ""));
-            }
-        }
+        return doPageList(pageNum, pageSize, empId, status);
     }
 }

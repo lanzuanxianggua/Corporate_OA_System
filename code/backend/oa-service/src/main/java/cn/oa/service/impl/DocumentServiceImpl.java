@@ -1,5 +1,6 @@
 package cn.oa.service.impl;
 
+import cn.oa.common.exception.BusinessException;
 import cn.oa.entity.OaDocument;
 import cn.oa.mapper.OaDocumentMapper;
 import cn.oa.service.DocumentService;
@@ -7,9 +8,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -19,9 +18,6 @@ import java.util.UUID;
 
 @Service
 public class DocumentServiceImpl extends ServiceImpl<OaDocumentMapper, OaDocument> implements DocumentService {
-
-    @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
 
     @Value("${oa.upload.path:uploads}")
     private String uploadBasePath;
@@ -40,7 +36,7 @@ public class DocumentServiceImpl extends ServiceImpl<OaDocumentMapper, OaDocumen
         try {
             file.transferTo(dest.getAbsoluteFile());
         } catch (IOException e) {
-            throw new RuntimeException("文件上传失败", e);
+            throw new BusinessException("文件上传失败: " + e.getMessage());
         }
 
         OaDocument document = new OaDocument();

@@ -30,7 +30,7 @@ const today = ref<any>(null);
 const clockedIn = ref(false);
 const clockedOut = ref(false);
 const currentTime = ref("");
-let timer: any = null;
+let timer: ReturnType<typeof setInterval> | null = null;
 
 const updateTime = () => {
   const now = new Date();
@@ -43,7 +43,9 @@ const fetchToday = async () => {
     today.value = res.data;
     clockedIn.value = !!res.data?.clockInTime;
     clockedOut.value = !!res.data?.clockOutTime;
-  } catch {}
+  } catch {
+    // silently handle
+  }
 };
 
 const handleClock = async () => {
@@ -56,7 +58,9 @@ const handleClock = async () => {
       uni.showToast({ title: "上班打卡成功", icon: "success" });
     }
     fetchToday();
-  } catch {}
+  } catch {
+    // Error toast handled by request interceptor
+  }
 };
 
 onMounted(() => { updateTime(); timer = setInterval(updateTime, 1000); });

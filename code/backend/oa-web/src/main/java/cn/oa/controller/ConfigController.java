@@ -41,6 +41,7 @@ public class ConfigController {
     @PostMapping
     @Operation(summary = "新增参数")
     @RequireAdmin
+    @cn.oa.common.annotation.OperationLog(module = "系统参数", operation = "新增参数")
     public R<Void> add(@RequestBody @Valid SysConfig config) {
         configService.save(config);
         log.info("Config created: key={}", config.getConfigKey());
@@ -50,6 +51,7 @@ public class ConfigController {
     @PutMapping
     @Operation(summary = "修改参数")
     @RequireAdmin
+    @cn.oa.common.annotation.OperationLog(module = "系统参数", operation = "修改参数")
     public R<Void> update(@RequestBody @Valid SysConfig config) {
         configService.updateById(config);
         log.info("Config updated: key={}", config.getConfigKey());
@@ -59,6 +61,7 @@ public class ConfigController {
     @DeleteMapping("/{id}")
     @Operation(summary = "删除参数")
     @RequireAdmin
+    @cn.oa.common.annotation.OperationLog(module = "系统参数", operation = "删除参数")
     public R<Void> delete(@PathVariable Long id) {
         configService.removeById(id);
         log.info("Config deleted: id={}", id);

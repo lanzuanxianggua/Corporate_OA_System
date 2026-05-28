@@ -3,8 +3,11 @@ package cn.oa.service.impl;
 import lombok.extern.slf4j.Slf4j;
 
 import cn.oa.common.exception.BusinessException;
+import cn.oa.common.utils.BrowserUtil;
+import cn.oa.common.utils.IpUtil;
 import cn.oa.common.utils.JwtUtil;
 import cn.oa.entity.*;
+import cn.oa.vo.LoginVO;
 import cn.oa.mapper.OaLoginLogMapper;
 import cn.oa.mapper.SysEmpRoleMapper;
 import cn.oa.mapper.SysEmployeeMapper;
@@ -54,6 +57,7 @@ public class AuthServiceImpl implements AuthService {
         return login(username, password, null);
     }
 
+    @Override
     public LoginVO login(String username, String password, HttpServletRequest request) {
         LambdaQueryWrapper<SysEmployee> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SysEmployee::getEmpCode, username);
@@ -93,8 +97,9 @@ public class AuthServiceImpl implements AuthService {
         redisTemplate.opsForValue().set(rolesKey, roleKeys, 7200, TimeUnit.SECONDS);
 
         // 记录在线用户
-        String ip = getClientIp(request);
-        String browser = getBrowser(request);
+        String ip = IpUtil.getClientIp(request);
+        String ua = request != null ? request.getHeader("User-Agent") : null;
+        String browser = BrowserUtil.getBrowser(ua);
         onlineUserService.userLogin(employee.getId(), employee.getEmpName(), ip, browser);
 
         // 记录登录日志
@@ -133,15 +138,24 @@ public class AuthServiceImpl implements AuthService {
             io.jsonwebtoken.Claims claims = jwtUtil.parseToken(refreshToken);
             Long empId = claims.get("empId", Long.class);
             String empName = claims.get("empName", String.class);
+
+            // Verify the refresh token matches the one stored in Redis
+            Object storedToken = redisTemplate.opsForValue().get("token:" + empId);
+            if (storedToken == null || !storedToken.equals(refreshToken)) {
+                throw new BusinessException("refreshToken 已失效，请重新登录");
+            }
+
             String newToken = jwtUtil.generateToken(empId, empName);
             redisTemplate.opsForValue().set("token:" + empId, newToken, 7200, TimeUnit.SECONDS);
-            // 续期角色信息
+            // Renew roles TTL
             redisTemplate.expire("roles:" + empId, 7200, TimeUnit.SECONDS);
             LoginVO vo = new LoginVO();
             vo.setAccessToken(newToken);
             vo.setRefreshToken(newToken);
             vo.setExpires(LocalDateTime.now().plusHours(2).format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss")));
             return vo;
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
             throw new BusinessException("refreshToken 无效");
         }
@@ -149,51 +163,16 @@ public class AuthServiceImpl implements AuthService {
 
     private void recordLoginLog(Long empId, String username, HttpServletRequest request, int status, String message) {
         if (request == null) return;
+        String ua = request.getHeader("User-Agent");
         OaLoginLog log = new OaLoginLog();
         log.setEmpId(empId);
         log.setUsername(username);
-        log.setIp(getClientIp(request));
-        log.setBrowser(getBrowser(request));
-        log.setOs(getOs(request));
+        log.setIp(IpUtil.getClientIp(request));
+        log.setBrowser(BrowserUtil.getBrowser(ua));
+        log.setOs(BrowserUtil.getOs(ua));
         log.setStatus(status);
         log.setMessage(message);
         log.setLoginTime(LocalDateTime.now());
         loginLogMapper.insert(log);
-    }
-
-    private String getClientIp(HttpServletRequest request) {
-        if (request == null) return "unknown";
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("X-Real-IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
-        }
-        if (ip != null && ip.contains(",")) {
-            ip = ip.split(",")[0].trim();
-        }
-        return ip;
-    }
-
-    private String getBrowser(HttpServletRequest request) {
-        if (request == null) return "unknown";
-        String ua = request.getHeader("User-Agent");
-        if (ua == null) return "unknown";
-        if (ua.contains("Chrome")) return "Chrome";
-        if (ua.contains("Firefox")) return "Firefox";
-        if (ua.contains("Safari")) return "Safari";
-        if (ua.contains("Edge")) return "Edge";
-        return "Other";
-    }
-
-    private String getOs(HttpServletRequest request) {
-        if (request == null) return "unknown";
-        String ua = request.getHeader("User-Agent");
-        if (ua == null) return "unknown";
-        if (ua.contains("Windows")) return "Windows";
-        if (ua.contains("Mac")) return "Mac";
-        if (ua.contains("Linux")) return "Linux";
-        return "Other";
     }
 }

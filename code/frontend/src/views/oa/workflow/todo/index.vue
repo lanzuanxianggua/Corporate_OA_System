@@ -88,9 +88,10 @@ import { ref, reactive, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import { getPendingTasks, handleTask, transferTask, returnTask } from "@/api/workflow";
 import { getEmployeePage } from "@/api/employee";
+import type { WorkflowTask } from "@/types/api";
 
 const loading = ref(false);
-const tableData = ref<any[]>([]);
+const tableData = ref<WorkflowTask[]>([]);
 const pageNum = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
@@ -108,11 +109,11 @@ const fetchList = async () => {
 
 const dialogVisible = ref(false);
 const handling = ref(false);
-const currentRow = ref<any>(null);
+const currentRow = ref<WorkflowTask | null>(null);
 const handleAction = ref(1);
 const remark = ref("");
 
-const openHandleDialog = (row: any, action: number) => {
+const openHandleDialog = (row: WorkflowTask, action: number) => {
   currentRow.value = row;
   handleAction.value = action;
   remark.value = "";
@@ -145,7 +146,7 @@ const transferForm = reactive({
   reason: ""
 });
 
-const openTransferDialog = (row: any) => {
+const openTransferDialog = (row: WorkflowTask) => {
   currentRow.value = row;
   transferForm.toAssigneeId = null;
   transferForm.reason = "";
@@ -184,7 +185,7 @@ const returnForm = reactive({
   remark: ""
 });
 
-const openReturnDialog = (row: any) => {
+const openReturnDialog = (row: WorkflowTask) => {
   currentRow.value = row;
   returnForm.returnTarget = "initiator";
   returnForm.remark = "";

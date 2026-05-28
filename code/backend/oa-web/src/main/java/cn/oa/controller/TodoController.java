@@ -2,6 +2,7 @@ package cn.oa.controller;
 
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaTodo;
 import cn.oa.service.TodoService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -33,8 +34,7 @@ public class TodoController {
                                        @RequestParam int pageSize,
                                        @RequestParam(required = false) Integer status,
                                        HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         IPage<OaTodo> page = todoService.myTodos(empId, status, pageNum, pageSize);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
@@ -42,8 +42,7 @@ public class TodoController {
     @GetMapping("/count")
     @Operation(summary = "待办数量")
     public R<Long> count(HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         return R.ok(todoService.countPending(empId));
     }
 

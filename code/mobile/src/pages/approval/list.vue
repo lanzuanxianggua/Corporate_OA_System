@@ -49,23 +49,12 @@
 import { ref } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import { getPendingTasks, getHandledTasks } from "@/api/workflow";
-import { STATUS_MAP } from "@/utils/constants";
+import { STATUS_MAP, BUSINESS_TYPE_MAP } from "@/utils/constants";
 
 const activeTab = ref(0);
 const pendingList = ref<any[]>([]);
 const historyList = ref<any[]>([]);
 const loading = ref(false);
-
-const BUSINESS_TYPE_MAP: Record<string, string> = {
-  leave: "请假",
-  trip: "出差",
-  outing: "外出",
-  purchase: "采购",
-  expense: "报销",
-  overtime: "加班",
-  loan: "借款",
-  contract: "合同"
-};
 
 const formatBusinessType = (type: string) => BUSINESS_TYPE_MAP[type] || type || "审批";
 
@@ -98,7 +87,7 @@ const fetchList = async () => {
       const res: any = await getHandledTasks({ pageNum: 1, pageSize: 50 });
       historyList.value = res.data?.list || [];
     }
-  } catch (e: any) {
+  } catch {
     uni.showToast({ title: "加载失败", icon: "none" });
   } finally {
     loading.value = false;
@@ -106,14 +95,13 @@ const fetchList = async () => {
 };
 
 const goDetail = (item: any) => {
-  const params = new URLSearchParams();
-  if (item.instanceId) params.set("instanceId", String(item.instanceId));
-  if (item.id) params.set("taskId", String(item.id));
-  if (item.businessType) params.set("businessType", item.businessType);
-  // Look up businessId from the nested instance object if available
+  const params: string[] = [];
+  if (item.instanceId) params.push(`instanceId=${item.instanceId}`);
+  if (item.id) params.push(`taskId=${item.id}`);
+  if (item.businessType) params.push(`businessType=${item.businessType}`);
   const bid = item.businessId || (item.instance && item.instance.businessId);
-  if (bid) params.set("businessId", String(bid));
-  uni.navigateTo({ url: `/pages/approval/detail?${params.toString()}` });
+  if (bid) params.push(`businessId=${bid}`);
+  uni.navigateTo({ url: `/pages/approval/detail?${params.join('&')}` });
 };
 
 const formatTime = (t: string) => t ? t.replace("T", " ").substring(0, 16) : "";

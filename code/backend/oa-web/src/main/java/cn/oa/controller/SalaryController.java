@@ -3,6 +3,7 @@ package cn.oa.controller;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaSalaryRecord;
 import cn.oa.entity.OaSalaryStructure;
 import cn.oa.service.SalaryRecordService;
@@ -42,6 +43,7 @@ public class SalaryController {
     @PostMapping("/structure")
     @RequireAdmin
     @Operation(summary = "新增薪资结构")
+    @cn.oa.common.annotation.OperationLog(module = "薪资管理", operation = "新增薪资结构")
     public R<Void> addStructure(@RequestBody @Valid OaSalaryStructure structure) {
         salaryStructureService.save(structure);
         log.info("Salary structure created: empId={}", structure.getEmpId());
@@ -51,6 +53,7 @@ public class SalaryController {
     @PutMapping("/structure")
     @RequireAdmin
     @Operation(summary = "修改薪资结构")
+    @cn.oa.common.annotation.OperationLog(module = "薪资管理", operation = "修改薪资结构")
     public R<Void> updateStructure(@RequestBody @Valid OaSalaryStructure structure) {
         salaryStructureService.updateById(structure);
         log.info("Salary structure updated: id={}", structure.getId());
@@ -72,8 +75,7 @@ public class SalaryController {
     @GetMapping("/my")
     @Operation(summary = "查询当前用户最新薪资记录")
     public R<OaSalaryRecord> my(HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         return R.ok(salaryRecordService.myLatestRecord(empId));
     }
 }

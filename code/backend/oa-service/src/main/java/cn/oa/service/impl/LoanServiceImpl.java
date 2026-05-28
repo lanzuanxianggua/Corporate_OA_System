@@ -1,52 +1,87 @@
 package cn.oa.service.impl;
 
-import lombok.extern.slf4j.Slf4j;
-
 import cn.oa.common.constant.BusinessType;
 import cn.oa.common.exception.BusinessException;
-import cn.oa.entity.OaApprovalRecord;
 import cn.oa.entity.OaLoan;
 import cn.oa.entity.OaLoanRepayment;
-import cn.oa.entity.SysEmployee;
-import cn.oa.entity.WfTask;
-import cn.oa.mapper.OaApprovalRecordMapper;
 import cn.oa.mapper.OaLoanMapper;
 import cn.oa.mapper.OaLoanRepaymentMapper;
-import cn.oa.mapper.SysEmployeeMapper;
-import cn.oa.mapper.WfTaskMapper;
 import cn.oa.service.LoanService;
-import cn.oa.service.WorkflowService;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
-@Slf4j
-public class LoanServiceImpl extends ServiceImpl<OaLoanMapper, OaLoan> implements LoanService {
-
-    @Autowired
-    private OaApprovalRecordMapper approvalRecordMapper;
+public class LoanServiceImpl extends BaseApprovalServiceImpl<OaLoanMapper, OaLoan>
+        implements LoanService {
 
     @Autowired
     private OaLoanRepaymentMapper repaymentMapper;
 
-    @Autowired
-    private SysEmployeeMapper employeeMapper;
+    public LoanServiceImpl() {
+        this.empIdGetter = OaLoan::getEmpId;
+        // OaLoan.status is String — override doPageList for proper filtering
+        this.createTimeGetter = OaLoan::getCreateTime;
+        this.idGetter = OaLoan::getId;
+    }
 
-    @Autowired
-    private WorkflowService workflowService;
+    @Override
+    protected String getBusinessType() {
+        return BusinessType.LOAN;
+    }
 
-    @Autowired
-    private WfTaskMapper wfTaskMapper;
+    @Override
+    protected void setStatus(OaLoan entity, Integer status) {
+        entity.setStatus(String.valueOf(status));
+    }
+
+    @Override
+    protected void setEmpName(OaLoan entity, String name) {
+        entity.setEmpName(name);
+    }
+
+    @Override
+    protected void setRemark(OaLoan entity, String remark) {
+        // OaLoan has no remark transient field — no-op
+    }
+
+    @Override
+    protected Map<String, Object> buildConditionContext(OaLoan entity) {
+        Map<String, Object> ctx = new HashMap<>();
+        ctx.put("amount", entity.getLoanAmount().doubleValue());
+        return ctx;
+    }
+
+    @Override
+    protected void fillRemarks(java.util.List<OaLoan> records) {
+        // no-op — OaLoan has no remark field
+    }
+
+    @Override
+    public IPage<OaLoan> doPageList(int pageNum, int pageSize, Long empId, Integer status) {
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<OaLoan> page =
+                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(pageNum, pageSize);
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<OaLoan> wrapper =
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        if (empId != null) {
+            wrapper.eq(OaLoan::getEmpId, empId);
+        }
+        if (status != null) {
+            wrapper.eq(OaLoan::getStatus, String.valueOf(status));
+        }
+        if (createTimeGetter != null) {
+            wrapper.orderByDesc(createTimeGetter);
+        }
+        IPage<OaLoan> result = this.page(page, wrapper);
+        fillEmpNames(result.getRecords());
+        return result;
+    }
 
     @Override
     @Transactional
@@ -54,73 +89,30 @@ public class LoanServiceImpl extends ServiceImpl<OaLoanMapper, OaLoan> implement
         if (loan.getLoanAmount() == null) {
             throw new BusinessException("借支金额不能为空");
         }
-        loan.setStatus("0");
-        this.save(loan);
-        Map<String, Object> ctx = new HashMap<>();
-        ctx.put("amount", loan.getLoanAmount().doubleValue());
-        workflowService.startProcess(BusinessType.LOAN, loan.getId(), loan.getEmpId(), ctx);
-        log.info("Loan submitted: id={}, empId={}", loan.getId(), loan.getEmpId());
+        doSubmit(loan);
     }
 
     @Override
     @Transactional
     public void approve(Long loanId, Long approverId, Integer status, String remark) {
-        approve(loanId, approverId, status, remark, null);
+        doApprove(loanId, approverId, status, remark);
     }
 
     @Override
     @Transactional
     public void approve(Long loanId, Long approverId, Integer status, String remark, Long taskId) {
-        WfTask task = null;
-        // First try to find task assigned to this user
-        if (taskId != null) {
-            task = wfTaskMapper.selectById(taskId);
-        }
-        if (task == null) {
-            task = workflowService.findPendingTask(BusinessType.LOAN, loanId, approverId);
-        }
-        // If still not found, try to find any pending task for this business (admin override)
-        if (task == null) {
-            cn.oa.entity.WfProcessInstance instance = workflowService.getByBusiness(BusinessType.LOAN, loanId);
-            if (instance != null) {
-                LambdaQueryWrapper<WfTask> wrapper = new LambdaQueryWrapper<>();
-                wrapper.eq(WfTask::getInstanceId, instance.getId())
-                       .eq(WfTask::getStatus, "0")
-                       .orderByAsc(WfTask::getCreateTime)
-                       .last("LIMIT 1");
-                task = wfTaskMapper.selectOne(wrapper);
-            }
-        }
-        if (task != null) {
-            workflowService.handleTask(task.getId(), approverId, status, remark);
-        } else {
-            throw new BusinessException("未找到待审批的任务");
-        }
+        doApprove(loanId, approverId, status, remark);
     }
 
     @Override
+    @Transactional
     public void updateStatus(Long id, Integer status) {
-        OaLoan loan = this.getById(id);
-        if (loan != null) {
-            loan.setStatus(String.valueOf(status));
-            this.updateById(loan);
-        }
+        doUpdateStatus(id, status);
     }
 
     @Override
     public IPage<OaLoan> pageList(int pageNum, int pageSize, Long empId, Integer status) {
-        Page<OaLoan> page = new Page<>(pageNum, pageSize);
-        LambdaQueryWrapper<OaLoan> wrapper = new LambdaQueryWrapper<>();
-        if (empId != null) {
-            wrapper.eq(OaLoan::getEmpId, empId);
-        }
-        if (status != null) {
-            wrapper.eq(OaLoan::getStatus, status);
-        }
-        wrapper.orderByDesc(OaLoan::getCreateTime);
-        IPage<OaLoan> result = this.page(page, wrapper);
-        fillEmpNames(result.getRecords());
-        return result;
+        return doPageList(pageNum, pageSize, empId, status);
     }
 
     @Override
@@ -136,25 +128,5 @@ public class LoanServiceImpl extends ServiceImpl<OaLoanMapper, OaLoan> implement
         repayment.setRepayTime(LocalDateTime.now());
         repayment.setRemark(remark);
         repaymentMapper.insert(repayment);
-        log.info("Loan repayment added: loanId={}, amount={}", loanId, amount);
-    }
-
-    private void fillEmpNames(List<OaLoan> records) {
-        if (records == null || records.isEmpty()) return;
-        Set<Long> empIds = records.stream()
-                .map(OaLoan::getEmpId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-        if (empIds.isEmpty()) return;
-
-        List<SysEmployee> employees = employeeMapper.selectBatchIds(empIds);
-        Map<Long, String> nameMap = employees.stream()
-                .collect(Collectors.toMap(SysEmployee::getId, SysEmployee::getEmpName, (a, b) -> a));
-
-        for (OaLoan record : records) {
-            if (record.getEmpId() != null) {
-                record.setEmpName(nameMap.getOrDefault(record.getEmpId(), ""));
-            }
-        }
     }
 }

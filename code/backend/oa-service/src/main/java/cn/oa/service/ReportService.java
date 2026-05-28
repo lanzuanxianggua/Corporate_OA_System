@@ -1,7 +1,7 @@
 package cn.oa.service;
 
-import cn.oa.entity.AdminReportVO;
-import cn.oa.entity.PersonalReportVO;
+import cn.oa.vo.AdminReportVO;
+import cn.oa.vo.PersonalReportVO;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -17,4 +17,7 @@ public interface ReportService {
     List<Map<String, Object>> getDeptCompare(String month);
     List<Map<String, Object>> getLeaveAnalysis(String month);
     List<Map<String, Object>> getEmployeeRanking(String month, String type);
+
+    void clearPersonalCache(Long empId, String month);
+    void clearAdminCache(String month);
 }

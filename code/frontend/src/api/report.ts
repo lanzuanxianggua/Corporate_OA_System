@@ -14,7 +14,7 @@ export const getPersonalAttendanceTrend = (months = 6, period = "month") => {
 };
 
 export const getPersonalLeaveSummary = (month: string) => {
-  return request.get<unknown, ApiResponse<Record<string, unknown>>>("/api/report/personal/leave-summary", {
+  return request.get<unknown, ApiResponse<Record<string, unknown>[]>>("/api/report/personal/leave-summary", {
     params: { month }
   });
 };
@@ -44,7 +44,7 @@ export const getAdminAttendanceTrend = (month: string, months = 12) => {
 };
 
 export const getAdminLeaveAnalysis = (month: string) => {
-  return request.get<unknown, ApiResponse<Record<string, unknown>>>("/api/report/admin/leave-analysis", {
+  return request.get<unknown, ApiResponse<Record<string, unknown>[]>>("/api/report/admin/leave-analysis", {
     params: { month }
   });
 };

@@ -1,5 +1,6 @@
 package cn.oa.service.impl;
 
+import cn.oa.common.exception.BusinessException;
 import cn.oa.entity.OaNotice;
 import cn.oa.entity.SysEmployee;
 import cn.oa.mapper.OaNoticeMapper;
@@ -12,13 +13,13 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
-@SuppressWarnings("deprecation")
 public class NoticeServiceImpl extends ServiceImpl<OaNoticeMapper, OaNotice> implements NoticeService {
 
     @Autowired
@@ -26,6 +27,15 @@ public class NoticeServiceImpl extends ServiceImpl<OaNoticeMapper, OaNotice> imp
 
     @Autowired
     private SysEmployeeMapper employeeMapper;
+
+    @Override
+    @Transactional
+    public void publish(OaNotice notice) {
+        if (notice.getTitle() == null || notice.getTitle().isBlank()) {
+            throw new BusinessException("公告标题不能为空");
+        }
+        this.save(notice);
+    }
 
     @Override
     public IPage<OaNotice> pageList(int pageNum, int pageSize, String title) {
@@ -36,14 +46,12 @@ public class NoticeServiceImpl extends ServiceImpl<OaNoticeMapper, OaNotice> imp
         }
         wrapper.orderByDesc(OaNotice::getCreateTime);
         IPage<OaNotice> result = this.page(page, wrapper);
-
-        // 填充 publisher 名称
         fillPublisherNames(result.getRecords());
-
         return result;
     }
 
     @Override
+    @Transactional
     public void markAsRead(Long noticeId, Long empId) {
         redisTemplate.opsForSet().add("notice:read:" + noticeId, empId);
     }
@@ -52,6 +60,19 @@ public class NoticeServiceImpl extends ServiceImpl<OaNoticeMapper, OaNotice> imp
     public boolean isRead(Long noticeId, Long empId) {
         Boolean member = redisTemplate.opsForSet().isMember("notice:read:" + noticeId, empId);
         return member != null && member;
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long id) {
+        OaNotice notice = this.getById(id);
+        if (notice == null) {
+            throw new BusinessException("公告不存在");
+        }
+        notice.setDelFlag("1");
+        this.updateById(notice);
+        // Clean up read tracking
+        redisTemplate.delete("notice:read:" + id);
     }
 
     private void fillPublisherNames(List<OaNotice> notices) {

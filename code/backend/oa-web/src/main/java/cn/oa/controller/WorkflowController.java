@@ -1,15 +1,22 @@
 package cn.oa.controller;
 
+import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.annotation.RequireRole;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaApprovalRecord;
 import cn.oa.entity.WfCcRecord;
 import cn.oa.entity.WfDelegation;
 import cn.oa.entity.WfProcessDefinition;
 import cn.oa.entity.WfProcessInstance;
 import cn.oa.entity.WfTask;
+import cn.oa.entity.dto.ActivateDefinitionDTO;
+import cn.oa.entity.dto.BusinessRefDTO;
+import cn.oa.entity.dto.HandleTaskDTO;
+import cn.oa.entity.dto.ReturnTaskDTO;
+import cn.oa.entity.dto.TransferTaskDTO;
 import cn.oa.service.DelegationService;
 import cn.oa.service.WorkflowService;
 import cn.oa.mapper.WfCcRecordMapper;
@@ -31,7 +38,6 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @RestController
@@ -51,6 +57,7 @@ public class WorkflowController {
     @PostMapping("/definition")
     @RequireAdmin
     @Operation(summary = "创建/更新流程定义")
+    @OperationLog(module = "工作流管理", operation = "保存流程定义")
     public R<Void> saveDefinition(@RequestBody @Valid WfProcessDefinition definition) {
         workflowService.saveDefinition(definition);
         log.info("Workflow definition saved: processType={}", definition.getProcessType());
@@ -68,8 +75,7 @@ public class WorkflowController {
     public R<PageResult<WfTask>> pendingTasks(@RequestParam int pageNum,
                                                @RequestParam int pageSize,
                                                HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         IPage<WfTask> page = workflowService.myPendingTasks(empId, pageNum, pageSize);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
@@ -79,38 +85,31 @@ public class WorkflowController {
     public R<PageResult<WfTask>> handledTasks(@RequestParam int pageNum,
                                                 @RequestParam int pageSize,
                                                 HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         IPage<WfTask> page = workflowService.myHandledTasks(empId, pageNum, pageSize);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 
     @PostMapping("/task/handle")
     @Operation(summary = "处理任务（审批/驳回）")
-    public R<Void> handleTask(@RequestBody @Valid Map<String, Object> params, HttpServletRequest request) {
-        if (params.get("taskId") == null) return R.fail("taskId不能为空");
-        if (params.get("status") == null && params.get("action") == null) return R.fail("status不能为空");
-        Long taskId = Long.valueOf(params.get("taskId").toString());
-        Object statusObj = params.get("status") != null ? params.get("status") : params.get("action");
-        Integer status = Integer.valueOf(statusObj.toString());
-        String remark = params.get("remark") != null ? params.get("remark").toString() : null;
-        Object handlerIdObj = request.getAttribute("empId");
-        Long handlerId = (handlerIdObj instanceof Number) ? ((Number) handlerIdObj).longValue() : Long.valueOf(handlerIdObj.toString());
-        workflowService.handleTask(taskId, handlerId, status, remark);
-        log.info("Workflow task handled: taskId={}, status={}, handlerId={}", taskId, status, handlerId);
+    @OperationLog(module = "工作流管理", operation = "处理任务")
+    public R<Void> handleTask(@RequestBody @Valid HandleTaskDTO dto, HttpServletRequest request) {
+        Long handlerId = WebUtil.getEmpId(request);
+        workflowService.handleTask(dto.getTaskId(), handlerId, dto.getStatus(), dto.getRemark());
+        log.info("Workflow task handled: taskId={}, status={}, handlerId={}", dto.getTaskId(), dto.getStatus(), handlerId);
         return R.ok();
     }
 
     @PostMapping("/definition/activate")
     @RequireRole({"DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"})
     @Operation(summary = "激活/停用流程定义")
-    public R<Void> activateDefinition(@RequestBody @Valid Map<String, Object> params) {
-        Long id = Long.valueOf(params.get("id").toString());
-        WfProcessDefinition def = workflowService.getById(id);
+    @OperationLog(module = "工作流管理", operation = "激活/停用流程定义")
+    public R<Void> activateDefinition(@RequestBody @Valid ActivateDefinitionDTO dto) {
+        WfProcessDefinition def = workflowService.getById(dto.getId());
         if (def == null) return R.fail("流程定义不存在");
         def.setStatus("0".equals(def.getStatus()) ? "1" : "0");
         workflowService.updateById(def);
-        log.info("Workflow definition activated/deactivated: id={}, status={}", id, def.getStatus());
+        log.info("Workflow definition activated/deactivated: id={}, status={}", dto.getId(), def.getStatus());
         return R.ok();
     }
 
@@ -130,67 +129,48 @@ public class WorkflowController {
 
     @PostMapping("/withdraw")
     @Operation(summary = "撤回申请")
-    public R<Void> withdraw(@RequestBody @Valid Map<String, Object> params, HttpServletRequest request) {
-        if (params.get("businessType") == null) return R.fail("businessType不能为空");
-        if (params.get("businessId") == null) return R.fail("businessId不能为空");
-        String businessType = params.get("businessType").toString();
-        Long businessId = Long.valueOf(params.get("businessId").toString());
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
-        workflowService.withdrawProcess(businessType, businessId, empId);
-        log.info("Workflow withdrawn: businessType={}, businessId={}, empId={}", businessType, businessId, empId);
+    @OperationLog(module = "工作流管理", operation = "撤回申请")
+    public R<Void> withdraw(@RequestBody @Valid BusinessRefDTO dto, HttpServletRequest request) {
+        Long empId = WebUtil.getEmpId(request);
+        workflowService.withdrawProcess(dto.getBusinessType(), dto.getBusinessId(), empId);
+        log.info("Workflow withdrawn: businessType={}, businessId={}, empId={}", dto.getBusinessType(), dto.getBusinessId(), empId);
         return R.ok();
     }
 
     @GetMapping("/task/find")
     @Operation(summary = "查找待处理任务")
     public R<WfTask> findTask(@RequestParam String businessType, @RequestParam Long businessId, HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         return R.ok(workflowService.findPendingTask(businessType, businessId, empId));
     }
 
     @PostMapping("/task/transfer")
     @Operation(summary = "转办任务")
-    public R<Void> transferTask(@RequestBody @Valid Map<String, Object> params, HttpServletRequest request) {
-        if (params.get("taskId") == null) return R.fail("taskId不能为空");
-        if (params.get("toAssigneeId") == null) return R.fail("toAssigneeId不能为空");
-        Long taskId = Long.valueOf(params.get("taskId").toString());
-        Long toAssigneeId = Long.valueOf(params.get("toAssigneeId").toString());
-        String reason = params.get("reason") != null ? params.get("reason").toString() : null;
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
-        workflowService.transferTask(taskId, empId, toAssigneeId, reason);
-        log.info("Workflow task transferred: taskId={}, from={}, to={}", taskId, empId, toAssigneeId);
+    @OperationLog(module = "工作流管理", operation = "转办任务")
+    public R<Void> transferTask(@RequestBody @Valid TransferTaskDTO dto, HttpServletRequest request) {
+        Long empId = WebUtil.getEmpId(request);
+        workflowService.transferTask(dto.getTaskId(), empId, dto.getToAssigneeId(), dto.getReason());
+        log.info("Workflow task transferred: taskId={}, from={}, to={}", dto.getTaskId(), empId, dto.getToAssigneeId());
         return R.ok();
     }
 
     @PostMapping("/task/return")
     @Operation(summary = "退回任务到指定节点")
-    public R<Void> returnTask(@RequestBody @Valid Map<String, Object> params, HttpServletRequest request) {
-        if (params.get("taskId") == null) return R.fail("taskId不能为空");
-        if (params.get("returnTarget") == null) return R.fail("returnTarget不能为空");
-        Long taskId = Long.valueOf(params.get("taskId").toString());
-        String returnTarget = params.get("returnTarget").toString();
-        String remark = params.get("remark") != null ? params.get("remark").toString() : null;
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
-        workflowService.returnTask(taskId, empId, returnTarget, remark);
-        log.info("Workflow task returned: taskId={}, target={}", taskId, returnTarget);
+    @OperationLog(module = "工作流管理", operation = "退回任务")
+    public R<Void> returnTask(@RequestBody @Valid ReturnTaskDTO dto, HttpServletRequest request) {
+        Long empId = WebUtil.getEmpId(request);
+        workflowService.returnTask(dto.getTaskId(), empId, dto.getReturnTarget(), dto.getRemark());
+        log.info("Workflow task returned: taskId={}, target={}", dto.getTaskId(), dto.getReturnTarget());
         return R.ok();
     }
 
     @PostMapping("/task/urge")
     @RequireRole({"DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"})
     @Operation(summary = "催办")
-    public R<Void> urgeTask(@RequestBody @Valid Map<String, Object> params, HttpServletRequest request) {
-        if (params.get("businessType") == null) return R.fail("businessType不能为空");
-        if (params.get("businessId") == null) return R.fail("businessId不能为空");
-        String businessType = params.get("businessType").toString();
-        Long businessId = Long.valueOf(params.get("businessId").toString());
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
-        WfProcessInstance instance = workflowService.getByBusiness(businessType, businessId);
+    @OperationLog(module = "工作流管理", operation = "催办")
+    public R<Void> urgeTask(@RequestBody @Valid BusinessRefDTO dto, HttpServletRequest request) {
+        Long empId = WebUtil.getEmpId(request);
+        WfProcessInstance instance = workflowService.getByBusiness(dto.getBusinessType(), dto.getBusinessId());
         if (instance == null) {
             return R.fail("流程实例不存在");
         }
@@ -201,8 +181,7 @@ public class WorkflowController {
     @GetMapping("/cc/my")
     @Operation(summary = "我的抄送")
     public R<PageResult<WfCcRecord>> myCcRecords(@RequestParam int pageNum, @RequestParam int pageSize, HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         Page<WfCcRecord> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<WfCcRecord> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(WfCcRecord::getCcEmpId, empId).orderByDesc(WfCcRecord::getCreateTime);
@@ -223,9 +202,9 @@ public class WorkflowController {
 
     @PostMapping("/delegation/set")
     @Operation(summary = "设置审批委托")
+    @OperationLog(module = "工作流管理", operation = "设置审批委托")
     public R<Void> setDelegation(@RequestBody @Valid WfDelegation delegation, HttpServletRequest request) {
-        Object delegatorIdObj = request.getAttribute("empId");
-        Long delegatorId = (delegatorIdObj instanceof Number) ? ((Number) delegatorIdObj).longValue() : Long.valueOf(delegatorIdObj.toString());
+        Long delegatorId = WebUtil.getEmpId(request);
         delegation.setDelegatorId(delegatorId);
         delegationService.setDelegation(delegation);
         log.info("Delegation set: delegatorId={}, delegateToId={}", delegatorId, delegation.getDelegateToId());
@@ -235,16 +214,15 @@ public class WorkflowController {
     @GetMapping("/delegation/my")
     @Operation(summary = "我的审批委托")
     public R<List<WfDelegation>> myDelegations(HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         return R.ok(delegationService.getMyDelegations(empId));
     }
 
     @PostMapping("/delegation/cancel/{id}")
     @Operation(summary = "取消审批委托")
+    @OperationLog(module = "工作流管理", operation = "取消审批委托")
     public R<Void> cancelDelegation(@PathVariable Long id, HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         delegationService.cancelDelegation(id, empId);
         log.info("Delegation cancelled: id={}, empId={}", id, empId);
         return R.ok();

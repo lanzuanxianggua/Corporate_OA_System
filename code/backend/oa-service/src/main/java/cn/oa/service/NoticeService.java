@@ -7,6 +7,11 @@ import com.baomidou.mybatisplus.extension.service.IService;
 public interface NoticeService extends IService<OaNotice> {
 
     /**
+     * 发布公告
+     */
+    void publish(OaNotice notice);
+
+    /**
      * 分页查询公告列表
      */
     IPage<OaNotice> pageList(int pageNum, int pageSize, String title);
@@ -20,4 +25,9 @@ public interface NoticeService extends IService<OaNotice> {
      * 判断是否已读
      */
     boolean isRead(Long noticeId, Long empId);
+
+    /**
+     * 删除公告
+     */
+    void delete(Long id);
 }

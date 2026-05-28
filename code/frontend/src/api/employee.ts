@@ -27,4 +27,6 @@ export const deleteEmployee = (id: number) => {
 };
 
 export const updatePassword = (oldPwd: string, newPwd: string) =>
-  request.post<unknown, ApiResponse<void>>("/api/auth/change-password", { oldPassword: oldPwd, newPassword: newPwd });
+  request.put<unknown, ApiResponse<void>>("/api/employee/password", null, {
+    params: { empId: 0, oldPwd, newPwd }
+  });

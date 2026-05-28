@@ -2,6 +2,7 @@ package cn.oa.service.impl;
 
 import lombok.extern.slf4j.Slf4j;
 
+import cn.oa.common.exception.BusinessException;
 import cn.oa.entity.OaSalaryRecord;
 import cn.oa.entity.OaSalaryStructure;
 import cn.oa.mapper.OaSalaryRecordMapper;
@@ -45,11 +46,11 @@ public class SalaryRecordServiceImpl extends ServiceImpl<OaSalaryRecordMapper, O
         OaSalaryStructure structure = structureMapper.selectOne(
                 new LambdaQueryWrapper<OaSalaryStructure>()
                         .eq(OaSalaryStructure::getEmpId, empId)
-                        .eq(OaSalaryStructure::getStatus, '0')
+                        .eq(OaSalaryStructure::getStatus, "0")
                         .orderByDesc(OaSalaryStructure::getEffectiveDate)
                         .last("LIMIT 1"));
         if (structure == null) {
-            throw new RuntimeException("员工薪资结构不存在");
+            throw new BusinessException("员工薪资结构不存在");
         }
 
         BigDecimal actualAmount = structure.getBaseSalary()

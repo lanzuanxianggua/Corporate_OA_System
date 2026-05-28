@@ -1,8 +1,10 @@
 package cn.oa.controller;
 
 import cn.oa.common.annotation.OperationLog;
+import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaSchedule;
 import cn.oa.entity.dto.ScheduleDTO;
 import cn.oa.service.ScheduleService;
@@ -12,7 +14,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,7 +25,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.List;
 
 @Slf4j
 @RestController
@@ -35,29 +35,16 @@ public class ScheduleController {
     @Autowired
     private ScheduleService scheduleService;
 
-    @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
-
     @GetMapping("/page")
     @Operation(summary = "分页查询日程")
     public R<PageResult<OaSchedule>> page(@RequestParam int pageNum,
                                           @RequestParam int pageSize,
                                           @RequestParam(required = false) Long empId,
                                           HttpServletRequest request) {
-        // 非管理员只能查看自己的日程
-        if (empId != null) {
-            Object currentEmpIdObj = request.getAttribute("empId");
-            Long currentEmpId = (currentEmpIdObj instanceof Number) ? ((Number) currentEmpIdObj).longValue() : Long.valueOf(currentEmpIdObj.toString());
-            @SuppressWarnings("unchecked")
-            List<String> roles = (List<String>) redisTemplate.opsForValue().get("roles:" + currentEmpId);
-            boolean isAdmin = roles != null && roles.stream().anyMatch(r -> "ADMIN".equalsIgnoreCase(r));
-            if (!isAdmin && !empId.equals(currentEmpId)) {
-                empId = currentEmpId;
-            }
-        }
-        if (empId == null) {
-            Object empIdObj = request.getAttribute("empId");
-            empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long currentEmpId = WebUtil.getEmpId(request);
+        // Non-admin users can only view their own schedules
+        if (empId == null || !empId.equals(currentEmpId)) {
+            empId = currentEmpId;
         }
         IPage<OaSchedule> page = scheduleService.pageList(pageNum, pageSize, empId);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));

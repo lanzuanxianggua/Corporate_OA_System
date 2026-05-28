@@ -41,7 +41,7 @@ const fetchData = async () => {
 
 const handleForceLogout = async (row: any) => {
   try {
-    await ElMessageBox.confirm(`确定强制下线用户 "${row.empName || row.username}" ？`, "提示", { type: "warning" });
+    await ElMessageBox.confirm(`确定强制下线用户 "${row.empName || row.username || ''}" ？`, "提示", { type: "warning" });
     await forceLogout(row.empId || row.id);
     ElMessage.success("操作成功");
     await fetchData();

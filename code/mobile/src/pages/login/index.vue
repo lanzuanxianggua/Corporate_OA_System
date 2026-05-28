@@ -15,7 +15,10 @@
         <input v-model="form.captchaCode" placeholder="验证码" class="form-input captcha-input" />
         <image :src="captchaUrl" class="captcha-img" @click="fetchCaptcha" mode="aspectFit" />
       </view>
-      <button class="login-btn" @click="handleLogin" :loading="loading">登 录</button>
+      <button class="login-btn" @click="handleLogin" :disabled="loading">
+        <text v-if="!loading">登 录</text>
+        <text v-else>登录中...</text>
+      </button>
     </view>
   </view>
 </template>
@@ -35,16 +38,18 @@ const fetchCaptcha = async () => {
     const res: any = await getCaptcha();
     captchaUrl.value = res.data?.img || "";
     form.captchaUuid = res.data?.uuid || "";
-  } catch {}
+  } catch {
+    // Captcha fetch failed — backend may not require it
+  }
 };
 
 const handleLogin = async () => {
-  if (!form.username || !form.password) {
-    uni.showToast({ title: "请输入用户名和密码", icon: "none" });
+  if (!form.username.trim()) {
+    uni.showToast({ title: "请输入用户名", icon: "none" });
     return;
   }
-  if (form.username.trim().length < 2) {
-    uni.showToast({ title: "用户名至少2个字符", icon: "none" });
+  if (!form.password) {
+    uni.showToast({ title: "请输入密码", icon: "none" });
     return;
   }
   if (form.password.length < 6) {
@@ -55,7 +60,7 @@ const handleLogin = async () => {
   try {
     await userStore.login(form.username, form.password, form.captchaUuid, form.captchaCode);
     uni.switchTab({ url: "/pages/home/index" });
-  } catch {
+  } catch (e: any) {
     fetchCaptcha();
   } finally {
     loading.value = false;
@@ -137,5 +142,10 @@ onMounted(fetchCaptcha);
   font-size: 32rpx;
   border-radius: 12rpx;
   border: none;
+}
+
+.login-btn[disabled] {
+  background: #a0cfff;
+  color: #fff;
 }
 </style>

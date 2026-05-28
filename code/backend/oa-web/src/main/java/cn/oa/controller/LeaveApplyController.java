@@ -4,7 +4,9 @@ import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
-import cn.oa.common.utils.ExcelExportUtil;
+import cn.oa.common.utils.WebUtil;
+import cn.oa.entity.dto.ApproveDTO;
+import cn.oa.utils.ExcelExportUtil;
 import cn.oa.entity.OaLeaveApply;
 import cn.oa.entity.SysEmployee;
 import cn.oa.mapper.SysEmployeeMapper;
@@ -39,7 +41,6 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/leave")
 @Tag(name = "请假管理")
 @Slf4j
-@SuppressWarnings("deprecation")
 public class LeaveApplyController {
 
     private static final String[] LEAVE_TYPE_TEXT = {"", "年假", "事假", "病假", "婚假", "产假", "丧假"};
@@ -56,8 +57,7 @@ public class LeaveApplyController {
     @Operation(summary = "提交请假申请")
     @OperationLog(module = "请假管理", operation = "提交请假申请")
     public R<Void> submit(@RequestBody @Valid OaLeaveApply apply, HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         apply.setEmpId(empId);
         leaveApplyService.submit(apply);
         log.info("Leave submitted: empId={}", empId);
@@ -67,15 +67,10 @@ public class LeaveApplyController {
     @PostMapping("/approve")
     @Operation(summary = "审批请假申请")
     @OperationLog(module = "请假管理", operation = "审批请假申请")
-    public R<Void> approve(@RequestBody @Valid Map<String, Object> params, HttpServletRequest request) {
-        Long applyId = Long.valueOf(params.get("id").toString());
-        Integer status = Integer.valueOf(params.get("status").toString());
-        String remark = params.get("remark") != null ? params.get("remark").toString() : null;
-        Long taskId = params.get("taskId") != null ? Long.valueOf(params.get("taskId").toString()) : null;
-        Object approverIdObj = request.getAttribute("empId");
-        Long approverId = (approverIdObj instanceof Number) ? ((Number) approverIdObj).longValue() : Long.valueOf(approverIdObj.toString());
-        leaveApplyService.approve(applyId, approverId, status, remark, taskId);
-        log.info("Leave approved: id={}, status={}, approverId={}, taskId={}", applyId, status, approverId, taskId);
+    public R<Void> approve(@RequestBody @Valid ApproveDTO dto, HttpServletRequest request) {
+        Long approverId = WebUtil.getEmpId(request);
+        leaveApplyService.approve(dto.getId(), approverId, dto.getStatus(), dto.getRemark(), dto.getTaskId());
+        log.info("Leave approved: id={}, status={}, approverId={}, taskId={}", dto.getId(), dto.getStatus(), approverId, dto.getTaskId());
         return R.ok();
     }
 
@@ -96,7 +91,6 @@ public class LeaveApplyController {
             @RequestParam(required = false) Long empId,
             @RequestParam(required = false) Integer status,
             HttpServletResponse response) throws IOException {
-        // Export with reasonable limit to prevent OOM
         IPage<OaLeaveApply> page = leaveApplyService.pageList(1, 5000, empId, status);
         List<OaLeaveApply> records = page.getRecords();
         if (records.size() > 1000) {
@@ -106,7 +100,6 @@ public class LeaveApplyController {
             records = records.subList(0, 5000);
         }
 
-        // Build empId -> employee map
         Map<Long, SysEmployee> empMap = records.stream()
                 .map(OaLeaveApply::getEmpId)
                 .filter(id -> id != null)

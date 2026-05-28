@@ -33,9 +33,10 @@
 import { ref, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import { getMyCcRecords, readCcRecord } from "@/api/workflow";
+import type { CcRecord } from "@/types/api";
 
 const loading = ref(false);
-const tableData = ref<any[]>([]);
+const tableData = ref<CcRecord[]>([]);
 const pageNum = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
@@ -51,8 +52,8 @@ const fetchList = async () => {
   }
 };
 
-const markRead = async (row: any) => {
-  await readCcRecord(row.id);
+const markRead = async (row: CcRecord) => {
+  await readCcRecord(row.id!);
   ElMessage.success("已标记为已读");
   fetchList();
 };

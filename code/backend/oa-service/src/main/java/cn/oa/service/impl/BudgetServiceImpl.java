@@ -1,5 +1,6 @@
 package cn.oa.service.impl;
 
+import cn.oa.common.exception.BusinessException;
 import cn.oa.entity.OaBudget;
 import cn.oa.mapper.OaBudgetMapper;
 import cn.oa.service.BudgetService;
@@ -42,7 +43,7 @@ public class BudgetServiceImpl extends ServiceImpl<OaBudgetMapper, OaBudget> imp
     public void updateUsedAmount(Long budgetId, BigDecimal amount) {
         OaBudget budget = this.getById(budgetId);
         if (budget == null) {
-            throw new RuntimeException("预算不存在");
+            throw new BusinessException("预算不存在");
         }
         budget.setUsedAmount(budget.getUsedAmount().add(amount));
         this.updateById(budget);

@@ -1,9 +1,12 @@
 /**
  * Central API type definitions for the Corporate OA System frontend.
- * Replaces ad-hoc 'any' types with proper interfaces across all API files.
+ * Organized by domain: System, Auth, OA Core, Business, Workflow, Monitoring.
+ * All interfaces match backend DTOs/VOs with camelCase naming.
  */
 
-// ── Generic wrappers ──────────────────────────────────────────────────────
+// ============================================================================
+// Generic Wrappers
+// ============================================================================
 
 export interface ApiResponse<T = unknown> {
   code: number;
@@ -21,7 +24,9 @@ export interface PageParams {
   pageSize: number;
 }
 
-// ── System entities ───────────────────────────────────────────────────────
+// ============================================================================
+// System Domain
+// ============================================================================
 
 export interface Employee {
   id?: number;
@@ -31,14 +36,14 @@ export interface Employee {
   phone?: string;
   email?: string;
   deptId?: number;
-  deptName?: string;
   avatar?: string;
   status?: number;
   postId?: number;
-  postName?: string;
-  roleName?: string;
-  empId?: number;
+  delFlag?: string;
+  createBy?: string;
+  updateBy?: string;
   createTime?: string;
+  updateTime?: string;
 }
 
 export interface Dept {
@@ -112,7 +117,9 @@ export interface Config {
   status?: number;
 }
 
-// ── Auth / User ───────────────────────────────────────────────────────────
+// ============================================================================
+// Auth / User Domain
+// ============================================================================
 
 export interface LoginDTO {
   username: string;
@@ -125,16 +132,16 @@ export interface LoginVO {
   accessToken: string;
   refreshToken: string;
   expires: string;
-  username?: string;
-  nickname?: string;
-  avatar?: string;
-  roles?: string[];
-  permissions?: string[];
+  username: string;
+  nickname: string;
+  avatar: string;
+  roles: string[];
+  permissions: string[];
 }
 
 export interface CaptchaVO {
   uuid: string;
-  image: string;
+  img: string;
 }
 
 export interface UserVO {
@@ -151,7 +158,31 @@ export interface UserVO {
   roles?: Array<{ id: number; name: string; code: string }>;
 }
 
-// ── OA core ───────────────────────────────────────────────────────────────
+// ============================================================================
+// OA Core Domain
+// ============================================================================
+
+export interface Attendance {
+  id?: number;
+  empId?: number;
+  workDate?: string;
+  clockIn?: string;
+  clockOut?: string;
+  status?: number;
+  remark?: string;
+  ip?: string;
+  address?: string;
+}
+
+export interface AttendanceGroup {
+  id?: number;
+  groupName?: string;
+  workStart?: string;
+  workEnd?: string;
+  lateThreshold?: number;
+  status?: number;
+  empCount?: number;
+}
 
 export interface Notice {
   id?: number;
@@ -162,23 +193,10 @@ export interface Notice {
   publisher?: string;
   publisherName?: string;
   status?: number;
-  createTime?: string;
-  updateTime?: string;
   isRead?: boolean;
   readCount?: number;
-}
-
-export interface Message {
-  id?: string | number;
-  senderId?: string | number;
-  senderName?: string;
-  receiverId?: number;
-  receiverName?: string;
-  msgType?: number;
-  title?: string;
-  content?: string;
-  isRead?: number;
   createTime?: string;
+  updateTime?: string;
 }
 
 export interface Document {
@@ -189,10 +207,8 @@ export interface Document {
   fileSize?: number;
   fileType?: string;
   categoryId?: number;
-  categoryName?: string;
   downloadCount?: number;
   uploaderId?: number;
-  uploaderName?: string;
   uploadTime?: string;
   createTime?: string;
 }
@@ -200,7 +216,6 @@ export interface Document {
 export interface Schedule {
   id?: number;
   empId?: number;
-  empName?: string;
   title?: string;
   content?: string;
   description?: string;
@@ -208,6 +223,18 @@ export interface Schedule {
   endTime?: string;
   remindTime?: string;
   status?: number;
+  createTime?: string;
+}
+
+export interface Message {
+  id?: number;
+  senderId?: number;
+  senderName?: string;
+  receiverId?: number;
+  msgType?: number;
+  title?: string;
+  content?: string;
+  isRead?: number;
   createTime?: string;
 }
 
@@ -223,7 +250,9 @@ export interface Todo {
   createTime?: string;
 }
 
-// ── Business / leave types ────────────────────────────────────────────────
+// ============================================================================
+// Business Domain - Leave & Leave Balance
+// ============================================================================
 
 export interface LeaveApply {
   id?: number;
@@ -235,95 +264,10 @@ export interface LeaveApply {
   endTime?: string;
   reason?: string;
   status?: number;
-  leavePeriod?: number;
+  processInstanceId?: number;
+  leavePeriod?: string;
   remark?: string;
   createTime?: string;
-}
-
-export interface BusinessTrip {
-  id?: number;
-  empId?: number;
-  empName?: string;
-  destination?: string;
-  purpose?: string;
-  startTime?: string;
-  endTime?: string;
-  status?: number;
-  remark?: string;
-  createTime?: string;
-}
-
-export interface Outing {
-  id?: number;
-  empId?: number;
-  empName?: string;
-  destination?: string;
-  reason?: string;
-  startTime?: string;
-  endTime?: string;
-  status?: number;
-  remark?: string;
-  createTime?: string;
-}
-
-export interface Purchase {
-  id?: number;
-  empId?: number;
-  empName?: string;
-  itemName?: string;
-  quantity?: number;
-  amount?: number;
-  reason?: string;
-  status?: number;
-  remark?: string;
-  createTime?: string;
-}
-
-export interface Expense {
-  id?: number;
-  empId?: number;
-  empName?: string;
-  title?: string;
-  amount?: number;
-  category?: string | number;
-  description?: string;
-  status?: number;
-  remark?: string;
-  createTime?: string;
-}
-
-export interface Overtime {
-  id?: number;
-  empId?: number;
-  empName?: string;
-  overtimeDate?: string;
-  startTime?: string;
-  endTime?: string;
-  hours?: number;
-  reason?: string;
-  status?: number;
-  remark?: string;
-  createTime?: string;
-}
-
-export interface Loan {
-  id?: number;
-  empId?: number;
-  empName?: string;
-  loanAmount?: number;
-  loanReason?: string;
-  repaymentPlan?: string;
-  status?: number;
-  remark?: string;
-  createTime?: string;
-}
-
-export interface LoanRepayment {
-  id?: number;
-  loanId?: number;
-  amount?: number;
-  repayDate?: string;
-  remark?: string;
 }
 
 export interface LeaveBalance {
@@ -337,7 +281,113 @@ export interface LeaveBalance {
   year?: number;
 }
 
-// ── Assets / contracts / budgets ──────────────────────────────────────────
+// ============================================================================
+// Business Domain - Trips & Outing
+// ============================================================================
+
+export interface BusinessTrip {
+  id?: number;
+  empId?: number;
+  empName?: string;
+  destination?: string;
+  purpose?: string;
+  startTime?: string;
+  endTime?: string;
+  status?: number;
+  processInstanceId?: number;
+  remark?: string;
+  createTime?: string;
+}
+
+export interface Outing {
+  id?: number;
+  empId?: number;
+  empName?: string;
+  destination?: string;
+  reason?: string;
+  startTime?: string;
+  endTime?: string;
+  status?: number;
+  processInstanceId?: number;
+  remark?: string;
+  createTime?: string;
+}
+
+// ============================================================================
+// Business Domain - Purchase & Expense
+// ============================================================================
+
+export interface Purchase {
+  id?: number;
+  empId?: number;
+  empName?: string;
+  itemName?: string;
+  quantity?: number;
+  amount?: number;
+  reason?: string;
+  status?: number;
+  processInstanceId?: number;
+  remark?: string;
+  createTime?: string;
+}
+
+export interface Expense {
+  id?: number;
+  empId?: number;
+  empName?: string;
+  title?: string;
+  amount?: number;
+  category?: string | number;
+  description?: string;
+  status?: number;
+  processInstanceId?: number;
+  remark?: string;
+  createTime?: string;
+}
+
+// ============================================================================
+// Business Domain - Overtime & Loan
+// ============================================================================
+
+export interface Overtime {
+  id?: number;
+  empId?: number;
+  empName?: string;
+  overtimeDate?: string;
+  startTime?: string;
+  endTime?: string;
+  hours?: number;
+  reason?: string;
+  status?: number;
+  processInstanceId?: number;
+  remark?: string;
+  createTime?: string;
+}
+
+export interface Loan {
+  id?: number;
+  empId?: number;
+  empName?: string;
+  loanAmount?: number;
+  loanReason?: string;
+  repaymentPlan?: string;
+  status?: number;
+  processInstanceId?: number;
+  remark?: string;
+  createTime?: string;
+}
+
+export interface LoanRepayment {
+  id?: number;
+  loanId?: number;
+  amount?: number;
+  repayDate?: string;
+  remark?: string;
+}
+
+// ============================================================================
+// Business Domain - Assets & Contracts & Budgets
+// ============================================================================
 
 export interface Asset {
   id?: number;
@@ -347,7 +397,7 @@ export interface Asset {
   specification?: string;
   purchaseDate?: string;
   purchasePrice?: number;
-  status?: number | string;
+  status?: string;
   currentUserId?: number;
   deptId?: number;
 }
@@ -357,11 +407,13 @@ export interface AssetBorrow {
   assetId?: number;
   assetName?: string;
   borrowerId?: number;
-  borrowerName?: string;
+  borrower?: string;
   borrowTime?: string;
   expectedReturn?: string;
   actualReturn?: string;
-  status?: number;
+  status?: string;
+  remark?: string;
+  createTime?: string;
 }
 
 export interface Contract {
@@ -391,7 +443,9 @@ export interface Budget {
   status?: number;
 }
 
-// ── Meetings ──────────────────────────────────────────────────────────────
+// ============================================================================
+// Business Domain - Meetings
+// ============================================================================
 
 export interface MeetingRoom {
   id?: number;
@@ -415,7 +469,9 @@ export interface Meeting {
   status?: number;
 }
 
-// ── Salary ────────────────────────────────────────────────────────────────
+// ============================================================================
+// Business Domain - Salary
+// ============================================================================
 
 export interface SalaryStructure {
   id?: number;
@@ -426,7 +482,7 @@ export interface SalaryStructure {
   meritSalary?: number;
   allowance?: number;
   effectiveDate?: string;
-  status?: number | string;
+  status?: number;
 }
 
 export interface SalaryRecord {
@@ -444,57 +500,27 @@ export interface SalaryRecord {
   status?: number;
 }
 
-// ── Attendance ────────────────────────────────────────────────────────────
-
-export interface Attendance {
+export interface EmpArchive {
   id?: number;
   empId?: number;
   empName?: string;
-  workDate?: string;
-  clockIn?: string;
-  clockOut?: string;
-  status?: number;
-  ip?: string;
+  gender?: number;
+  birthday?: string;
+  idCard?: string;
+  education?: string;
+  graduateSchool?: string;
+  major?: string;
+  entryDate?: string;
+  phone?: string;
+  email?: string;
   address?: string;
+  emergencyContact?: string;
+  emergencyPhone?: string;
 }
 
-export interface AttendanceGroup {
-  id?: number;
-  groupName?: string;
-  workStart?: string;
-  workEnd?: string;
-  lateThreshold?: number;
-  status?: number;
-  empCount?: number;
-}
-
-// ── Workflow ──────────────────────────────────────────────────────────────
-
-export interface WorkflowTask {
-  id?: number;
-  processInstanceId?: number;
-  instanceId?: number;
-  processId?: number;
-  nodeIndex?: number;
-  nodeId?: string;
-  nodeName?: string;
-  assigneeId?: number;
-  assigneeName?: string;
-  status?: number | string;
-  businessId?: number;
-  businessType?: string;
-  processName?: string;
-  createTime?: string;
-  actionTime?: string;
-  remark?: string;
-  actionSource?: string;
-  transferFromId?: number;
-  transferReason?: string;
-  deadline?: string;
-  parentTaskId?: number;
-  multiType?: string;
-  instance?: ProcessInstance;
-}
+// ============================================================================
+// Workflow Domain
+// ============================================================================
 
 export interface ProcessDefinition {
   id?: number;
@@ -502,46 +528,87 @@ export interface ProcessDefinition {
   processKey?: string;
   processType?: string;
   nodeConfig?: string;
-  status?: number;
+  status?: string;
   version?: number;
 }
 
 export interface ProcessInstance {
   id?: number;
-  processDefId?: number;
-  businessId?: number;
+  processId?: number;
   businessType?: string;
+  businessId?: number;
   initiatorId?: number;
   initiatorName?: string;
-  status?: number;
-  currentNode?: string;
+  currentNode?: number;
+  status?: string;
+  conditionContext?: string;
+  activeNodes?: string;
+  snapshotNodeConfig?: string;
+  parentInstanceId?: number;
+  processVersion?: number;
+  startTime?: string;
+  endTime?: string;
   createTime?: string;
+}
+
+export interface WorkflowTask {
+  id?: number;
+  instanceId?: number;
+  processId?: number;
+  nodeIndex?: number;
+  nodeName?: string;
+  assigneeId?: number;
+  assigneeName?: string;
+  status?: string;
+  actionTime?: string;
+  remark?: string;
+  actionSource?: string;
+  transferFromId?: number;
+  transferReason?: string;
+  deadline?: string;
+  remindCount?: number;
+  parentTaskId?: number;
+  multiType?: string;
+  createTime?: string;
+  businessTitle?: string;
+  businessType?: string;
+  instance?: ProcessInstance;
 }
 
 export interface CcRecord {
   id?: number;
-  processInstanceId?: number;
+  instanceId?: number;
   taskId?: number;
-  ccUserId?: number;
-  ccUserName?: string;
-  businessType?: string;
-  businessId?: number;
-  isRead?: number;
+  ccEmpId?: number;
+  status?: string;
   createTime?: string;
 }
 
 export interface Delegation {
   id?: number;
   delegatorId?: number;
-  delegatorName?: string;
   delegateToId?: number;
-  delegateToName?: string;
   startTime?: string;
   endTime?: string;
-  status?: number;
+  status?: string;
 }
 
-// ── Monitoring / logs ─────────────────────────────────────────────────────
+export interface ApprovalRecord {
+  id?: number;
+  applyId?: number;
+  businessType?: string;
+  approverId?: number;
+  approverName?: string;
+  approveStatus?: number;
+  remark?: string;
+  approveTime?: string;
+  taskId?: number;
+  nodeName?: string;
+}
+
+// ============================================================================
+// Monitoring / Logs Domain
+// ============================================================================
 
 export interface OperationLog {
   id?: number;
@@ -549,35 +616,36 @@ export interface OperationLog {
   empName?: string;
   operation?: string;
   method?: string;
+  requestUrl?: string;
   params?: string;
   module?: string;
   ip?: string;
+  costTime?: number;
+  status?: number;
   createTime?: string;
 }
 
 export interface LoginLog {
   id?: number;
-  empName?: string;
+  username?: string;
   ip?: string;
-  location?: string;
-  browser?: string;
   os?: string;
+  browser?: string;
   status?: number;
   message?: string;
   loginTime?: string;
 }
 
-export interface OnlineLog {
-  id?: number;
+export interface OnlineUser {
+  empId?: number;
   empName?: string;
   ip?: string;
-  location?: string;
-  browser?: string;
-  os?: string;
   loginTime?: string;
 }
 
-// ── Alerts ────────────────────────────────────────────────────────────────
+// ============================================================================
+// Alert Rules
+// ============================================================================
 
 export interface AlertRule {
   id?: number;
@@ -605,37 +673,13 @@ export interface AlertLog {
   createTime?: string;
 }
 
-// ── Approval records ─────────────────────────────────────────────────────
+// ============================================================================
+// Approve DTO (for approval endpoints)
+// ============================================================================
 
-export interface ApprovalRecord {
-  id?: number;
-  applyId?: number;
-  businessType?: string;
-  approverId?: number;
-  approverName?: string;
-  approveStatus?: number;
+export interface ApproveDTO {
+  id: number;
+  status: number;
   remark?: string;
-  approveTime?: string;
   taskId?: number;
-  nodeName?: string;
-}
-
-// ── Employee archive ──────────────────────────────────────────────────────
-
-export interface EmpArchive {
-  id?: number;
-  empId?: number;
-  empName?: string;
-  gender?: number;
-  birthday?: string;
-  idCard?: string;
-  education?: string;
-  graduateSchool?: string;
-  major?: string;
-  entryDate?: string;
-  phone?: string;
-  email?: string;
-  address?: string;
-  emergencyContact?: string;
-  emergencyPhone?: string;
 }

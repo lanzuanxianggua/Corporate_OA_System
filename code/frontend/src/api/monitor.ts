@@ -1,11 +1,11 @@
 import request from "@/utils/request";
-import type { ApiResponse, PageResult, OperationLog, LoginLog, OnlineLog } from "@/types/api";
+import type { ApiResponse, PageResult, PageParams, OperationLog, LoginLog } from "@/types/api";
 
 export const getOnlineLogs = (params?: {
   page?: number;
   pageSize?: number;
 }) => {
-  return request.post<unknown, ApiResponse<PageResult<OnlineLog>>>("/online-logs", params || {});
+  return request.post<unknown, ApiResponse<PageResult<Record<string, unknown>>>>("/online-logs", params || {});
 };
 
 export const getLoginLogs = (params?: {

@@ -3,6 +3,7 @@ package cn.oa.controller;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.RptAlertLog;
 import cn.oa.entity.RptAlertRule;
 import cn.oa.service.AlertLogService;
@@ -43,6 +44,7 @@ public class AlertController {
     @PostMapping("/rule")
     @RequireAdmin
     @Operation(summary = "新增预警规则")
+    @cn.oa.common.annotation.OperationLog(module = "预警规则", operation = "新增预警规则")
     public R<Void> addRule(@RequestBody @Valid RptAlertRule rule) {
         alertRuleService.save(rule);
         log.info("Alert rule created: id={}", rule.getId());
@@ -52,6 +54,7 @@ public class AlertController {
     @PutMapping("/rule")
     @RequireAdmin
     @Operation(summary = "修改预警规则")
+    @cn.oa.common.annotation.OperationLog(module = "预警规则", operation = "修改预警规则")
     public R<Void> updateRule(@RequestBody @Valid RptAlertRule rule) {
         alertRuleService.updateById(rule);
         log.info("Alert rule updated: id={}", rule.getId());
@@ -61,6 +64,7 @@ public class AlertController {
     @DeleteMapping("/rule/{id}")
     @RequireAdmin
     @Operation(summary = "删除预警规则")
+    @cn.oa.common.annotation.OperationLog(module = "预警规则", operation = "删除预警规则")
     public R<Void> deleteRule(@PathVariable Long id) {
         alertRuleService.removeById(id);
         log.info("Alert rule deleted: id={}", id);
@@ -79,9 +83,9 @@ public class AlertController {
 
     @PostMapping("/log/handle/{id}")
     @Operation(summary = "处理预警")
+    @cn.oa.common.annotation.OperationLog(module = "预警规则", operation = "处理预警")
     public R<Void> handleLog(@PathVariable Long id, @RequestBody @Valid Map<String, String> params, HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         String handleRemark = params.get("handleRemark");
         alertLogService.handle(id, String.valueOf(empId), handleRemark);
         log.info("Alert log handled: id={}, handler={}", id, empId);

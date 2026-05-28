@@ -2,13 +2,18 @@ package cn.oa.controller;
 
 import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
+import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.*;
+import cn.oa.entity.dto.AssignRolesDTO;
+import cn.oa.entity.dto.IdQueryDTO;
 import cn.oa.mapper.*;
 import cn.oa.service.OperationLogService;
-import cn.oa.service.impl.AuthServiceImpl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +25,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
-@CrossOrigin
+@Tag(name = "系统管理")
 @SuppressWarnings({"unchecked", "deprecation"})
 public class SystemManageController {
 
@@ -41,6 +46,7 @@ public class SystemManageController {
 
     @PostMapping("/user")
     @RequireAdmin
+    @Operation(summary = "用户列表（分页）")
     public R<Map<String, Object>> userList(@RequestBody(required = false) @Valid Map<String, Object> params) {
         int pageNum = params != null && params.get("page") != null ? ((Number) params.get("page")).intValue() : 1;
         int pageSize = params != null && params.get("pageSize") != null ? ((Number) params.get("pageSize")).intValue() : 10;
@@ -105,6 +111,7 @@ public class SystemManageController {
 
     @GetMapping("/list-all-role")
     @RequireAdmin
+    @Operation(summary = "获取所有角色")
     public R<List<Map<String, Object>>> listAllRole() {
         List<SysRole> roles = roleMapper.selectList(null);
         List<Map<String, Object>> list = roles.stream().map(r -> {
@@ -119,8 +126,9 @@ public class SystemManageController {
 
     @PostMapping("/list-role-ids")
     @RequireAdmin
-    public R<List<Long>> listRoleIds(@RequestBody @Valid Map<String, Object> params) {
-        Long userId = Long.valueOf(params.get("userId").toString());
+    @Operation(summary = "查询用户角色ID列表")
+    public R<List<Long>> listRoleIds(@RequestBody @Valid IdQueryDTO dto) {
+        Long userId = dto.getEffectiveId();
         List<SysEmpRole> empRoles = empRoleMapper.selectList(
                 new LambdaQueryWrapper<SysEmpRole>().eq(SysEmpRole::getEmpId, userId));
         List<Long> roleIds = empRoles.stream().map(SysEmpRole::getRoleId).collect(Collectors.toList());
@@ -129,6 +137,7 @@ public class SystemManageController {
 
     @PostMapping("/role")
     @RequireAdmin
+    @Operation(summary = "角色列表")
     public R<Map<String, Object>> roleList(@RequestBody(required = false) @Valid Map<String, Object> params) {
         List<SysRole> roles = roleMapper.selectList(null);
 
@@ -154,6 +163,7 @@ public class SystemManageController {
     @PostMapping("/role/add")
     @RequireAdmin
     @OperationLog(module = "角色管理", operation = "新增角色")
+    @Operation(summary = "新增角色")
     public R<Void> addRole(@RequestBody @Valid Map<String, Object> params) {
         String roleName = (String) params.get("roleName");
         String roleKey = (String) params.get("roleKey");
@@ -180,6 +190,7 @@ public class SystemManageController {
     @PutMapping("/role/update")
     @RequireAdmin
     @OperationLog(module = "角色管理", operation = "修改角色")
+    @Operation(summary = "修改角色")
     public R<Void> updateRole(@RequestBody @Valid Map<String, Object> params) {
         if (params.get("id") == null) {
             return R.fail("角色ID不能为空");
@@ -212,6 +223,7 @@ public class SystemManageController {
     @DeleteMapping("/role/{id}")
     @RequireAdmin
     @OperationLog(module = "角色管理", operation = "删除角色")
+    @Operation(summary = "删除角色")
     public R<Void> deleteRole(@PathVariable Long id) {
         SysRole role = roleMapper.selectById(id);
         if (role == null) {
@@ -226,12 +238,14 @@ public class SystemManageController {
 
     @PostMapping("/menu")
     @RequireAdmin
+    @Operation(summary = "菜单列表")
     public R<List<Map<String, Object>>> menuList(@RequestBody(required = false) @Valid Map<String, Object> params) {
         return R.ok(buildMenuTree(0L));
     }
 
     @PostMapping("/dept")
     @RequireAdmin
+    @Operation(summary = "部门列表")
     public R<List<Map<String, Object>>> deptList(@RequestBody(required = false) @Valid Map<String, Object> params) {
         List<SysDept> allDepts = deptMapper.selectList(
                 new LambdaQueryWrapper<SysDept>().orderByAsc(SysDept::getSort));
@@ -247,36 +261,37 @@ public class SystemManageController {
 
     @PostMapping("/role-menu")
     @RequireAdmin
+    @Operation(summary = "角色菜单列表")
     public R<List<Map<String, Object>>> roleMenuList() {
         return R.ok(buildMenuTree(0L));
     }
 
-    @GetMapping("/roles")
+    @GetMapping("/api/system/roles")
+    @Operation(summary = "获取所有角色(简单列表)")
     public R<List<SysRole>> getAllRoles() {
         return R.ok(roleMapper.selectList(null));
     }
 
     @PostMapping("/assign-roles")
     @RequireAdmin
-    public R<Void> assignRoles(@RequestBody @Valid Map<String, Object> params) {
-        Long empId = Long.valueOf(params.get("empId").toString());
-        List<Long> roleIds = ((List<Number>) params.get("roleIds")).stream()
-            .map(Number::longValue).collect(Collectors.toList());
-
+    @OperationLog(module = "角色管理", operation = "分配角色")
+    @Operation(summary = "分配用户角色")
+    public R<Void> assignRoles(@RequestBody @Valid AssignRolesDTO dto) {
         empRoleMapper.delete(new LambdaQueryWrapper<SysEmpRole>()
-            .eq(SysEmpRole::getEmpId, empId));
+            .eq(SysEmpRole::getEmpId, dto.getEmpId()));
 
-        for (Long roleId : roleIds) {
+        for (Long roleId : dto.getRoleIds()) {
             SysEmpRole er = new SysEmpRole();
-            er.setEmpId(empId);
+            er.setEmpId(dto.getEmpId());
             er.setRoleId(roleId);
             empRoleMapper.insert(er);
         }
-        log.info("Roles assigned: empId={}, roleIds={}", empId, roleIds);
+        log.info("Roles assigned: empId={}, roleIds={}", dto.getEmpId(), dto.getRoleIds());
         return R.ok();
     }
 
     @GetMapping("/emp-roles")
+    @Operation(summary = "获取员工角色ID列表")
     public R<List<Long>> getEmpRoles(@RequestParam Long empId) {
         List<SysEmpRole> list = empRoleMapper.selectList(
             new LambdaQueryWrapper<SysEmpRole>().eq(SysEmpRole::getEmpId, empId));
@@ -285,15 +300,16 @@ public class SystemManageController {
 
     @PostMapping("/role-menu-ids")
     @RequireAdmin
-    public R<List<Long>> roleMenuIds(@RequestBody @Valid Map<String, Object> params) {
+    @Operation(summary = "获取角色菜单ID列表")
+    public R<List<Long>> roleMenuIds(@RequestBody @Valid IdQueryDTO dto) {
         return R.ok(List.of(1L, 2L, 3L, 4L));
     }
 
     @GetMapping("/mine")
+    @Operation(summary = "获取当前用户信息")
     public R<Map<String, Object>> mine(HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
-        String empName = (String) request.getAttribute("empName");
+        Long empId = WebUtil.getEmpId(request);
+        String empName = WebUtil.getEmpName(request);
 
         SysEmployee emp = employeeMapper.selectById(empId);
         Map<String, Object> info = new LinkedHashMap<>();
@@ -307,19 +323,20 @@ public class SystemManageController {
     }
 
     @GetMapping("/mine-logs")
+    @Operation(summary = "获取当前用户登录日志")
     public R<Map<String, Object>> mineLogs(@RequestParam(required = false) Map<String, Object> params) {
         Map<String, Object> result = new LinkedHashMap<>();
         List<Map<String, Object>> list = new ArrayList<>();
         for (int i = 1; i <= 5; i++) {
-            Map<String, Object> log = new LinkedHashMap<>();
-            log.put("id", i);
-            log.put("ip", "192.168.1." + i);
-            log.put("address", "内网");
-            log.put("system", "Windows 11");
-            log.put("browser", "Chrome 120");
-            log.put("summary", "登录系统");
-            log.put("operatingTime", "2024-01-0" + i + " 10:00:00");
-            list.add(log);
+            Map<String, Object> logMap = new LinkedHashMap<>();
+            logMap.put("id", i);
+            logMap.put("ip", "192.168.1." + i);
+            logMap.put("address", "内网");
+            logMap.put("system", "Windows 11");
+            logMap.put("browser", "Chrome 120");
+            logMap.put("summary", "登录系统");
+            logMap.put("operatingTime", "2024-01-0" + i + " 10:00:00");
+            list.add(logMap);
         }
         result.put("list", list);
         result.put("total", list.size());

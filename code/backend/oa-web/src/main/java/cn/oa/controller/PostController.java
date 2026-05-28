@@ -43,6 +43,7 @@ public class PostController {
     @PostMapping
     @Operation(summary = "新增岗位")
     @RequireAdmin
+    @cn.oa.common.annotation.OperationLog(module = "岗位管理", operation = "新增岗位")
     public R<Void> add(@RequestBody @Valid SysPost post) {
         postService.save(post);
         log.info("Post created: id={}", post.getId());
@@ -52,6 +53,7 @@ public class PostController {
     @PutMapping
     @Operation(summary = "修改岗位")
     @RequireAdmin
+    @cn.oa.common.annotation.OperationLog(module = "岗位管理", operation = "修改岗位")
     public R<Void> update(@RequestBody @Valid SysPost post) {
         postService.updateById(post);
         log.info("Post updated: id={}", post.getId());
@@ -61,6 +63,7 @@ public class PostController {
     @DeleteMapping("/{id}")
     @Operation(summary = "删除岗位")
     @RequireAdmin
+    @cn.oa.common.annotation.OperationLog(module = "岗位管理", operation = "删除岗位")
     public R<Void> delete(@PathVariable Long id) {
         postService.removeById(id);
         log.info("Post deleted: id={}", id);

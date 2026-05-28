@@ -3,22 +3,23 @@ package cn.oa.controller;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.annotation.RequireRole;
 import cn.oa.common.result.R;
-import cn.oa.entity.*;
+import cn.oa.common.utils.WebUtil;
+import cn.oa.entity.dto.ReportQueryDTO;
+import cn.oa.vo.AdminReportVO;
+import cn.oa.vo.PersonalReportVO;
 import cn.oa.service.ReportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
@@ -26,7 +27,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/report")
 @Tag(name = "数据报表")
-@SuppressWarnings("unchecked")
 public class ReportController {
 
     @Autowired
@@ -40,8 +40,7 @@ public class ReportController {
             @RequestParam(required = false) String month,
             @RequestParam(defaultValue = "month") String period,
             HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         LocalDate start, end;
         switch (period) {
             case "today" -> { start = end = LocalDate.now(); }
@@ -69,12 +68,11 @@ public class ReportController {
             @RequestParam(defaultValue = "6") int months,
             @RequestParam(defaultValue = "month") String period,
             HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         if ("today".equals(period)) months = 7;
         else if ("week".equals(period)) months = 4;
         else if ("year".equals(period)) months = 12;
-        String currentMonth = YearMonth.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM"));
+        String currentMonth = YearMonth.now().format(DateTimeFormatter.ofPattern("yyyy-MM"));
         PersonalReportVO report = reportService.getPersonalReport(empId, currentMonth, months);
         return R.ok(report.getAttendanceTrend());
     }
@@ -83,8 +81,7 @@ public class ReportController {
     @Operation(summary = "个人请假统计")
     public R<List<Map<String, Object>>> personalLeaveSummary(
             @RequestParam String month, HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         PersonalReportVO report = reportService.getPersonalReport(empId, month, 1);
         return R.ok(report.getLeaveSummary());
     }
@@ -93,8 +90,7 @@ public class ReportController {
     @Operation(summary = "个人月度对比")
     public R<PersonalReportVO.MonthlyCompare> personalMonthlyCompare(
             @RequestParam String month, HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         PersonalReportVO report = reportService.getPersonalReport(empId, month, 1);
         return R.ok(report.getMonthlyCompare());
     }
@@ -112,7 +108,7 @@ public class ReportController {
     @RequireAdmin
     @Operation(summary = "部门出勤对比")
     public R<List<Map<String, Object>>> adminDeptCompare(@RequestParam String month) {
-        return R.ok((List<Map<String, Object>>) reportService.getDeptCompare(month));
+        return R.ok(reportService.getDeptCompare(month));
     }
 
     @GetMapping("/admin/attendance-trend")
@@ -129,7 +125,7 @@ public class ReportController {
     @RequireAdmin
     @Operation(summary = "请假分析")
     public R<List<Map<String, Object>>> adminLeaveAnalysis(@RequestParam String month) {
-        return R.ok((List<Map<String, Object>>) reportService.getLeaveAnalysis(month));
+        return R.ok(reportService.getLeaveAnalysis(month));
     }
 
     @GetMapping("/admin/employee-ranking")
@@ -138,7 +134,7 @@ public class ReportController {
     public R<List<Map<String, Object>>> adminEmployeeRanking(
             @RequestParam String month,
             @RequestParam(defaultValue = "best") String type) {
-        return R.ok((List<Map<String, Object>>) reportService.getEmployeeRanking(month, type));
+        return R.ok(reportService.getEmployeeRanking(month, type));
     }
 
     @GetMapping("/admin/today-overview")

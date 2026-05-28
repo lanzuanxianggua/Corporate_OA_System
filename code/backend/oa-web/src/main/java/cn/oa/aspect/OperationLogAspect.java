@@ -1,6 +1,7 @@
 package cn.oa.aspect;
 
 import cn.oa.common.annotation.OperationLog;
+import cn.oa.common.utils.IpUtil;
 import cn.oa.entity.OaOperationLog;
 import cn.oa.mapper.OaOperationLogMapper;
 import jakarta.servlet.http.HttpServletRequest;
@@ -54,7 +55,7 @@ public class OperationLogAspect {
                 if (attributes != null) {
                     HttpServletRequest request = attributes.getRequest();
                     logEntity.setRequestUrl(request.getRequestURI());
-                    logEntity.setIp(getClientIp(request));
+                    logEntity.setIp(IpUtil.getClientIp(request));
                     Object empId = request.getAttribute("empId");
                     Object empName = request.getAttribute("empName");
                     if (empId != null) {
@@ -71,19 +72,5 @@ public class OperationLogAspect {
             }
         }
         return result;
-    }
-
-    private String getClientIp(HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("X-Real-IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
-        }
-        if (ip != null && ip.contains(",")) {
-            ip = ip.split(",")[0].trim();
-        }
-        return ip;
     }
 }

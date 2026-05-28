@@ -6,9 +6,9 @@
       <!-- Leave type -->
       <view class="form-item">
         <text class="form-label">请假类型</text>
-        <picker :range="leaveTypes" @change="onTypeChange">
+        <picker :range="leaveTypeLabels" @change="onTypeChange">
           <view class="form-value picker-value">
-            {{ leaveTypes[form.leaveType] || '请选择' }}
+            {{ selectedLeaveTypeLabel || '请选择' }}
             <text class="picker-arrow">&#9654;</text>
           </view>
         </picker>
@@ -49,16 +49,22 @@
       </view>
     </view>
 
-    <button class="submit-btn" :loading="submitting" @click="handleSubmit">提交申请</button>
+    <button class="submit-btn" :disabled="submitting" @click="handleSubmit">
+      <text v-if="!submitting">提交申请</text>
+      <text v-else>提交中...</text>
+    </button>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, computed } from "vue";
 import { submitLeave } from "@/api/leave";
-import { LEAVE_TYPE_MAP } from "@/utils/constants";
+import { LEAVE_TYPE_OPTIONS } from "@/utils/constants";
 
-const leaveTypes = LEAVE_TYPE_MAP;
+/** Labels for picker (skip index 0 placeholder) */
+const leaveTypeLabels = LEAVE_TYPE_OPTIONS.slice(1);
+/** Maps picker index (0-based) to backend leaveType value (1-based) */
+const leaveTypeValueMap = [1, 2, 3, 4, 5, 6];
 
 const form = ref({
   leaveType: 0,
@@ -70,8 +76,14 @@ const form = ref({
 
 const submitting = ref(false);
 
+const selectedLeaveTypeLabel = computed(() => {
+  if (form.value.leaveType === 0) return "";
+  return LEAVE_TYPE_OPTIONS[form.value.leaveType] || "";
+});
+
 const onTypeChange = (e: any) => {
-  form.value.leaveType = e.detail.value;
+  const pickerIdx = Number(e.detail.value);
+  form.value.leaveType = leaveTypeValueMap[pickerIdx];
 };
 
 const onStartDateChange = (e: any) => {
@@ -96,6 +108,10 @@ const calcDays = () => {
 
 const handleSubmit = async () => {
   const { leaveType, startDate, endDate, days, reason } = form.value;
+  if (!leaveType) {
+    uni.showToast({ title: "请选择请假类型", icon: "none" });
+    return;
+  }
   if (!startDate || !endDate || !days || !reason) {
     uni.showToast({ title: "请填写完整信息", icon: "none" });
     return;
@@ -116,7 +132,7 @@ const handleSubmit = async () => {
   submitting.value = true;
   try {
     await submitLeave({
-      leaveType: leaveTypes[leaveType],
+      leaveType,
       startDate,
       endDate,
       days: Number(days),
@@ -125,7 +141,7 @@ const handleSubmit = async () => {
     uni.showToast({ title: "提交成功", icon: "success" });
     setTimeout(() => uni.navigateBack(), 1500);
   } catch {
-    uni.showToast({ title: "提交失败", icon: "none" });
+    // Error toast handled by request interceptor
   } finally {
     submitting.value = false;
   }
@@ -133,57 +149,25 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
-.form-item {
-  margin-bottom: 28rpx;
-}
-.form-label {
-  display: block;
-  font-size: 28rpx;
-  color: #606266;
-  margin-bottom: 8rpx;
-}
+.form-item { margin-bottom: 28rpx; }
+.form-label { display: block; font-size: 28rpx; color: #606266; margin-bottom: 8rpx; }
 .form-input {
-  width: 100%;
-  height: 76rpx;
-  border: 1rpx solid #dcdfe6;
-  border-radius: 8rpx;
-  padding: 0 20rpx;
-  font-size: 28rpx;
-  box-sizing: border-box;
+  width: 100%; height: 76rpx; border: 1rpx solid #dcdfe6; border-radius: 8rpx;
+  padding: 0 20rpx; font-size: 28rpx; box-sizing: border-box;
 }
 .form-textarea {
-  width: 100%;
-  height: 180rpx;
-  border: 1rpx solid #dcdfe6;
-  border-radius: 8rpx;
-  padding: 16rpx 20rpx;
-  font-size: 28rpx;
-  box-sizing: border-box;
+  width: 100%; height: 180rpx; border: 1rpx solid #dcdfe6; border-radius: 8rpx;
+  padding: 16rpx 20rpx; font-size: 28rpx; box-sizing: border-box;
 }
 .picker-value {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  height: 76rpx;
-  border: 1rpx solid #dcdfe6;
-  border-radius: 8rpx;
-  padding: 0 20rpx;
-  font-size: 28rpx;
-  color: #303133;
+  display: flex; justify-content: space-between; align-items: center;
+  height: 76rpx; border: 1rpx solid #dcdfe6; border-radius: 8rpx;
+  padding: 0 20rpx; font-size: 28rpx; color: #303133;
 }
-.picker-arrow {
-  font-size: 22rpx;
-  color: #c0c4cc;
-  transform: rotate(90deg);
-}
+.picker-arrow { font-size: 22rpx; color: #c0c4cc; transform: rotate(90deg); }
 .submit-btn {
-  margin-top: 40rpx;
-  background: #409EFF;
-  color: #fff;
-  border: none;
-  border-radius: 8rpx;
-  font-size: 30rpx;
-  height: 88rpx;
-  line-height: 88rpx;
+  margin-top: 40rpx; background: #409EFF; color: #fff; border: none;
+  border-radius: 8rpx; font-size: 30rpx; height: 88rpx; line-height: 88rpx;
 }
+.submit-btn[disabled] { background: #a0cfff; color: #fff; }
 </style>

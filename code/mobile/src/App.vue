@@ -2,11 +2,12 @@
 import { onLaunch } from "@dcloudio/uni-app";
 
 onLaunch(() => {
-  // Add navigation interceptors for authentication guard
+  // Navigation interceptor for auth guard
   const authInterceptor = {
     invoke(args: any) {
       const token = uni.getStorageSync("token");
       const url: string = args.url || "";
+      // Allow navigation to login page without token
       if (!token && !url.includes("/pages/login/")) {
         uni.reLaunch({ url: "/pages/login/index" });
         return false;

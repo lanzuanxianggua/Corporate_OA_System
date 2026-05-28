@@ -4,6 +4,7 @@ import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaDocument;
 import cn.oa.service.DocumentService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -13,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -57,7 +58,8 @@ public class DocumentController {
     @Operation(summary = "上传文档")
     @OperationLog(module = "文档管理", operation = "上传文档")
     public R<Void> upload(@RequestParam("file") MultipartFile file,
-                          @RequestParam Long uploaderId) {
+                          HttpServletRequest request) {
+        Long uploaderId = WebUtil.getEmpId(request);
         documentService.upload(file, uploaderId);
         log.info("Document uploaded: name={}, uploaderId={}", file.getOriginalFilename(), uploaderId);
         return R.ok();

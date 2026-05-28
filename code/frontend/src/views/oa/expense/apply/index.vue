@@ -161,7 +161,7 @@ const handleSubmit = async () => {
     await submitExpense({
       empId: userStore.userInfo?.empId,
       title: form.title,
-      category: form.category,
+      category: form.category as string | number | undefined,
       amount: form.amount,
       description: form.description
     });

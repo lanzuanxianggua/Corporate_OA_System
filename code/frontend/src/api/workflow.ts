@@ -1,5 +1,5 @@
 import request from "@/utils/request";
-import type { ApiResponse, PageResult, WorkflowTask, ProcessDefinition, CcRecord, Delegation } from "@/types/api";
+import type { ApiResponse, PageResult, PageParams, WorkflowTask, ProcessDefinition, CcRecord, Delegation, ApprovalRecord } from "@/types/api";
 
 export const getDefinitions = (params?: Partial<ProcessDefinition> & { pageNum?: number; pageSize?: number }) =>
   request.get<unknown, ApiResponse<PageResult<ProcessDefinition>>>("/api/workflow/definition/list", { params });
@@ -7,23 +7,26 @@ export const getDefinitions = (params?: Partial<ProcessDefinition> & { pageNum?:
 export const createDefinition = (data: Partial<ProcessDefinition>) =>
   request.post<unknown, ApiResponse<void>>("/api/workflow/definition", data);
 
+export const updateDefinition = (data: Partial<ProcessDefinition>) =>
+  request.post<unknown, ApiResponse<void>>("/api/workflow/definition", data);
+
+export const activateDefinition = (id: number) =>
+  request.post<unknown, ApiResponse<void>>("/api/workflow/definition/activate", { id });
+
 export const getPendingTasks = (params: { pageNum: number; pageSize: number }) =>
   request.get<unknown, ApiResponse<PageResult<WorkflowTask>>>("/api/workflow/task/pending", { params });
+
+export const getHandledTasks = (params: { pageNum: number; pageSize: number }) =>
+  request.get<unknown, ApiResponse<PageResult<WorkflowTask>>>("/api/workflow/task/handled", { params });
 
 export const handleTask = (data: { taskId: number; status: number; remark?: string }) =>
   request.post<unknown, ApiResponse<void>>("/api/workflow/task/handle", data);
 
 export const getApprovalHistory = (params: { businessType: string; businessId: number }) =>
-  request.get<unknown, ApiResponse<import("@/types/api").ApprovalRecord[]>>("/api/workflow/history", { params });
+  request.get<unknown, ApiResponse<WorkflowTask[]>>("/api/workflow/history", { params });
 
 export const getApprovalChain = (params: { businessType: string; businessId: number }) =>
-  request.get<unknown, ApiResponse<import("@/types/api").ApprovalRecord[]>>("/api/workflow/approval-chain", { params });
-
-export const activateDefinition = (id: number) =>
-  request.post<unknown, ApiResponse<void>>("/api/workflow/definition/activate", { id });
-
-export const updateDefinition = (data: Partial<ProcessDefinition>) =>
-  request.post<unknown, ApiResponse<void>>("/api/workflow/definition", data);
+  request.get<unknown, ApiResponse<ApprovalRecord[]>>("/api/workflow/approval-chain", { params });
 
 export const withdrawApplication = (data: { businessType: string; businessId: number }) =>
   request.post<unknown, ApiResponse<void>>("/api/workflow/withdraw", data);

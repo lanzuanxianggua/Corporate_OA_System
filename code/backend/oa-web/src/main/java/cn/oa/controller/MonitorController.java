@@ -5,12 +5,13 @@ import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
 import cn.oa.entity.OaLoginLog;
 import cn.oa.entity.OaOperationLog;
-import cn.oa.entity.OnlineUserVO;
+import cn.oa.vo.OnlineUserVO;
 import cn.oa.mapper.OaLoginLogMapper;
 import cn.oa.service.OperationLogService;
 import cn.oa.service.OnlineUserService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +22,6 @@ import java.util.*;
 
 @Slf4j
 @RestController
-@CrossOrigin
 @Tag(name = "系统监控")
 @RequireAdmin
 public class MonitorController {
@@ -36,6 +36,7 @@ public class MonitorController {
     private OperationLogService operationLogService;
 
     @PostMapping("/online-logs")
+    @Operation(summary = "在线用户日志")
     public R<Map<String, Object>> onlineLogs(@RequestBody(required = false) @Valid Map<String, Object> params) {
         List<OnlineUserVO> onlineUsers = onlineUserService.getOnlineUsers();
         Map<String, Object> result = new LinkedHashMap<>();
@@ -47,6 +48,7 @@ public class MonitorController {
     }
 
     @PostMapping("/login-logs")
+    @Operation(summary = "登录日志")
     public R<Map<String, Object>> loginLogs(@RequestBody(required = false) @Valid Map<String, Object> params) {
         int pageNum = params != null && params.get("page") != null ? ((Number) params.get("page")).intValue() : 1;
         int pageSize = params != null && params.get("pageSize") != null ? ((Number) params.get("pageSize")).intValue() : 10;
@@ -79,6 +81,7 @@ public class MonitorController {
     }
 
     @PostMapping("/operation-logs")
+    @Operation(summary = "操作日志")
     public R<Map<String, Object>> operationLogs(@RequestBody(required = false) @Valid Map<String, Object> params) {
         int pageNum = params != null && params.get("page") != null ? ((Number) params.get("page")).intValue() : 1;
         int pageSize = params != null && params.get("pageSize") != null ? ((Number) params.get("pageSize")).intValue() : 10;
@@ -111,8 +114,8 @@ public class MonitorController {
     }
 
     @PostMapping("/system-logs")
+    @Operation(summary = "系统日志")
     public R<Map<String, Object>> systemLogs(@RequestBody(required = false) @Valid Map<String, Object> params) {
-        // 系统日志暂时使用操作日志的数据
         int pageNum = params != null && params.get("page") != null ? ((Number) params.get("page")).intValue() : 1;
         int pageSize = params != null && params.get("pageSize") != null ? ((Number) params.get("pageSize")).intValue() : 10;
 
@@ -144,6 +147,7 @@ public class MonitorController {
     }
 
     @PostMapping("/system-logs-detail")
+    @Operation(summary = "系统日志详情")
     public R<Map<String, Object>> systemLogsDetail(@RequestBody @Valid Map<String, Object> params) {
         Map<String, Object> detail = new LinkedHashMap<>();
         detail.put("id", params.get("id"));

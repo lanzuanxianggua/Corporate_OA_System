@@ -4,7 +4,9 @@ import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaBusinessTrip;
+import cn.oa.entity.dto.ApproveDTO;
 import cn.oa.service.BusinessTripService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,7 +22,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.Map;
 
 @Slf4j
 @RestController
@@ -35,8 +36,7 @@ public class BusinessTripController {
     @Operation(summary = "提交出差申请")
     @OperationLog(module = "出差管理", operation = "提交出差申请")
     public R<Void> submit(@RequestBody @Valid OaBusinessTrip trip, HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         trip.setEmpId(empId);
         businessTripService.submit(trip);
         log.info("Business trip submitted: empId={}", empId);
@@ -46,15 +46,10 @@ public class BusinessTripController {
     @PostMapping("/approve")
     @Operation(summary = "审批出差申请")
     @OperationLog(module = "出差管理", operation = "审批出差申请")
-    public R<Void> approve(@RequestBody @Valid Map<String, Object> params, HttpServletRequest request) {
-        Long applyId = Long.valueOf(params.get("id").toString());
-        Integer status = Integer.valueOf(params.get("status").toString());
-        String remark = params.get("remark") != null ? params.get("remark").toString() : null;
-        Long taskId = params.get("taskId") != null ? Long.valueOf(params.get("taskId").toString()) : null;
-        Object approverIdObj = request.getAttribute("empId");
-        Long approverId = (approverIdObj instanceof Number) ? ((Number) approverIdObj).longValue() : Long.valueOf(approverIdObj.toString());
-        businessTripService.approve(applyId, approverId, status, remark, taskId);
-        log.info("Business trip approved: id={}, status={}, approverId={}, taskId={}", applyId, status, approverId, taskId);
+    public R<Void> approve(@RequestBody @Valid ApproveDTO dto, HttpServletRequest request) {
+        Long approverId = WebUtil.getEmpId(request);
+        businessTripService.approve(dto.getId(), approverId, dto.getStatus(), dto.getRemark(), dto.getTaskId());
+        log.info("Business trip approved: id={}, status={}, approverId={}, taskId={}", dto.getId(), dto.getStatus(), approverId, dto.getTaskId());
         return R.ok();
     }
 

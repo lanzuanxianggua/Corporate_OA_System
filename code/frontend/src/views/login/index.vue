@@ -126,7 +126,7 @@ const refreshCaptcha = async () => {
   try {
     const res = await getCaptcha();
     if (res.data) {
-      captchaImg.value = res.data.image;
+      captchaImg.value = res.data.img;
       captchaUuid.value = res.data.uuid;
       loginForm.captchaCode = "";
     }

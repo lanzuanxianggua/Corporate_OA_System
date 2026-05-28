@@ -36,9 +36,10 @@ oa:
     path: uploads
 
 jwt:
-  # IMPORTANT: JWT_SECRET must be set via environment variable in production!
+  # IMPORTANT: JWT_SECRET must be set via environment variable — no default provided.
   # Example: export JWT_SECRET=your-strong-random-secret-at-least-32-chars
-  secret: "${JWT_SECRET:oa-system-jwt-secret-key-default}"
+  # Application will fail to start if JWT_SECRET is not set.
+  secret: "${JWT_SECRET}"
 
 logging:
   level:

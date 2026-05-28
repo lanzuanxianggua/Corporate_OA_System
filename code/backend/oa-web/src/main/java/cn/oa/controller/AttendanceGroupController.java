@@ -3,6 +3,7 @@ package cn.oa.controller;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaAttendanceGroup;
 import cn.oa.service.AttendanceGroupService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -38,6 +39,7 @@ public class AttendanceGroupController {
     @PostMapping
     @RequireAdmin
     @Operation(summary = "新增考勤组")
+    @cn.oa.common.annotation.OperationLog(module = "考勤组管理", operation = "新增考勤组")
     public R<Void> add(@RequestBody @Valid OaAttendanceGroup group) {
         attendanceGroupService.save(group);
         log.info("Attendance group created: id={}", group.getId());
@@ -47,6 +49,7 @@ public class AttendanceGroupController {
     @PutMapping
     @RequireAdmin
     @Operation(summary = "修改考勤组")
+    @cn.oa.common.annotation.OperationLog(module = "考勤组管理", operation = "修改考勤组")
     public R<Void> update(@RequestBody @Valid OaAttendanceGroup group) {
         attendanceGroupService.updateById(group);
         log.info("Attendance group updated: id={}", group.getId());
@@ -56,6 +59,7 @@ public class AttendanceGroupController {
     @DeleteMapping("/{id}")
     @RequireAdmin
     @Operation(summary = "删除考勤组")
+    @cn.oa.common.annotation.OperationLog(module = "考勤组管理", operation = "删除考勤组")
     public R<Void> delete(@PathVariable Long id) {
         attendanceGroupService.removeById(id);
         log.info("Attendance group deleted: id={}", id);
@@ -65,6 +69,7 @@ public class AttendanceGroupController {
     @PostMapping("/{id}/employees")
     @RequireAdmin
     @Operation(summary = "分配员工到考勤组")
+    @cn.oa.common.annotation.OperationLog(module = "考勤组管理", operation = "分配员工到考勤组")
     public R<Void> assignEmployees(@PathVariable Long id, @RequestBody @Valid Map<String, List<Long>> params) {
         attendanceGroupService.assignEmployees(id, params.get("empIds"));
         log.info("Employees assigned to attendance group: groupId={}, count={}", id, params.get("empIds") != null ? params.get("empIds").size() : 0);
@@ -74,6 +79,7 @@ public class AttendanceGroupController {
     @DeleteMapping("/{id}/employees")
     @RequireAdmin
     @Operation(summary = "从考勤组移除员工")
+    @cn.oa.common.annotation.OperationLog(module = "考勤组管理", operation = "从考勤组移除员工")
     public R<Void> removeEmployees(@PathVariable Long id, @RequestBody @Valid Map<String, List<Long>> params) {
         attendanceGroupService.removeEmployees(id, params.get("empIds"));
         log.info("Employees removed from attendance group: groupId={}, count={}", id, params.get("empIds") != null ? params.get("empIds").size() : 0);

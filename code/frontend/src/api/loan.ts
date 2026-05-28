@@ -1,10 +1,10 @@
 import request from "@/utils/request";
-import type { ApiResponse, PageResult, PageParams, Loan, LoanRepayment } from "@/types/api";
+import type { ApiResponse, PageResult, PageParams, Loan, LoanRepayment, ApproveDTO } from "@/types/api";
 
 export const submitLoan = (data: Partial<Loan>) =>
   request.post<unknown, ApiResponse<void>>("/api/loan/submit", data);
 
-export const approveLoan = (data: { id: number; status: number; remark?: string }) =>
+export const approveLoan = (data: ApproveDTO) =>
   request.post<unknown, ApiResponse<void>>("/api/loan/approve", data);
 
 export const getLoanPage = (params: PageParams & Partial<Loan>) =>

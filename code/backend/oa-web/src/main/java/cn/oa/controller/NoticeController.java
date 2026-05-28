@@ -2,8 +2,8 @@ package cn.oa.controller;
 
 import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
-import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaNotice;
 import cn.oa.entity.dto.NoticeDTO;
 import cn.oa.service.NoticeService;
@@ -36,18 +36,16 @@ public class NoticeController {
 
     @GetMapping("/page")
     @Operation(summary = "分页查询公告")
-    public R<PageResult<OaNotice>> page(@RequestParam int pageNum,
+    public R<cn.oa.common.result.PageResult<OaNotice>> page(@RequestParam int pageNum,
                                         @RequestParam int pageSize,
                                         @RequestParam(required = false) String title,
                                         HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         IPage<OaNotice> page = noticeService.pageList(pageNum, pageSize, title);
-        // 填充 isRead 状态
         for (OaNotice notice : page.getRecords()) {
             notice.setIsRead(noticeService.isRead(notice.getId(), empId));
         }
-        return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
+        return R.ok(cn.oa.common.result.PageResult.of(page.getTotal(), page.getRecords()));
     }
 
     @GetMapping("/{id}")
@@ -62,8 +60,7 @@ public class NoticeController {
     @Operation(summary = "新增公告")
     @OperationLog(module = "公告管理", operation = "新增公告")
     public R<Void> add(@RequestBody @Valid NoticeDTO dto, HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         OaNotice notice = new OaNotice();
         notice.setTitle(dto.getTitle());
         notice.setContent(dto.getContent());
@@ -103,8 +100,7 @@ public class NoticeController {
     @PostMapping("/{id}/read")
     @Operation(summary = "标记公告已读")
     public R<Void> markAsRead(@PathVariable Long id, HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         noticeService.markAsRead(id, empId);
         return R.ok();
     }

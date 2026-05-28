@@ -1,11 +1,7 @@
 import request from "@/utils/request";
-import type { ApiResponse, PageResult, Document } from "@/types/api";
+import type { ApiResponse, PageResult, PageParams, Document } from "@/types/api";
 
-export const getDocumentPage = (params: {
-  pageNum: number;
-  pageSize: number;
-  keyword?: string;
-}) => {
+export const getDocumentPage = (params: PageParams & { keyword?: string }) => {
   return request.get<unknown, ApiResponse<PageResult<Document>>>("/api/document/page", { params });
 };
 

@@ -1,6 +1,7 @@
 package cn.oa.service.impl;
 
 import cn.hutool.json.JSONUtil;
+import cn.oa.common.exception.BusinessException;
 import cn.oa.entity.OaMeeting;
 import cn.oa.entity.OaMeetingRoom;
 import cn.oa.entity.SysEmployee;
@@ -57,10 +58,10 @@ public class MeetingServiceImpl extends ServiceImpl<OaMeetingMapper, OaMeeting> 
     public void cancel(Long meetingId, Long organizerId) {
         OaMeeting meeting = this.getById(meetingId);
         if (meeting == null) {
-            throw new RuntimeException("会议不存在");
+            throw new BusinessException("会议不存在");
         }
         if (!meeting.getOrganizerId().equals(organizerId)) {
-            throw new RuntimeException("只有组织者才能取消会议");
+            throw new BusinessException("只有组织者才能取消会议");
         }
         meeting.setStatus("3");
         meeting.setUpdateTime(LocalDateTime.now());

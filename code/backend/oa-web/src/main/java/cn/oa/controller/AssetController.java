@@ -3,6 +3,7 @@ package cn.oa.controller;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaAsset;
 import cn.oa.entity.OaAssetBorrow;
 import cn.oa.service.AssetBorrowService;
@@ -44,6 +45,7 @@ public class AssetController {
     @PostMapping
     @RequireAdmin
     @Operation(summary = "新增资产")
+    @cn.oa.common.annotation.OperationLog(module = "资产管理", operation = "新增资产")
     public R<Void> add(@RequestBody @Valid OaAsset asset) {
         assetService.save(asset);
         log.info("Asset created: assetCode={}", asset.getAssetCode());
@@ -53,6 +55,7 @@ public class AssetController {
     @PutMapping
     @RequireAdmin
     @Operation(summary = "修改资产")
+    @cn.oa.common.annotation.OperationLog(module = "资产管理", operation = "修改资产")
     public R<Void> update(@RequestBody @Valid OaAsset asset) {
         assetService.updateById(asset);
         log.info("Asset updated: id={}", asset.getId());
@@ -62,6 +65,7 @@ public class AssetController {
     @DeleteMapping("/{id}")
     @RequireAdmin
     @Operation(summary = "删除资产")
+    @cn.oa.common.annotation.OperationLog(module = "资产管理", operation = "删除资产")
     public R<Void> delete(@PathVariable Long id) {
         assetService.removeById(id);
         log.info("Asset deleted: id={}", id);
@@ -70,9 +74,9 @@ public class AssetController {
 
     @PostMapping("/borrow")
     @Operation(summary = "借出资产")
+    @cn.oa.common.annotation.OperationLog(module = "资产管理", operation = "借出资产")
     public R<Void> borrow(@RequestBody @Valid OaAssetBorrow borrow, HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         borrow.setBorrowerId(empId);
         assetBorrowService.borrowAsset(borrow);
         log.info("Asset borrowed: assetId={}, borrowerId={}", borrow.getAssetId(), empId);
@@ -81,6 +85,7 @@ public class AssetController {
 
     @PostMapping("/return/{borrowId}")
     @Operation(summary = "归还资产")
+    @cn.oa.common.annotation.OperationLog(module = "资产管理", operation = "归还资产")
     public R<Void> returnAsset(@PathVariable Long borrowId) {
         assetBorrowService.returnAsset(borrowId);
         log.info("Asset returned: borrowId={}", borrowId);

@@ -2,7 +2,7 @@
   <view class="container">
     <view class="card" v-for="item in list" :key="item.id">
       <view class="flex-between">
-        <text class="item-type">{{ item.leaveType }}</text>
+        <text class="item-type">{{ formatLeaveType(item.leaveType) }}</text>
         <text :class="statusClass(item.status)">{{ statusText(item.status) }}</text>
       </view>
       <view class="item-dates mt-20">
@@ -26,31 +26,33 @@
 import { ref } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import { getLeavePage } from "@/api/leave";
-import { STATUS_MAP, STATUS_CLASS_MAP } from "@/utils/constants";
+import { STATUS_MAP, STATUS_CLASS_MAP, LEAVE_TYPE_MAP } from "@/utils/constants";
 
 const list = ref<any[]>([]);
 const loading = ref(false);
-const page = ref(1);
+const pageNum = ref(1);
 const finished = ref(false);
 
 const statusText = (status: number) => STATUS_MAP[status] ?? "未知";
-
 const statusClass = (status: number) => STATUS_CLASS_MAP[status] ?? "text-gray";
+const formatLeaveType = (type: number) => LEAVE_TYPE_MAP[type] || "请假";
 
 const fetchList = async () => {
   if (loading.value || finished.value) return;
   loading.value = true;
   try {
-    const res: any = await getLeavePage({ page: page.value, pageSize: 20 });
-    const records = res.data?.records || res.data || [];
-    if (page.value === 1) {
+    const res: any = await getLeavePage({ pageNum: pageNum.value, pageSize: 20 });
+    const records = res.data?.list || [];
+    if (pageNum.value === 1) {
       list.value = records;
     } else {
       list.value.push(...records);
     }
     if (records.length < 20) finished.value = true;
-    else page.value++;
-  } catch {} finally {
+    else pageNum.value++;
+  } catch {
+    // silently handle
+  } finally {
     loading.value = false;
   }
 };

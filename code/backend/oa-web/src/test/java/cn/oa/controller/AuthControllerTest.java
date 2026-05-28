@@ -1,8 +1,8 @@
 package cn.oa.controller;
 
 import cn.oa.common.service.RedisService;
-import cn.oa.entity.LoginDTO;
-import cn.oa.entity.LoginVO;
+import cn.oa.entity.dto.LoginDTO;
+import cn.oa.vo.LoginVO;
 import cn.oa.service.AuthService;
 import cn.oa.service.EmployeeService;
 import com.fasterxml.jackson.databind.ObjectMapper;

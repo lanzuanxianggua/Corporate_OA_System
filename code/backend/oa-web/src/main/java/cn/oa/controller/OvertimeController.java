@@ -3,7 +3,9 @@ package cn.oa.controller;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaOvertime;
+import cn.oa.entity.dto.ApproveDTO;
 import cn.oa.service.OvertimeService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,8 +15,6 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @Slf4j
 @RestController
@@ -28,8 +28,7 @@ public class OvertimeController {
     @PostMapping("/submit")
     @Operation(summary = "提交加班申请")
     public R<Void> submit(@RequestBody @Valid OaOvertime overtime, HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         overtime.setEmpId(empId);
         overtimeService.submit(overtime);
         log.info("Overtime submitted: empId={}", empId);
@@ -38,15 +37,10 @@ public class OvertimeController {
 
     @PostMapping("/approve")
     @Operation(summary = "审批加班申请")
-    public R<Void> approve(@RequestBody @Valid Map<String, Object> params, HttpServletRequest request) {
-        Long overtimeId = Long.valueOf(params.get("id").toString());
-        Integer status = Integer.valueOf(params.get("status").toString());
-        String remark = params.get("remark") != null ? params.get("remark").toString() : null;
-        Long taskId = params.get("taskId") != null ? Long.valueOf(params.get("taskId").toString()) : null;
-        Object approverIdObj = request.getAttribute("empId");
-        Long approverId = (approverIdObj instanceof Number) ? ((Number) approverIdObj).longValue() : Long.valueOf(approverIdObj.toString());
-        overtimeService.approve(overtimeId, approverId, status, remark, taskId);
-        log.info("Overtime approved: id={}, status={}, approverId={}, taskId={}", overtimeId, status, approverId, taskId);
+    public R<Void> approve(@RequestBody @Valid ApproveDTO dto, HttpServletRequest request) {
+        Long approverId = WebUtil.getEmpId(request);
+        overtimeService.approve(dto.getId(), approverId, dto.getStatus(), dto.getRemark(), dto.getTaskId());
+        log.info("Overtime approved: id={}, status={}, approverId={}, taskId={}", dto.getId(), dto.getStatus(), approverId, dto.getTaskId());
         return R.ok();
     }
 

@@ -30,6 +30,7 @@ public class EmpArchiveController {
 
     @PostMapping
     @Operation(summary = "创建/更新员工档案")
+    @cn.oa.common.annotation.OperationLog(module = "员工档案", operation = "创建/更新员工档案")
     public R<Void> save(@RequestBody @Valid OaEmpArchive archive) {
         if (archive.getId() != null) {
             empArchiveService.updateById(archive);

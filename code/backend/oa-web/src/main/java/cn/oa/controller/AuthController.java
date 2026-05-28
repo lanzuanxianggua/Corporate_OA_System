@@ -6,9 +6,10 @@ import cn.oa.common.service.RedisService;
 import cn.oa.common.utils.CaptchaUtil;
 import cn.oa.common.utils.CaptchaUtil.CaptchaResult;
 import cn.oa.common.utils.PasswordUtil;
-import cn.oa.entity.LoginDTO;
-import cn.oa.entity.LoginVO;
+import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.SysEmployee;
+import cn.oa.entity.dto.LoginDTO;
+import cn.oa.vo.LoginVO;
 import cn.oa.service.AuthService;
 import cn.oa.service.EmployeeService;
 import cn.hutool.crypto.digest.BCrypt;
@@ -17,15 +18,18 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
 @Slf4j
 @RestController
-@CrossOrigin
 @Tag(name = "认证管理")
 public class AuthController {
 
@@ -68,8 +72,7 @@ public class AuthController {
     @Operation(summary = "登出")
     @OperationLog(module = "认证管理", operation = "用户登出")
     public R<Void> logout(HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : (empIdObj != null ? Long.valueOf(empIdObj.toString()) : null);
+        Long empId = WebUtil.getEmpId(request);
         if (empId != null) {
             authService.logout(empId);
             log.info("User logged out: empId={}", empId);
@@ -81,8 +84,7 @@ public class AuthController {
     @Operation(summary = "修改密码")
     @OperationLog(module = "认证管理", operation = "修改密码")
     public R<Void> changePassword(@RequestBody @Valid ChangePasswordDTO dto, HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : (empIdObj != null ? Long.valueOf(empIdObj.toString()) : null);
+        Long empId = WebUtil.getEmpId(request);
         if (empId == null) {
             return R.fail("未登录");
         }
@@ -104,13 +106,13 @@ public class AuthController {
         return R.ok();
     }
 
-    @lombok.Data
+    @Data
     public static class RefreshTokenDTO {
         @NotBlank(message = "refreshToken不能为空")
         private String refreshToken;
     }
 
-    @lombok.Data
+    @Data
     public static class ChangePasswordDTO {
         @NotBlank(message = "旧密码不能为空")
         private String oldPassword;

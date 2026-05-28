@@ -20,7 +20,11 @@ public class WebSocketConfig implements WebSocketConfigurer {
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(notificationEndpoint(), "/ws/notification")
-                .setAllowedOrigins("*")
+                .setAllowedOrigins(
+                        "http://localhost:8848",
+                        "http://localhost:5173",
+                        "http://localhost:3000"
+                )
                 .addInterceptors(new HttpSessionHandshakeInterceptor());
     }
 }

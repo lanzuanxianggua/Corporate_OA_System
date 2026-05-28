@@ -23,6 +23,9 @@ public class OaLoan {
 
     private String status = "0";
 
+    /** 关联流程实例ID */
+    private Long processInstanceId;
+
     private String createBy;
 
     @TableField(fill = FieldFill.INSERT)

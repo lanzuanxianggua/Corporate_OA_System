@@ -2,6 +2,8 @@ package cn.oa.service.impl;
 
 import cn.oa.common.service.RedisService;
 import cn.oa.entity.*;
+import cn.oa.vo.AdminReportVO;
+import cn.oa.vo.PersonalReportVO;
 import cn.oa.mapper.OaAttendanceMapper;
 import cn.oa.mapper.OaLeaveApplyMapper;
 import cn.oa.mapper.SysDeptMapper;
@@ -11,7 +13,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -334,9 +335,9 @@ public class ReportServiceImpl implements ReportService {
         }
 
         if ("worst".equals(type)) {
-            rankings.sort(Comparator.comparingDouble(a -> (double) a.get("rate")));
+            rankings.sort(Comparator.comparingDouble(a -> ((Number) a.get("rate")).doubleValue()));
         } else {
-            rankings.sort((a, b) -> Double.compare((double) b.get("rate"), (double) a.get("rate")));
+            rankings.sort((a, b) -> Double.compare(((Number) b.get("rate")).doubleValue(), ((Number) a.get("rate")).doubleValue()));
         }
 
         List<Map<String, Object>> top10 = rankings.stream().limit(10).collect(Collectors.toList());
@@ -344,10 +345,12 @@ public class ReportServiceImpl implements ReportService {
         return top10;
     }
 
+    @Override
     public void clearPersonalCache(Long empId, String month) {
         redisService.delete("cache:report:personal:" + empId + ":" + month);
     }
 
+    @Override
     public void clearAdminCache(String month) {
         redisService.delete("cache:report:admin:attendance:" + month);
         redisService.delete("cache:report:admin:dept:" + month);

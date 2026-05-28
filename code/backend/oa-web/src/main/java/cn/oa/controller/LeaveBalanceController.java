@@ -3,7 +3,9 @@ package cn.oa.controller;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaLeaveBalance;
+import cn.oa.entity.dto.LeaveBalanceInitDTO;
 import cn.oa.service.LeaveBalanceService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,7 +17,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @RestController
@@ -41,19 +42,17 @@ public class LeaveBalanceController {
     @GetMapping("/my")
     @Operation(summary = "查询当前用户假期余额")
     public R<List<OaLeaveBalance>> my(HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         return R.ok(leaveBalanceService.myBalances(empId));
     }
 
     @PostMapping("/init")
     @RequireAdmin
     @Operation(summary = "初始化员工年度假期余额")
-    public R<Void> init(@RequestBody @Valid Map<String, Object> params) {
-        Long empId = Long.valueOf(params.get("empId").toString());
-        Integer year = Integer.valueOf(params.get("year").toString());
-        leaveBalanceService.initYearBalance(empId, year);
-        log.info("Leave balance initialized: empId={}, year={}", empId, year);
+    @cn.oa.common.annotation.OperationLog(module = "假期余额", operation = "初始化年度假期余额")
+    public R<Void> init(@RequestBody @Valid LeaveBalanceInitDTO dto) {
+        leaveBalanceService.initYearBalance(dto.getEmpId(), dto.getYear());
+        log.info("Leave balance initialized: empId={}, year={}", dto.getEmpId(), dto.getYear());
         return R.ok();
     }
 }

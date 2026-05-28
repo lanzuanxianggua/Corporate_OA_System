@@ -65,7 +65,7 @@
 
         <view class="dialog-btns">
           <button class="dialog-btn cancel" @click="showDialog = false">取消</button>
-          <button class="dialog-btn confirm" :loading="submitting" @click="handleSubmit">确定</button>
+          <button class="dialog-btn confirm" :disabled="submitting" @click="handleSubmit">确定</button>
         </view>
       </view>
     </view>
@@ -79,7 +79,7 @@ import { getSchedulePage, addSchedule, deleteSchedule } from "@/api/schedule";
 
 const list = ref<any[]>([]);
 const loading = ref(false);
-const page = ref(1);
+const pageNum = ref(1);
 const finished = ref(false);
 const showDialog = ref(false);
 const submitting = ref(false);
@@ -95,16 +95,18 @@ const fetchList = async () => {
   if (loading.value || finished.value) return;
   loading.value = true;
   try {
-    const res: any = await getSchedulePage({ page: page.value, pageSize: 20 });
-    const records = res.data?.records || res.data || [];
-    if (page.value === 1) {
+    const res: any = await getSchedulePage({ pageNum: pageNum.value, pageSize: 20 });
+    const records = res.data?.list || [];
+    if (pageNum.value === 1) {
       list.value = records;
     } else {
       list.value.push(...records);
     }
     if (records.length < 20) finished.value = true;
-    else page.value++;
-  } catch {} finally {
+    else pageNum.value++;
+  } catch {
+    // silently handle
+  } finally {
     loading.value = false;
   }
 };
@@ -125,7 +127,7 @@ const handleSubmit = async () => {
     uni.showToast({ title: "添加成功", icon: "success" });
     showDialog.value = false;
     form.value = { title: "", date: "", startTime: "", endTime: "" };
-    page.value = 1;
+    pageNum.value = 1;
     finished.value = false;
     fetchList();
   } catch {
@@ -199,4 +201,5 @@ onShow(fetchList);
 }
 .dialog-btn.cancel { background: #f4f4f5; color: #909399; }
 .dialog-btn.confirm { background: #409EFF; color: #fff; }
+.dialog-btn.confirm[disabled] { background: #a0cfff; color: #fff; }
 </style>

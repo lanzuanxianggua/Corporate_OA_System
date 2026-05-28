@@ -1,8 +1,8 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import { login as loginApi, logout as logoutApi, getCaptcha } from "@/api/auth";
+import { login as loginApi, logout as logoutApi } from "@/api/auth";
 import router from "@/router";
-import type { UserVO, LoginVO } from "@/types/api";
+import type { LoginVO } from "@/types/api";
 
 interface UserStoreInfo {
   id?: number;
@@ -41,7 +41,7 @@ export const useUserStore = defineStore("user", () => {
   const hasRole = (role: string) => {
     if (!userInfo.value?.roles) return false;
     return userInfo.value.roles.some(
-      (r: string) => r === role || r === role.toLowerCase()
+      (r: string) => r === role || r === role.toUpperCase()
     );
   };
 
@@ -56,7 +56,7 @@ export const useUserStore = defineStore("user", () => {
   const loginAction = async (username: string, password: string, captchaUuid: string, captchaCode: string) => {
     const res = await loginApi({ username, password, captchaUuid, captchaCode });
     if (res.data) {
-      const data = res.data;
+      const data = res.data as LoginVO;
       const claims = parseJwtPayload(data.accessToken);
       token.value = data.accessToken;
       userInfo.value = {
@@ -77,7 +77,7 @@ export const useUserStore = defineStore("user", () => {
     try {
       await logoutApi();
     } catch {
-      // ignore
+      // ignore errors on logout
     }
     token.value = "";
     userInfo.value = null;

@@ -4,6 +4,7 @@ import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaMeeting;
 import cn.oa.entity.OaMeetingRoom;
 import cn.oa.entity.dto.MeetingDTO;
@@ -49,6 +50,7 @@ public class MeetingController {
     @PostMapping("/room")
     @RequireAdmin
     @Operation(summary = "新增会议室")
+    @OperationLog(module = "会议室管理", operation = "新增会议室")
     public R<Void> addRoom(@RequestBody @Valid OaMeetingRoom room) {
         meetingRoomService.save(room);
         log.info("Meeting room created: id={}", room.getId());
@@ -80,9 +82,9 @@ public class MeetingController {
 
     @PostMapping("/submit")
     @Operation(summary = "创建会议")
+    @OperationLog(module = "会议管理", operation = "创建会议")
     public R<Void> submit(@RequestBody @Valid MeetingDTO dto, HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         OaMeeting meeting = new OaMeeting();
         meeting.setTitle(dto.getTitle());
         meeting.setRoomId(dto.getRoomId());
@@ -109,9 +111,9 @@ public class MeetingController {
 
     @PostMapping("/cancel/{id}")
     @Operation(summary = "取消会议")
+    @OperationLog(module = "会议管理", operation = "取消会议")
     public R<Void> cancel(@PathVariable Long id, HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         meetingService.cancel(id, empId);
         log.info("Meeting cancelled: id={}, empId={}", id, empId);
         return R.ok();

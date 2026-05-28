@@ -3,12 +3,14 @@ package cn.oa.service.notification.impl;
 import cn.oa.common.websocket.WebSocketSender;
 import cn.oa.service.notification.NotificationChannel;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @Component
 public class WebSocketChannel implements NotificationChannel {
 
@@ -30,7 +32,8 @@ public class WebSocketChannel implements NotificationChannel {
             msg.put("content", content);
             String json = objectMapper.writeValueAsString(msg);
             webSocketSender.sendToUser(empId, json);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("WebSocket notification failed for empId={}: {}", empId, e.getMessage());
         }
     }
 }

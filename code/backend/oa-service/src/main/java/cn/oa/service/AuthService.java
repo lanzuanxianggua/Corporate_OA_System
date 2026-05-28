@@ -1,7 +1,7 @@
 package cn.oa.service;
 
-import cn.oa.entity.LoginVO;
 import cn.oa.entity.SysEmployee;
+import cn.oa.vo.LoginVO;
 import jakarta.servlet.http.HttpServletRequest;
 
 public interface AuthService {

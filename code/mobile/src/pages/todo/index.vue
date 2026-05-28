@@ -2,7 +2,7 @@
   <view class="container">
     <view class="card" v-for="todo in list" :key="todo.id" @click="goDetail(todo)">
       <view class="flex-between">
-        <text class="todo-title">{{ todo.businessType || '审批任务' }}</text>
+        <text class="todo-title">{{ formatBusinessType(todo.businessType) }}</text>
         <text class="text-gray text-sm">{{ formatTime(todo.createTime) }}</text>
       </view>
       <view class="mt-20">
@@ -21,14 +21,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref } from "vue";
 import { onShow, onPullDownRefresh } from "@dcloudio/uni-app";
 import { getPendingTasks } from "@/api/workflow";
+import { BUSINESS_TYPE_MAP } from "@/utils/constants";
 
 const list = ref<any[]>([]);
 const loading = ref(false);
 const pageNum = ref(1);
 const hasMore = ref(false);
+
+const formatBusinessType = (type: string) => BUSINESS_TYPE_MAP[type] || type || "审批";
 
 const fetchList = async (reset = false) => {
   if (reset) { pageNum.value = 1; list.value = []; }
@@ -38,6 +41,8 @@ const fetchList = async (reset = false) => {
     const items = res.data?.list || [];
     list.value = reset ? items : [...list.value, ...items];
     hasMore.value = items.length >= 10;
+  } catch {
+    // silently handle
   } finally {
     loading.value = false;
     uni.stopPullDownRefresh();
@@ -52,7 +57,6 @@ const goDetail = (todo: any) => {
 
 const formatTime = (t: string) => t ? t.replace("T", " ").substring(0, 16) : "";
 
-onMounted(() => fetchList(true));
 onShow(() => fetchList(true));
 onPullDownRefresh(() => fetchList(true));
 </script>

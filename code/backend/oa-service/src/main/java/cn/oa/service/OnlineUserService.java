@@ -1,6 +1,6 @@
 package cn.oa.service;
 
-import cn.oa.entity.OnlineUserVO;
+import cn.oa.vo.OnlineUserVO;
 
 import java.util.List;
 

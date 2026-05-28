@@ -34,7 +34,10 @@
       </view>
     </view>
 
-    <button class="submit-btn" :loading="submitting" @click="handleSubmit">提交申请</button>
+    <button class="submit-btn" :disabled="submitting" @click="handleSubmit">
+      <text v-if="!submitting">提交申请</text>
+      <text v-else>提交中...</text>
+    </button>
   </view>
 </template>
 
@@ -51,13 +54,8 @@ const form = ref({
 
 const submitting = ref(false);
 
-const onStartDateChange = (e: any) => {
-  form.value.startDate = e.detail.value;
-};
-
-const onEndDateChange = (e: any) => {
-  form.value.endDate = e.detail.value;
-};
+const onStartDateChange = (e: any) => { form.value.startDate = e.detail.value; };
+const onEndDateChange = (e: any) => { form.value.endDate = e.detail.value; };
 
 const handleSubmit = async () => {
   const { destination, startDate, endDate, reason } = form.value;
@@ -79,7 +77,7 @@ const handleSubmit = async () => {
     uni.showToast({ title: "提交成功", icon: "success" });
     setTimeout(() => uni.navigateBack(), 1500);
   } catch {
-    uni.showToast({ title: "提交失败", icon: "none" });
+    // Error toast handled by request interceptor
   } finally {
     submitting.value = false;
   }
@@ -107,4 +105,5 @@ const handleSubmit = async () => {
   margin-top: 40rpx; background: #409EFF; color: #fff; border: none;
   border-radius: 8rpx; font-size: 30rpx; height: 88rpx; line-height: 88rpx;
 }
+.submit-btn[disabled] { background: #a0cfff; color: #fff; }
 </style>

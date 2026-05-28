@@ -40,21 +40,27 @@ public class WorkflowCallbackDispatcher implements WorkflowCallback {
     @Override
     public void onApproved(String businessType, Long businessId) {
         log.info("Workflow approved: businessType={}, businessId={}", businessType, businessId);
-        BiConsumer<Long, Integer> h = handlers.get(businessType);
-        if (h != null) h.accept(businessId, 1);
+        dispatchStatus(businessType, businessId, 1);
     }
 
     @Override
     public void onRejected(String businessType, Long businessId) {
         log.info("Workflow rejected: businessType={}, businessId={}", businessType, businessId);
-        BiConsumer<Long, Integer> h = handlers.get(businessType);
-        if (h != null) h.accept(businessId, 2);
+        dispatchStatus(businessType, businessId, 2);
     }
 
     @Override
     public void onWithdrawn(String businessType, Long businessId) {
         log.info("Workflow withdrawn: businessType={}, businessId={}", businessType, businessId);
+        dispatchStatus(businessType, businessId, 3);
+    }
+
+    private void dispatchStatus(String businessType, Long businessId, int status) {
         BiConsumer<Long, Integer> h = handlers.get(businessType);
-        if (h != null) h.accept(businessId, 4);
+        if (h != null) {
+            h.accept(businessId, status);
+        } else {
+            log.warn("No handler registered for businessType={}, skipping status update to {}", businessType, status);
+        }
     }
 }

@@ -102,11 +102,15 @@ const fetchData = async () => {
   try {
     const res: any = await getTodayAttendance();
     attendance.value = res.data || null;
-  } catch {}
+  } catch {
+    attendance.value = null;
+  }
   try {
     const res: any = await getTodoCount();
     todoCount.value = res.data || 0;
-  } catch {} finally {
+  } catch {
+    todoCount.value = 0;
+  } finally {
     loading.value = false;
   }
 };

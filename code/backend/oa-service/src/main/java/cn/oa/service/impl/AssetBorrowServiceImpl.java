@@ -3,6 +3,7 @@ package cn.oa.service.impl;
 import cn.oa.common.exception.BusinessException;
 import cn.oa.entity.OaAsset;
 import cn.oa.entity.OaAssetBorrow;
+import cn.oa.entity.SysEmployee;
 import cn.oa.mapper.OaAssetMapper;
 import cn.oa.mapper.OaAssetBorrowMapper;
 import cn.oa.mapper.SysEmployeeMapper;
@@ -16,6 +17,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class AssetBorrowServiceImpl extends ServiceImpl<OaAssetBorrowMapper, OaAssetBorrow> implements AssetBorrowService {
@@ -76,19 +82,39 @@ public class AssetBorrowServiceImpl extends ServiceImpl<OaAssetBorrowMapper, OaA
         }
         wrapper.orderByDesc(OaAssetBorrow::getCreateTime);
         IPage<OaAssetBorrow> result = this.page(page, wrapper);
-        // Fill asset name and borrower name
+
+        if (result.getRecords().isEmpty()) return result;
+
+        // Batch fill asset name
+        Set<Long> assetIds = result.getRecords().stream()
+                .map(OaAssetBorrow::getAssetId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, String> assetNameMap = Map.of();
+        if (!assetIds.isEmpty()) {
+            List<OaAsset> assets = assetMapper.selectBatchIds(assetIds);
+            assetNameMap = assets.stream()
+                    .collect(Collectors.toMap(OaAsset::getId, OaAsset::getAssetName, (a, b) -> a));
+        }
+
+        // Batch fill borrower name
+        Set<Long> borrowerIds = result.getRecords().stream()
+                .map(OaAssetBorrow::getBorrowerId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, String> borrowerNameMap = Map.of();
+        if (!borrowerIds.isEmpty()) {
+            List<SysEmployee> emps = employeeMapper.selectBatchIds(borrowerIds);
+            borrowerNameMap = emps.stream()
+                    .collect(Collectors.toMap(SysEmployee::getId, SysEmployee::getEmpName, (a, b) -> a));
+        }
+
         for (OaAssetBorrow borrow : result.getRecords()) {
             if (borrow.getAssetId() != null) {
-                OaAsset asset = assetMapper.selectById(borrow.getAssetId());
-                if (asset != null) {
-                    borrow.setAssetName(asset.getAssetName());
-                }
+                borrow.setAssetName(assetNameMap.getOrDefault(borrow.getAssetId(), ""));
             }
             if (borrow.getBorrowerId() != null) {
-                cn.oa.entity.SysEmployee emp = employeeMapper.selectById(borrow.getBorrowerId());
-                if (emp != null) {
-                    borrow.setBorrower(emp.getEmpName());
-                }
+                borrow.setBorrower(borrowerNameMap.getOrDefault(borrow.getBorrowerId(), ""));
             }
         }
         return result;

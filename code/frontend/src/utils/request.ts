@@ -56,16 +56,23 @@ function isTokenExpiringSoon(token: string): boolean {
   return Date.now() / 1000 > exp - 300; // 5 minutes before expiry
 }
 
+function clearAuthAndRedirect() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("userInfo");
+  router.push("/login");
+}
+
 request.interceptors.request.use(
   async (config) => {
     showLoading();
     let token = localStorage.getItem("token");
     if (token && isTokenExpiringSoon(token)) {
-      const refreshToken = localStorage.getItem("refreshToken");
-      if (refreshToken && !isRefreshing) {
+      const storedRefreshToken = localStorage.getItem("refreshToken");
+      if (storedRefreshToken && !isRefreshing) {
         isRefreshing = true;
         try {
-          const res = await axios.post("/refresh-token", { refreshToken });
+          const res = await axios.post("/refresh-token", { refreshToken: storedRefreshToken });
           if (res.data?.code === 0 && res.data?.data?.accessToken) {
             token = res.data.data.accessToken;
             localStorage.setItem("token", token!);
@@ -76,7 +83,10 @@ request.interceptors.request.use(
             pendingRequests = [];
           }
         } catch {
-          // refresh failed, let request continue with old token
+          // refresh failed - clear auth and redirect
+          hideLoading();
+          clearAuthAndRedirect();
+          return Promise.reject(new Error("Token refresh failed"));
         } finally {
           isRefreshing = false;
         }
@@ -103,12 +113,20 @@ request.interceptors.request.use(
 request.interceptors.response.use(
   (response) => {
     hideLoading();
+    // For blob downloads, return raw response with headers for filename extraction
     if (response.config.responseType === "blob") {
       return { data: response.data, headers: response.headers };
     }
     const res = response.data;
-    if (res.code === 0 || res.code === 200) {
+    // Backend uses code === 0 for success
+    if (res.code === 0) {
       return res;
+    }
+    // Handle 401 in response body
+    if (res.code === 401) {
+      ElMessage.error("登录已过期，请重新登录");
+      clearAuthAndRedirect();
+      return Promise.reject(new Error("未授权"));
     }
     ElMessage.error(res.message || "请求失败");
     return Promise.reject(new Error(res.message || "请求失败"));
@@ -116,11 +134,8 @@ request.interceptors.response.use(
   (error) => {
     hideLoading();
     if (error.response?.status === 401) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("userInfo");
-      router.push("/login");
       ElMessage.error("登录已过期，请重新登录");
+      clearAuthAndRedirect();
     } else {
       const data = error.response?.data;
       if (data instanceof Blob) {

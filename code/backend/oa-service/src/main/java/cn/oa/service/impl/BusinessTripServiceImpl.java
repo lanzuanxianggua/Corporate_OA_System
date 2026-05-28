@@ -1,53 +1,80 @@
 package cn.oa.service.impl;
 
-import lombok.extern.slf4j.Slf4j;
-
 import cn.oa.common.constant.BusinessType;
 import cn.oa.common.exception.BusinessException;
-import cn.oa.entity.OaApprovalRecord;
 import cn.oa.entity.OaBusinessTrip;
-import cn.oa.entity.WfTask;
-import cn.oa.entity.SysEmployee;
-import cn.oa.mapper.OaApprovalRecordMapper;
 import cn.oa.mapper.OaBusinessTripMapper;
-import cn.oa.mapper.SysEmployeeMapper;
-import cn.oa.mapper.WfTaskMapper;
 import cn.oa.service.AttendanceService;
 import cn.oa.service.BusinessTripService;
-import cn.oa.service.WorkflowService;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
-@Slf4j
-public class BusinessTripServiceImpl extends ServiceImpl<OaBusinessTripMapper, OaBusinessTrip> implements BusinessTripService {
-
-    @Autowired
-    private OaApprovalRecordMapper approvalRecordMapper;
-
-    @Autowired
-    private SysEmployeeMapper employeeMapper;
-
-    @Autowired
-    private WorkflowService workflowService;
-
-    @Autowired
-    private WfTaskMapper wfTaskMapper;
+public class BusinessTripServiceImpl extends BaseApprovalServiceImpl<OaBusinessTripMapper, OaBusinessTrip>
+        implements BusinessTripService {
 
     @Lazy
     @Autowired
     private AttendanceService attendanceService;
+
+    public BusinessTripServiceImpl() {
+        this.empIdGetter = OaBusinessTrip::getEmpId;
+        this.statusGetter = OaBusinessTrip::getStatus;
+        this.createTimeGetter = OaBusinessTrip::getCreateTime;
+        this.idGetter = OaBusinessTrip::getId;
+    }
+
+    @Override
+    protected String getBusinessType() {
+        return BusinessType.TRIP;
+    }
+
+    @Override
+    protected void setStatus(OaBusinessTrip entity, Integer status) {
+        entity.setStatus(status);
+    }
+
+    @Override
+    protected void setEmpName(OaBusinessTrip entity, String name) {
+        entity.setEmpName(name);
+    }
+
+    @Override
+    protected void setRemark(OaBusinessTrip entity, String remark) {
+        entity.setRemark(remark);
+    }
+
+    @Override
+    protected Map<String, Object> buildConditionContext(OaBusinessTrip entity) {
+        long days = java.time.temporal.ChronoUnit.DAYS.between(
+                entity.getStartTime().toLocalDate(), entity.getEndTime().toLocalDate()) + 1;
+        Map<String, Object> ctx = new HashMap<>();
+        ctx.put("days", days);
+        return ctx;
+    }
+
+    @Override
+    protected void onUpdateStatus(OaBusinessTrip entity, Integer newStatus, Integer oldStatus) {
+        if (entity.getStartTime() == null || entity.getEndTime() == null) return;
+
+        LocalDate startDate = entity.getStartTime().toLocalDate();
+        LocalDate endDate = entity.getEndTime().toLocalDate();
+
+        if (newStatus == 1 && !Integer.valueOf(1).equals(oldStatus)) {
+            attendanceService.markTripAttendance(entity.getEmpId(), startDate, endDate);
+        }
+
+        if ((newStatus == 2 || newStatus == 3) && Integer.valueOf(1).equals(oldStatus)) {
+            attendanceService.removeMarkedAttendance(entity.getEmpId(), startDate, endDate, 6);
+        }
+    }
 
     @Override
     @Transactional
@@ -55,131 +82,29 @@ public class BusinessTripServiceImpl extends ServiceImpl<OaBusinessTripMapper, O
         if (trip.getStartTime() == null || trip.getEndTime() == null) {
             throw new BusinessException("出差起止时间不能为空");
         }
-        trip.setStatus(0);
-        this.save(trip);
-        long days = java.time.temporal.ChronoUnit.DAYS.between(trip.getStartTime().toLocalDate(), trip.getEndTime().toLocalDate()) + 1;
-        Map<String, Object> ctx = new HashMap<>();
-        ctx.put("days", days);
-        workflowService.startProcess(BusinessType.TRIP, trip.getId(), trip.getEmpId(), ctx);
-        log.info("Business trip submitted: id={}, empId={}", trip.getId(), trip.getEmpId());
+        doSubmit(trip);
     }
 
     @Override
     @Transactional
     public void approve(Long applyId, Long approverId, Integer status, String remark) {
-        approve(applyId, approverId, status, remark, null);
+        doApprove(applyId, approverId, status, remark);
     }
 
     @Override
     @Transactional
     public void approve(Long applyId, Long approverId, Integer status, String remark, Long taskId) {
-        WfTask task = null;
-        if (taskId != null) {
-            task = wfTaskMapper.selectById(taskId);
-        }
-        if (task == null) {
-            task = workflowService.findPendingTask(BusinessType.TRIP, applyId, approverId);
-        }
-        if (task == null) {
-            cn.oa.entity.WfProcessInstance instance = workflowService.getByBusiness(BusinessType.TRIP, applyId);
-            if (instance != null) {
-                LambdaQueryWrapper<WfTask> wrapper = new LambdaQueryWrapper<>();
-                wrapper.eq(WfTask::getInstanceId, instance.getId())
-                       .eq(WfTask::getStatus, "0")
-                       .orderByAsc(WfTask::getCreateTime)
-                       .last("LIMIT 1");
-                task = wfTaskMapper.selectOne(wrapper);
-            }
-        }
-        if (task != null) {
-            workflowService.handleTask(task.getId(), approverId, status, remark);
-        } else {
-            throw new BusinessException("未找到待审批的任务");
-        }
+        doApprove(applyId, approverId, status, remark);
     }
 
     @Override
     @Transactional
     public void updateStatus(Long id, Integer status) {
-        OaBusinessTrip trip = this.getById(id);
-        if (trip == null) return;
-        if (trip.getStartTime() == null || trip.getEndTime() == null) return;
-
-        Integer oldStatus = trip.getStatus();
-        trip.setStatus(status);
-        this.updateById(trip);
-
-        LocalDate startDate = trip.getStartTime().toLocalDate();
-        LocalDate endDate = trip.getEndTime().toLocalDate();
-
-        // When approved (status=1): mark trip attendance
-        if (status == 1 && oldStatus != 1) {
-            attendanceService.markTripAttendance(trip.getEmpId(), startDate, endDate);
-        }
-
-        // When rejected(2) or withdrawn(4) after being approved(1): remove attendance marks
-        if ((status == 2 || status == 4) && oldStatus == 1) {
-            attendanceService.removeMarkedAttendance(trip.getEmpId(), startDate, endDate, 6);
-        }
+        doUpdateStatus(id, status);
     }
 
     @Override
     public IPage<OaBusinessTrip> pageList(int pageNum, int pageSize, Long empId, Integer status) {
-        Page<OaBusinessTrip> page = new Page<>(pageNum, pageSize);
-        LambdaQueryWrapper<OaBusinessTrip> wrapper = new LambdaQueryWrapper<>();
-        if (empId != null) {
-            wrapper.eq(OaBusinessTrip::getEmpId, empId);
-        }
-        if (status != null) {
-            wrapper.eq(OaBusinessTrip::getStatus, status);
-        }
-        wrapper.orderByDesc(OaBusinessTrip::getCreateTime);
-        IPage<OaBusinessTrip> result = this.page(page, wrapper);
-
-        fillEmpNames(result.getRecords());
-        fillRemarks(result.getRecords());
-
-        return result;
-    }
-
-    private void fillEmpNames(List<OaBusinessTrip> records) {
-        if (records == null || records.isEmpty()) return;
-        Set<Long> empIds = records.stream()
-                .map(OaBusinessTrip::getEmpId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-        if (empIds.isEmpty()) return;
-
-        List<SysEmployee> employees = employeeMapper.selectBatchIds(empIds);
-        Map<Long, String> nameMap = employees.stream()
-                .collect(Collectors.toMap(SysEmployee::getId, SysEmployee::getEmpName, (a, b) -> a));
-
-        for (OaBusinessTrip record : records) {
-            if (record.getEmpId() != null) {
-                record.setEmpName(nameMap.getOrDefault(record.getEmpId(), ""));
-            }
-        }
-    }
-
-    private void fillRemarks(List<OaBusinessTrip> records) {
-        if (records == null || records.isEmpty()) return;
-        List<Long> applyIds = records.stream()
-                .map(OaBusinessTrip::getId)
-                .collect(Collectors.toList());
-        if (applyIds.isEmpty()) return;
-
-        LambdaQueryWrapper<OaApprovalRecord> wrapper = new LambdaQueryWrapper<>();
-        wrapper.in(OaApprovalRecord::getApplyId, applyIds)
-                .orderByDesc(OaApprovalRecord::getApproveTime);
-        List<OaApprovalRecord> approvalRecords = approvalRecordMapper.selectList(wrapper);
-
-        Map<Long, String> remarkMap = new HashMap<>();
-        for (OaApprovalRecord ar : approvalRecords) {
-            remarkMap.putIfAbsent(ar.getApplyId(), ar.getRemark());
-        }
-
-        for (OaBusinessTrip record : records) {
-            record.setRemark(remarkMap.getOrDefault(record.getId(), ""));
-        }
+        return doPageList(pageNum, pageSize, empId, status);
     }
 }

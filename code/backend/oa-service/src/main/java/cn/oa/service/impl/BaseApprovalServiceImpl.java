@@ -94,6 +94,7 @@ public abstract class BaseApprovalServiceImpl<M extends BaseMapper<T>, T>
      * Common submit logic: set status=0, save entity, start workflow process.
      * Subclasses call this from their submit() method.
      */
+    @Transactional
     public void doSubmit(T entity) {
         setStatus(entity, 0);
         this.save(entity);
@@ -185,7 +186,9 @@ public abstract class BaseApprovalServiceImpl<M extends BaseMapper<T>, T>
      * Subclasses call this from their updateStatus() and override
      * {@link #onUpdateStatus(Object, Integer, Integer)} for custom side-effects.
      */
+    @Transactional
     public void doUpdateStatus(Long id, Integer status) {
+        if (id == null || status == null) return;
         T entity = this.getById(id);
         if (entity == null) return;
 

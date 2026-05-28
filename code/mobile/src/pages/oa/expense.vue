@@ -12,7 +12,7 @@
         <text class="form-label">费用类别</text>
         <picker :range="categoryOptions" @change="onCategoryChange">
           <view class="form-value picker-value">
-            {{ categoryOptions[form.category] || '请选择' }}
+            {{ form.category >= 0 ? categoryOptions[form.category] : '请选择' }}
             <text class="picker-arrow">&#9654;</text>
           </view>
         </picker>
@@ -29,15 +29,19 @@
       </view>
     </view>
 
-    <button class="submit-btn" :loading="submitting" @click="handleSubmit">提交申请</button>
+    <button class="submit-btn" :disabled="submitting" @click="handleSubmit">
+      <text v-if="!submitting">提交申请</text>
+      <text v-else>提交中...</text>
+    </button>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref } from "vue";
 import { submitExpense } from "@/api/common";
+import { EXPENSE_CATEGORY_OPTIONS } from "@/utils/constants";
 
-const categoryOptions = ["办公费用", "差旅费用", "招待费用", "培训费用", "采购费用", "其他"];
+const categoryOptions = EXPENSE_CATEGORY_OPTIONS;
 
 const form = ref({
   title: "",
@@ -73,7 +77,7 @@ const handleSubmit = async () => {
     uni.showToast({ title: "提交成功", icon: "success" });
     setTimeout(() => uni.navigateBack(), 1500);
   } catch {
-    uni.showToast({ title: "提交失败", icon: "none" });
+    // Error toast handled by request interceptor
   } finally {
     submitting.value = false;
   }
@@ -101,4 +105,5 @@ const handleSubmit = async () => {
   margin-top: 40rpx; background: #409EFF; color: #fff; border: none;
   border-radius: 8rpx; font-size: 30rpx; height: 88rpx; line-height: 88rpx;
 }
+.submit-btn[disabled] { background: #a0cfff; color: #fff; }
 </style>

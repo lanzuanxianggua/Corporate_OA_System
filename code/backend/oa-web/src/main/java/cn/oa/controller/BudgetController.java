@@ -36,6 +36,7 @@ public class BudgetController {
     @PostMapping
     @RequireAdmin
     @Operation(summary = "新增预算")
+    @cn.oa.common.annotation.OperationLog(module = "预算管理", operation = "新增预算")
     public R<Void> add(@RequestBody @Valid OaBudget budget) {
         budgetService.save(budget);
         log.info("Budget created: id={}", budget.getId());
@@ -45,6 +46,7 @@ public class BudgetController {
     @PutMapping
     @RequireAdmin
     @Operation(summary = "修改预算")
+    @cn.oa.common.annotation.OperationLog(module = "预算管理", operation = "修改预算")
     public R<Void> update(@RequestBody @Valid OaBudget budget) {
         budgetService.updateById(budget);
         log.info("Budget updated: id={}", budget.getId());
@@ -54,6 +56,7 @@ public class BudgetController {
     @DeleteMapping("/{id}")
     @RequireAdmin
     @Operation(summary = "删除预算")
+    @cn.oa.common.annotation.OperationLog(module = "预算管理", operation = "删除预算")
     public R<Void> delete(@PathVariable Long id) {
         budgetService.removeById(id);
         log.info("Budget deleted: id={}", id);

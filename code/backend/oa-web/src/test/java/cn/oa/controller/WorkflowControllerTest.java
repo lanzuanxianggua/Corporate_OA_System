@@ -128,11 +128,11 @@ class WorkflowControllerTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("处理任务 - 使用action字段")
-    void handleTaskWithAction() throws Exception {
+    @DisplayName("处理任务 - 驳回")
+    void handleTaskReject() throws Exception {
         doNothing().when(workflowService).handleTask(anyLong(), anyLong(), any(Integer.class), any());
 
-        Map<String, Object> params = Map.of("taskId", 2, "action", 2, "remark", "驳回");
+        Map<String, Object> params = Map.of("taskId", 2, "status", 2, "remark", "驳回");
 
         mockMvc.perform(post("/api/workflow/task/handle")
                         .requestAttr("empId", 1L)

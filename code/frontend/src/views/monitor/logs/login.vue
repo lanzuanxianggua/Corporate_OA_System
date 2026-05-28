@@ -30,9 +30,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { getLoginLogs } from "@/api/monitor";
+import type { LoginLog } from "@/types/api";
 
 const searchUsername = ref("");
-const logList = ref<any[]>([]);
+const logList = ref<LoginLog[]>([]);
 const page = ref(1);
 const pageSize = ref(10);
 const total = ref(0);

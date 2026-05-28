@@ -7,14 +7,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class EmpArchiveServiceImpl extends ServiceImpl<OaEmpArchiveMapper, OaEmpArchive> implements EmpArchiveService {
-
-    @Autowired
-    private OaEmpArchiveMapper empArchiveMapper;
 
     @Override
     public OaEmpArchive getByEmpId(Long empId) {
@@ -23,12 +19,12 @@ public class EmpArchiveServiceImpl extends ServiceImpl<OaEmpArchiveMapper, OaEmp
 
     @Override
     public OaEmpArchive getByEmpIdWithInfo(Long empId) {
-        return empArchiveMapper.getByEmpIdWithInfo(empId);
+        return baseMapper.getByEmpIdWithInfo(empId);
     }
 
     @Override
     public IPage<OaEmpArchive> pageWithEmpInfo(int pageNum, int pageSize, String searchKey) {
         Page<OaEmpArchive> page = new Page<>(pageNum, pageSize);
-        return empArchiveMapper.pageWithEmpInfo(page, searchKey);
+        return baseMapper.pageWithEmpInfo(page, searchKey);
     }
 }

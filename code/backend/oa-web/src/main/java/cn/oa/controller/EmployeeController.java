@@ -1,8 +1,10 @@
 package cn.oa.controller;
 
 import cn.oa.common.annotation.OperationLog;
+import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.SysEmployee;
 import cn.oa.entity.dto.EmployeeDTO;
 import cn.oa.service.EmployeeService;
@@ -49,6 +51,7 @@ public class EmployeeController {
     }
 
     @PostMapping
+    @RequireAdmin
     @Operation(summary = "新增员工")
     @OperationLog(module = "员工管理", operation = "新增员工")
     public R<Void> add(@RequestBody @Valid EmployeeDTO dto) {
@@ -68,6 +71,7 @@ public class EmployeeController {
     }
 
     @PutMapping
+    @RequireAdmin
     @Operation(summary = "修改员工")
     @OperationLog(module = "员工管理", operation = "修改员工")
     public R<Void> update(@RequestBody @Valid EmployeeDTO dto) {
@@ -88,6 +92,7 @@ public class EmployeeController {
     }
 
     @DeleteMapping("/{id}")
+    @RequireAdmin
     @Operation(summary = "删除员工")
     @OperationLog(module = "员工管理", operation = "删除员工")
     public R<Void> delete(@PathVariable Long id) {
@@ -98,6 +103,7 @@ public class EmployeeController {
 
     @PutMapping("/password")
     @Operation(summary = "修改密码")
+    @OperationLog(module = "员工管理", operation = "修改密码")
     public R<Void> updatePassword(@RequestParam Long empId,
                                   @RequestParam String oldPwd,
                                   @RequestParam String newPwd) {

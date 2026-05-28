@@ -44,7 +44,6 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@SuppressWarnings("unchecked")
 public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, WfProcessDefinition> implements WorkflowService {
 
     @Autowired
@@ -358,78 +357,14 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
 
         if (status == 2) {
             // rejected
-            // For multi-task, cancel all pending siblings
-            if (isMultiTask) {
-                Long parentId = task.getParentTaskId() != null ? task.getParentTaskId() : taskId;
-                LambdaQueryWrapper<WfTask> siblingWrapper = new LambdaQueryWrapper<>();
-                siblingWrapper.eq(WfTask::getParentTaskId, parentId)
-                        .eq(WfTask::getStatus, "0");
-                List<WfTask> pendingSiblings = taskMapper.selectList(siblingWrapper);
-                for (WfTask sibling : pendingSiblings) {
-                    sibling.setStatus("4");
-                    sibling.setActionTime(LocalDateTime.now());
-                    taskMapper.updateById(sibling);
-                }
-                if (task.getParentTaskId() != null) {
-                    WfTask parentTask = taskMapper.selectById(task.getParentTaskId());
-                    if (parentTask != null && "0".equals(parentTask.getStatus())) {
-                        parentTask.setStatus("2");
-                        parentTask.setActionTime(LocalDateTime.now());
-                        taskMapper.updateById(parentTask);
-                    }
-                }
-            }
-
-            instance.setStatus("2");
-            instance.setEndTime(LocalDateTime.now());
-            instanceMapper.updateById(instance);
-            callbackDispatcher.onRejected(instance.getBusinessType(), instance.getBusinessId());
-            completeTodo(instance.getId());
-            notificationService.notifyApproval(instance.getInitiatorId(), instance.getBusinessType(),
-                    instance.getBusinessId(), "rejected", remark);
+            handleRejection(task, instance, isMultiTask);
         } else if (status == 1) {
             // approved, check if more applicable nodes
-            WfProcessDefinition definition2 = this.getById(instance.getProcessId());
-            JSONArray allNodes = JSONUtil.parseArray(definition2.getNodeConfig());
             Map<String, Object> ctx = null;
             if (instance.getConditionContext() != null && !instance.getConditionContext().isEmpty()) {
                 ctx = JSONUtil.parseObj(instance.getConditionContext()).toBean(Map.class);
             }
-            List<JSONObject> applicableNodes = filterApplicableNodes(allNodes, ctx);
-
-            int currentApplicableIndex = -1;
-            for (int i = 0; i < applicableNodes.size(); i++) {
-                if (applicableNodes.get(i).getInt("nodeIndex", -1) == task.getNodeIndex()) {
-                    currentApplicableIndex = i;
-                    break;
-                }
-            }
-
-            if (currentApplicableIndex >= 0 && currentApplicableIndex + 1 < applicableNodes.size()) {
-                JSONObject nextNode = applicableNodes.get(currentApplicableIndex + 1);
-                int nextIdx = nextNode.getInt("nodeIndex", currentApplicableIndex + 1);
-                instance.setCurrentNode(nextIdx);
-                instanceMapper.updateById(instance);
-                createTaskForNode(instance, nextNode, nextIdx);
-                // Notify the next approver
-                Long nextAssigneeId = resolveAssignee(nextNode.getStr("assigneeType"),
-                        nextNode.getStr("assigneeValue"), instance.getInitiatorId());
-                notificationService.notifyTask(nextAssigneeId, instance.getBusinessType(),
-                        instance.getBusinessId(), "你有一个新的审批任务");
-            } else {
-                instance.setStatus("1");
-                instance.setEndTime(LocalDateTime.now());
-                instanceMapper.updateById(instance);
-                callbackDispatcher.onApproved(instance.getBusinessType(), instance.getBusinessId());
-                completeTodo(instance.getId());
-                notificationService.notifyApproval(instance.getInitiatorId(), instance.getBusinessType(),
-                        instance.getBusinessId(), "approved", remark);
-
-                // If this is a subprocess, check if parent needs to resume
-                if (instance.getParentInstanceId() != null) {
-                    resumeParentProcess(instance.getParentInstanceId());
-                }
-            }
+            advanceToNextNode(task, instance, nodes, ctx, remark);
         }
     }
 
@@ -834,9 +769,16 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
     }
 
     private boolean numCheck(Object rawVal, Object thresholdObj, NumBiPredicate pred) {
-        double actual = ((Number) rawVal).doubleValue();
-        double threshold = thresholdObj instanceof Number ? ((Number) thresholdObj).doubleValue() : Double.parseDouble(String.valueOf(thresholdObj));
-        return pred.test(actual, threshold);
+        try {
+            double actual = (rawVal instanceof Number) ? ((Number) rawVal).doubleValue()
+                    : Double.parseDouble(String.valueOf(rawVal));
+            double threshold = (thresholdObj instanceof Number) ? ((Number) thresholdObj).doubleValue()
+                    : Double.parseDouble(String.valueOf(thresholdObj));
+            return pred.test(actual, threshold);
+        } catch (NumberFormatException e) {
+            log.warn("numCheck: failed to parse numeric values, rawVal={}, thresholdObj={}", rawVal, thresholdObj);
+            return false;
+        }
     }
 
     private void completeTodo(Long instanceId) {
@@ -850,6 +792,83 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
             }
         } catch (Exception e) {
             log.warn("Failed to complete todo for instance {}: {}", instanceId, e.getMessage());
+        }
+    }
+
+    /**
+     * Handle task rejection: cancel sibling tasks, mark instance as rejected, fire callbacks.
+     */
+    private void handleRejection(WfTask task, WfProcessInstance instance, boolean isMultiTask) {
+        if (isMultiTask) {
+            Long parentId = task.getParentTaskId() != null ? task.getParentTaskId() : task.getId();
+            LambdaQueryWrapper<WfTask> siblingWrapper = new LambdaQueryWrapper<>();
+            siblingWrapper.eq(WfTask::getParentTaskId, parentId)
+                    .eq(WfTask::getStatus, "0");
+            List<WfTask> pendingSiblings = taskMapper.selectList(siblingWrapper);
+            for (WfTask sibling : pendingSiblings) {
+                sibling.setStatus("4");
+                sibling.setActionTime(LocalDateTime.now());
+                taskMapper.updateById(sibling);
+            }
+            if (task.getParentTaskId() != null) {
+                WfTask parentTask = taskMapper.selectById(task.getParentTaskId());
+                if (parentTask != null && "0".equals(parentTask.getStatus())) {
+                    parentTask.setStatus("2");
+                    parentTask.setActionTime(LocalDateTime.now());
+                    taskMapper.updateById(parentTask);
+                }
+            }
+        }
+
+        instance.setStatus("2");
+        instance.setEndTime(LocalDateTime.now());
+        instanceMapper.updateById(instance);
+        callbackDispatcher.onRejected(instance.getBusinessType(), instance.getBusinessId());
+        completeTodo(instance.getId());
+        notificationService.notifyApproval(instance.getInitiatorId(), instance.getBusinessType(),
+                instance.getBusinessId(), "rejected", task.getRemark());
+    }
+
+    /**
+     * Advance workflow to the next applicable node after approval.
+     * If no more nodes, complete the process and fire onApproved callback.
+     */
+    private void advanceToNextNode(WfTask task, WfProcessInstance instance,
+                                   JSONArray nodes, Map<String, Object> ctx, String remark) {
+        List<JSONObject> applicableNodes = filterApplicableNodes(nodes, ctx);
+
+        int currentApplicableIndex = -1;
+        for (int i = 0; i < applicableNodes.size(); i++) {
+            if (applicableNodes.get(i).getInt("nodeIndex", -1) == task.getNodeIndex()) {
+                currentApplicableIndex = i;
+                break;
+            }
+        }
+
+        if (currentApplicableIndex >= 0 && currentApplicableIndex + 1 < applicableNodes.size()) {
+            JSONObject nextNode = applicableNodes.get(currentApplicableIndex + 1);
+            int nextIdx = nextNode.getInt("nodeIndex", currentApplicableIndex + 1);
+            instance.setCurrentNode(nextIdx);
+            instanceMapper.updateById(instance);
+            createTaskForNode(instance, nextNode, nextIdx);
+
+            Long nextAssigneeId = resolveAssignee(nextNode.getStr("assigneeType"),
+                    nextNode.getStr("assigneeValue"), instance.getInitiatorId());
+            notificationService.notifyTask(nextAssigneeId, instance.getBusinessType(),
+                    instance.getBusinessId(), "你有一个新的审批任务");
+        } else {
+            // No more nodes — process complete
+            instance.setStatus("1");
+            instance.setEndTime(LocalDateTime.now());
+            instanceMapper.updateById(instance);
+            callbackDispatcher.onApproved(instance.getBusinessType(), instance.getBusinessId());
+            completeTodo(instance.getId());
+            notificationService.notifyApproval(instance.getInitiatorId(), instance.getBusinessType(),
+                    instance.getBusinessId(), "approved", remark);
+
+            if (instance.getParentInstanceId() != null) {
+                resumeParentProcess(instance.getParentInstanceId());
+            }
         }
     }
 

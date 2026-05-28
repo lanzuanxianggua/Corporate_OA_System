@@ -3,9 +3,10 @@ package cn.oa.controller;
 import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.annotation.RequireRole;
-import cn.oa.common.result.R;
 import cn.oa.common.result.PageResult;
-import cn.oa.common.utils.ExcelExportUtil;
+import cn.oa.common.result.R;
+import cn.oa.common.utils.WebUtil;
+import cn.oa.utils.ExcelExportUtil;
 import cn.oa.entity.OaAttendance;
 import cn.oa.entity.SysEmployee;
 import cn.oa.mapper.SysEmployeeMapper;
@@ -41,7 +42,6 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/attendance")
 @Tag(name = "考勤管理")
 @Slf4j
-@SuppressWarnings("deprecation")
 public class AttendanceController {
 
     private static final String[] STATUS_TEXT = {"正常", "迟到", "早退", "缺勤", "休息", "请假", "出差"};
@@ -58,8 +58,7 @@ public class AttendanceController {
     @Operation(summary = "上班打卡")
     @OperationLog(module = "考勤管理", operation = "上班打卡")
     public R<Void> clockIn(HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         attendanceService.clockIn(empId);
         log.info("Clock in: empId={}", empId);
         return R.ok();
@@ -69,8 +68,7 @@ public class AttendanceController {
     @Operation(summary = "下班打卡")
     @OperationLog(module = "考勤管理", operation = "下班打卡")
     public R<Void> clockOut(HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         attendanceService.clockOut(empId);
         log.info("Clock out: empId={}", empId);
         return R.ok();
@@ -79,8 +77,7 @@ public class AttendanceController {
     @GetMapping("/today")
     @Operation(summary = "获取今日考勤")
     public R<OaAttendance> today(HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         OaAttendance attendance = attendanceService.getTodayAttendance(empId);
         return R.ok(attendance);
     }
@@ -91,8 +88,7 @@ public class AttendanceController {
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
             HttpServletRequest request) {
-        Object empIdObj = request.getAttribute("empId");
-        Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
+        Long empId = WebUtil.getEmpId(request);
         return R.ok(attendanceService.getAttendanceHistory(empId, startDate, endDate));
     }
 
@@ -129,7 +125,6 @@ public class AttendanceController {
             records = records.subList(0, 5000);
         }
 
-        // Build empId -> employee map
         Set<Long> empIds = records.stream().map(OaAttendance::getEmpId).collect(Collectors.toSet());
         Map<Long, SysEmployee> empMap = empIds.isEmpty() ? Map.of() :
                 employeeMapper.selectBatchIds(empIds).stream()

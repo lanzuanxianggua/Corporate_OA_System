@@ -1,5 +1,6 @@
 package cn.oa.service.impl;
 
+import cn.oa.common.exception.BusinessException;
 import cn.oa.entity.OaAttendanceGroup;
 import cn.oa.entity.OaAttendanceGroupEmp;
 import cn.oa.mapper.OaAttendanceGroupEmpMapper;
@@ -36,6 +37,10 @@ public class AttendanceGroupServiceImpl extends ServiceImpl<OaAttendanceGroupMap
     @Override
     @Transactional
     public void assignEmployees(Long groupId, List<Long> empIds) {
+        OaAttendanceGroup group = this.getById(groupId);
+        if (group == null) {
+            throw new BusinessException("考勤组不存在");
+        }
         List<OaAttendanceGroupEmp> existing = groupEmpMapper.selectList(
                 new LambdaQueryWrapper<OaAttendanceGroupEmp>().eq(OaAttendanceGroupEmp::getGroupId, groupId));
         List<Long> existingEmpIds = existing.stream().map(OaAttendanceGroupEmp::getEmpId).collect(Collectors.toList());
@@ -53,6 +58,9 @@ public class AttendanceGroupServiceImpl extends ServiceImpl<OaAttendanceGroupMap
     @Override
     @Transactional
     public void removeEmployees(Long groupId, List<Long> empIds) {
+        if (empIds == null || empIds.isEmpty()) {
+            throw new BusinessException("员工列表不能为空");
+        }
         groupEmpMapper.delete(
                 new LambdaQueryWrapper<OaAttendanceGroupEmp>()
                         .eq(OaAttendanceGroupEmp::getGroupId, groupId)

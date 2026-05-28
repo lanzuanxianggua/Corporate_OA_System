@@ -1,9 +1,9 @@
 package cn.oa.service.impl;
 
 import cn.oa.common.service.RedisService;
-import cn.oa.entity.OnlineUserVO;
 import cn.oa.entity.SysDept;
 import cn.oa.entity.SysEmployee;
+import cn.oa.vo.OnlineUserVO;
 import cn.oa.mapper.SysDeptMapper;
 import cn.oa.mapper.SysEmployeeMapper;
 import cn.oa.service.OnlineUserService;

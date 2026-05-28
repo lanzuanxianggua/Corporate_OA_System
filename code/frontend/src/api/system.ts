@@ -1,5 +1,5 @@
 import request from "@/utils/request";
-import type { ApiResponse, PageResult, UserVO, Role, Menu } from "@/types/api";
+import type { ApiResponse, PageResult, Role, Menu, Dept, UserVO, LoginLog } from "@/types/api";
 
 export const getUserPage = (params: {
   page: number;
@@ -11,7 +11,7 @@ export const getUserPage = (params: {
 };
 
 export const getAllRoles = () => {
-  return request.get<unknown, ApiResponse<Role[]>>("/list-all-role");
+  return request.get<unknown, ApiResponse<Role[]>>("/api/system/roles");
 };
 
 export const getRoles = () => {
@@ -51,7 +51,7 @@ export const getMenuList = () => {
 };
 
 export const getDeptList = () => {
-  return request.post<unknown, ApiResponse<import("@/types/api").Dept[]>>("/dept", {});
+  return request.post<unknown, ApiResponse<Dept[]>>("/dept", {});
 };
 
 export const getMine = () => {
@@ -59,5 +59,5 @@ export const getMine = () => {
 };
 
 export const getMineLogs = (params?: { page?: number; pageSize?: number }) => {
-  return request.get<unknown, ApiResponse<PageResult<import("@/types/api").LoginLog>>>("/mine-logs", { params });
+  return request.get<unknown, ApiResponse<PageResult<LoginLog>>>("/mine-logs", { params });
 };
