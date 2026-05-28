@@ -18,7 +18,7 @@
           <template #default="{ row }">{{ formatTime(row.endTime) }}</template>
         </el-table-column>
         <el-table-column prop="organizerName" label="发起人" width="90" />
-        <el-table-column prop="participants" label="参会人数" width="90" align="center" />
+        <el-table-column prop="participants" label="总人数" width="90" align="center" />
         <el-table-column label="状态" width="80" align="center">
           <template #default="{ row }">
             <el-tag :type="row.status === '0' ? 'warning' : row.status === '1' ? 'success' : 'info'" size="small">
@@ -49,7 +49,7 @@
         </el-form-item>
         <el-form-item label="会议室" prop="roomId">
           <el-select v-model="form.roomId" placeholder="请选择会议室" style="width: 100%">
-            <el-option v-for="room in rooms" :key="room.id" :label="room.roomName" :value="room.id" />
+            <el-option v-for="room in rooms" :key="room.id" :label="room.roomName" :value="room.id!" />
           </el-select>
         </el-form-item>
         <el-form-item label="开始时间" prop="startTime">
@@ -57,6 +57,9 @@
         </el-form-item>
         <el-form-item label="结束时间" prop="endTime">
           <el-date-picker v-model="form.endTime" type="datetime" placeholder="请选择结束时间" format="YYYY-MM-DD HH:mm" value-format="YYYY-MM-DD HH:mm:ss" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="总人数">
+          <el-input-number v-model="form.participants" :min="1" :max="999" placeholder="请输入总人数" style="width: 100%" />
         </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="form.description" type="textarea" :rows="3" placeholder="请输入备注" />
@@ -75,18 +78,20 @@ import { ref, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import type { FormInstance, FormRules } from "element-plus";
 import { getRooms, submitMeeting, getMeetingPage, cancelMeeting } from "@/api/meeting";
+import { formatTime } from "@/utils/format";
+import type { Meeting, MeetingRoom } from "@/types/api";
 
 const loading = ref(false);
-const tableData = ref<any[]>([]);
+const tableData = ref<Meeting[]>([]);
 const pageNum = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
-const rooms = ref<any[]>([]);
+const rooms = ref<MeetingRoom[]>([]);
 
 const fetchList = async () => {
   loading.value = true;
   try {
-    const res: any = await getMeetingPage({ pageNum: pageNum.value, pageSize: pageSize.value });
+    const res = await getMeetingPage({ pageNum: pageNum.value, pageSize: pageSize.value });
     tableData.value = res.data?.list || [];
     total.value = res.data?.total || 0;
   } catch {
@@ -99,7 +104,7 @@ const fetchList = async () => {
 
 const fetchRooms = async () => {
   try {
-    const res: any = await getRooms();
+    const res = await getRooms();
     rooms.value = res.data || [];
   } catch {}
 };
@@ -107,7 +112,7 @@ const fetchRooms = async () => {
 const dialogVisible = ref(false);
 const submitting = ref(false);
 const formRef = ref<FormInstance>();
-const form = reactive({ title: "", roomId: undefined as number | undefined, startTime: "", endTime: "", description: "" });
+const form = reactive({ title: "", roomId: undefined as number | undefined, startTime: "", endTime: "", description: "", participants: undefined as number | undefined });
 const rules = reactive<FormRules>({
   title: [{ required: true, message: "请输入会议主题", trigger: "blur" }],
   roomId: [{ required: true, message: "请选择会议室", trigger: "change" }],
@@ -121,6 +126,7 @@ const openDialog = () => {
   form.startTime = "";
   form.endTime = "";
   form.description = "";
+  form.participants = undefined;
   formRef.value?.resetFields();
   dialogVisible.value = true;
 };
@@ -130,7 +136,10 @@ const handleSubmit = async () => {
   await formRef.value.validate();
   submitting.value = true;
   try {
-    await submitMeeting(form);
+    await submitMeeting({
+      ...form,
+      participants: form.participants != null ? String(form.participants) : undefined
+    });
     ElMessage.success("会议已创建");
     dialogVisible.value = false;
     fetchList();
@@ -141,18 +150,13 @@ const handleSubmit = async () => {
   }
 };
 
-const handleCancel = async (row: any) => {
+const handleCancel = async (row: Meeting) => {
   try {
     await ElMessageBox.confirm("确定要取消该会议吗？", "提示", { type: "warning" });
-    await cancelMeeting(row.id);
+    await cancelMeeting(row.id!);
     ElMessage.success("已取消会议");
     fetchList();
   } catch { /* cancelled or error */ }
-};
-
-const formatTime = (time?: string) => {
-  if (!time) return "-";
-  return time.replace("T", " ").substring(0, 16);
 };
 
 onMounted(() => { fetchList(); fetchRooms(); });

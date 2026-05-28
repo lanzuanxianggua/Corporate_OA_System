@@ -41,6 +41,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/attendance")
 @Tag(name = "考勤管理")
 @Slf4j
+@SuppressWarnings("deprecation")
 public class AttendanceController {
 
     private static final String[] STATUS_TEXT = {"正常", "迟到", "早退", "缺勤", "休息", "请假", "出差"};

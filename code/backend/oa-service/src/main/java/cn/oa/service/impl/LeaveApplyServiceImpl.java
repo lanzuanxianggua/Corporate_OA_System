@@ -115,9 +115,23 @@ public class LeaveApplyServiceImpl extends ServiceImpl<OaLeaveApplyMapper, OaLea
     @Override
     @Transactional
     public void approve(Long applyId, Long approverId, Integer status, String remark, Long taskId) {
-        WfTask task = workflowService.findPendingTask(BusinessType.LEAVE, applyId, approverId);
-        if (task == null && taskId != null) {
+        WfTask task = null;
+        if (taskId != null) {
             task = wfTaskMapper.selectById(taskId);
+        }
+        if (task == null) {
+            task = workflowService.findPendingTask(BusinessType.LEAVE, applyId, approverId);
+        }
+        if (task == null) {
+            cn.oa.entity.WfProcessInstance instance = workflowService.getByBusiness(BusinessType.LEAVE, applyId);
+            if (instance != null) {
+                LambdaQueryWrapper<WfTask> wrapper = new LambdaQueryWrapper<>();
+                wrapper.eq(WfTask::getInstanceId, instance.getId())
+                       .eq(WfTask::getStatus, "0")
+                       .orderByAsc(WfTask::getCreateTime)
+                       .last("LIMIT 1");
+                task = wfTaskMapper.selectOne(wrapper);
+            }
         }
         if (task != null) {
             workflowService.handleTask(task.getId(), approverId, status, remark);

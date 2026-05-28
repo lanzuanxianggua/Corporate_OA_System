@@ -53,10 +53,11 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { Upload } from "@element-plus/icons-vue";
 import { getDocumentPage, uploadDocument, deleteDocument, downloadDocument } from "@/api/document";
 import { useUserStore } from "@/store/user";
+import type { Document } from "@/types/api";
 
 const userStore = useUserStore();
 const keyword = ref("");
-const docList = ref<any[]>([]);
+const docList = ref<Document[]>([]);
 const page = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
@@ -75,18 +76,18 @@ const fetchData = async () => {
   try {
     const params: any = { pageNum: page.value, pageSize: pageSize.value };
     if (keyword.value) params.keyword = keyword.value;
-    const res: any = await getDocumentPage(params);
+    const res = await getDocumentPage(params as any);
     if (res.data?.list) { docList.value = res.data.list; total.value = res.data.total || 0; }
   } catch {}
 };
 
-const handleFileChange = (file: any) => { selectedFile.value = file.raw; };
+const handleFileChange = (file: { raw?: File }) => { selectedFile.value = file.raw ?? null; };
 
 const handleUpload = async () => {
   if (!selectedFile.value) { ElMessage.warning("请选择文件"); return; }
   uploading.value = true;
   try {
-    const empId = userStore.userInfo?.empId || userStore.userInfo?.id;
+    const empId = userStore.userInfo?.empId || userStore.userInfo?.id || 0;
     await uploadDocument(selectedFile.value, empId);
     ElMessage.success("上传成功");
     uploadDialogVisible.value = false;
@@ -105,14 +106,14 @@ const handleDelete = async (id: number) => {
   } catch {}
 };
 
-const handleDownload = async (row: any) => {
+const handleDownload = async (row: Document) => {
   try {
-    const res: any = await downloadDocument(row.id);
-    if (!res || res.type?.includes("json")) {
+    const res: any = await downloadDocument(row.id!);
+    if (!res || (res.type && res.type.includes("json"))) {
       ElMessage.error("下载失败，文件不存在或已被删除");
       return;
     }
-    const blob = new Blob([res]);
+    const blob = res instanceof Blob ? res : new Blob([res.data ?? res]);
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;

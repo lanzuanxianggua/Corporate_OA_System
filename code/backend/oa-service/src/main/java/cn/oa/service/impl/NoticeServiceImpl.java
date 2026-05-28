@@ -18,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
+@SuppressWarnings("deprecation")
 public class NoticeServiceImpl extends ServiceImpl<OaNoticeMapper, OaNotice> implements NoticeService {
 
     @Autowired

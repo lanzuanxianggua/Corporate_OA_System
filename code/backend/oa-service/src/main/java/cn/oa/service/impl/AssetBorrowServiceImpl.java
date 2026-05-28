@@ -5,6 +5,7 @@ import cn.oa.entity.OaAsset;
 import cn.oa.entity.OaAssetBorrow;
 import cn.oa.mapper.OaAssetMapper;
 import cn.oa.mapper.OaAssetBorrowMapper;
+import cn.oa.mapper.SysEmployeeMapper;
 import cn.oa.service.AssetBorrowService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -21,6 +22,9 @@ public class AssetBorrowServiceImpl extends ServiceImpl<OaAssetBorrowMapper, OaA
 
     @Autowired
     private OaAssetMapper assetMapper;
+
+    @Autowired
+    private SysEmployeeMapper employeeMapper;
 
     @Override
     @Transactional
@@ -71,6 +75,22 @@ public class AssetBorrowServiceImpl extends ServiceImpl<OaAssetBorrowMapper, OaA
             wrapper.eq(OaAssetBorrow::getStatus, status);
         }
         wrapper.orderByDesc(OaAssetBorrow::getCreateTime);
-        return this.page(page, wrapper);
+        IPage<OaAssetBorrow> result = this.page(page, wrapper);
+        // Fill asset name and borrower name
+        for (OaAssetBorrow borrow : result.getRecords()) {
+            if (borrow.getAssetId() != null) {
+                OaAsset asset = assetMapper.selectById(borrow.getAssetId());
+                if (asset != null) {
+                    borrow.setAssetName(asset.getAssetName());
+                }
+            }
+            if (borrow.getBorrowerId() != null) {
+                cn.oa.entity.SysEmployee emp = employeeMapper.selectById(borrow.getBorrowerId());
+                if (emp != null) {
+                    borrow.setBorrower(emp.getEmpName());
+                }
+            }
+        }
+        return result;
     }
 }

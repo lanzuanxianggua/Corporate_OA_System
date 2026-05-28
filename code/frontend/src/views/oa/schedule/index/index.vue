@@ -24,7 +24,7 @@
           </template>
           <div v-if="daySchedules.length > 0">
             <el-timeline>
-              <el-timeline-item v-for="item in daySchedules" :key="item.id" :timestamp="formatTime(item.startTime) + ' - ' + formatTime(item.endTime)" placement="top">
+              <el-timeline-item v-for="item in daySchedules" :key="item.id" :timestamp="formatTime(item.startTime ?? '') + ' - ' + formatTime(item.endTime ?? '')" placement="top">
                 <div class="font-medium">{{ item.title }}</div>
                 <div v-if="item.description" class="text-sm text-[#909399] mt-1">{{ item.description }}</div>
               </el-timeline-item>
@@ -58,10 +58,11 @@ import type { FormInstance, FormRules } from "element-plus";
 import { Plus } from "@element-plus/icons-vue";
 import { getSchedulePage, addSchedule } from "@/api/schedule";
 import { useUserStore } from "@/store/user";
+import type { Schedule } from "@/types/api";
 
 const userStore = useUserStore();
 const selectedDate = ref(new Date());
-const allSchedules = ref<any[]>([]);
+const allSchedules = ref<Schedule[]>([]);
 const addDialogVisible = ref(false);
 const adding = ref(false);
 const formRef = ref<FormInstance>();
@@ -87,7 +88,7 @@ const formatTime = (t: string) => t ? dayjs(t).format("HH:mm") : "";
 const fetchSchedules = async () => {
   try {
     const empId = userStore.userInfo?.empId || userStore.userInfo?.id;
-    const res: any = await getSchedulePage({ pageNum: 1, pageSize: 200, empId });
+    const res = await getSchedulePage({ pageNum: 1, pageSize: 200, empId });
     if (res.data?.list) allSchedules.value = res.data.list;
   } catch {}
 };

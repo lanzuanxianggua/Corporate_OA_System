@@ -66,6 +66,12 @@ public abstract class BaseApprovalServiceImpl<M extends BaseMapper<T>, T>
     @Autowired
     protected DelegationService delegationService;
 
+    @Autowired
+    protected cn.oa.mapper.WfTaskMapper wfTaskMapper;
+
+    @Autowired
+    protected cn.oa.mapper.WfProcessInstanceMapper wfProcessInstanceMapper;
+
     // ====== Abstract / overridable methods ======
 
     /** Return the BusinessType constant, e.g. BusinessType.LEAVE */
@@ -119,22 +125,34 @@ public abstract class BaseApprovalServiceImpl<M extends BaseMapper<T>, T>
         if (task != null) {
             Long taskAssigneeId = task.getAssigneeId();
             if (!taskAssigneeId.equals(approverId)) {
-                // The task is assigned to someone else (delegation scenario)
-                // Verify that the current user has authority to approve this task
                 boolean authorized = isAuthorizedForTask(approverId, taskAssigneeId);
                 if (!authorized) {
                     log.warn("doApprove: user {} not authorized for task {} assigned to {}", approverId, task.getId(), taskAssigneeId);
                     throw new BusinessException("无权处理此任务");
                 }
                 log.info("doApprove: delegation approval - user {} acting on task {} assigned to {}", approverId, task.getId(), taskAssigneeId);
-                // Handle the task with the actual assignee ID (the delegate), but log the real approver
                 workflowService.handleTask(task.getId(), taskAssigneeId, status, remark);
             } else {
                 workflowService.handleTask(task.getId(), approverId, status, remark);
             }
         } else {
-            log.warn("doApprove: no pending task found for businessType={}, id={}, approverId={}", getBusinessType(), id, approverId);
-            throw new BusinessException("未找到待审批的任务");
+            // Fallback: find any pending task for this business instance (admin override)
+            cn.oa.entity.WfProcessInstance instance = workflowService.getByBusiness(getBusinessType(), id);
+            if (instance != null) {
+                LambdaQueryWrapper<WfTask> wrapper = new LambdaQueryWrapper<>();
+                wrapper.eq(WfTask::getInstanceId, instance.getId())
+                       .eq(WfTask::getStatus, "0")
+                       .orderByAsc(WfTask::getCreateTime)
+                       .last("LIMIT 1");
+                task = wfTaskMapper.selectOne(wrapper);
+            }
+            if (task != null) {
+                log.info("doApprove: admin override - using task {} for businessType={}, id={}", task.getId(), getBusinessType(), id);
+                workflowService.handleTask(task.getId(), approverId, status, remark);
+            } else {
+                log.warn("doApprove: no pending task found for businessType={}, id={}, approverId={}", getBusinessType(), id, approverId);
+                throw new BusinessException("未找到待审批的任务");
+            }
         }
     }
 

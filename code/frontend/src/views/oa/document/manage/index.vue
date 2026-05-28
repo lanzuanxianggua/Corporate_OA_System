@@ -69,7 +69,7 @@ const fetchData = async () => { try { const params: any = { pageNum: page.value,
 const handleUpload = async () => {
   if (!selectedFile.value) { ElMessage.warning("请选择文件"); return; }
   uploading.value = true;
-  try { await uploadDocument(selectedFile.value, userStore.userInfo?.empId || userStore.userInfo?.id); ElMessage.success("上传成功"); uploadDialogVisible.value = false; selectedFile.value = null; await fetchData(); } catch (e: any) { ElMessage.error(e.message || "上传失败"); }
+  try { await uploadDocument(selectedFile.value, userStore.userInfo?.empId || userStore.userInfo?.id || 0); ElMessage.success("上传成功"); uploadDialogVisible.value = false; selectedFile.value = null; await fetchData(); } catch (e: any) { ElMessage.error(e.message || "上传失败"); }
   finally { uploading.value = false; }
 };
 

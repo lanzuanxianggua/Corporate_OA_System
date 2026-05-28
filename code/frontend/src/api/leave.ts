@@ -1,9 +1,6 @@
 import request from "@/utils/request";
 import type { ApiResponse, PageResult, LeaveApply } from "@/types/api";
 
-/** @deprecated Use LeaveApply from @/types/api instead */
-export type LeaveApplyVO = LeaveApply;
-
 export const getLeavePage = (params: {
   pageNum: number;
   pageSize: number;

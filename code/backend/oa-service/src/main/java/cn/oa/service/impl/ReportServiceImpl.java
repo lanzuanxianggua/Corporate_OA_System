@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@SuppressWarnings("unchecked")
 public class ReportServiceImpl implements ReportService {
 
     private static final DateTimeFormatter MONTH_FMT = DateTimeFormatter.ofPattern("yyyy-MM");
@@ -108,7 +109,7 @@ public class ReportServiceImpl implements ReportService {
         leaveWrapper.eq(OaLeaveApply::getEmpId, empId)
                     .ge(OaLeaveApply::getStartTime, ym.atDay(1).atStartOfDay())
                     .le(OaLeaveApply::getEndTime, ym.atEndOfMonth().atTime(23, 59, 59))
-                    .eq(OaLeaveApply::getStatus, 2);
+                    .eq(OaLeaveApply::getStatus, 1);
         List<OaLeaveApply> leaves = leaveApplyMapper.selectList(leaveWrapper);
         Map<String, Long> leaveByType = leaves.stream()
                 .collect(Collectors.groupingBy(l -> String.valueOf(l.getLeaveType()), Collectors.counting()));
@@ -174,7 +175,7 @@ public class ReportServiceImpl implements ReportService {
         report.setAttendanceSummary(getAdminAttendanceSummary(month));
 
         // 部门对比
-        report.setDeptCompare((List<Map<String, Object>>) getDeptCompare(month));
+        report.setDeptCompare(getDeptCompare(month));
 
         // 出勤趋势
         List<Map<String, Object>> trend = new ArrayList<>();
@@ -192,10 +193,10 @@ public class ReportServiceImpl implements ReportService {
         report.setAttendanceTrend(trend);
 
         // 请假分析
-        report.setLeaveAnalysis((List<Map<String, Object>>) getLeaveAnalysis(month));
+        report.setLeaveAnalysis(getLeaveAnalysis(month));
 
         // 员工排名
-        report.setEmployeeRanking((List<Map<String, Object>>) getEmployeeRanking(month, "best"));
+        report.setEmployeeRanking(getEmployeeRanking(month, "best"));
 
         // 今日概览
         report.setTodayOverview(getTodayOverview());
@@ -232,9 +233,9 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
-    public Object getDeptCompare(String month) {
+    public List<Map<String, Object>> getDeptCompare(String month) {
         String cacheKey = "cache:report:admin:dept:" + month;
-        Object cached = redisService.get(cacheKey);
+        List<Map<String, Object>> cached = redisService.getJson(cacheKey, new TypeReference<List<Map<String, Object>>>() {});
         if (cached != null) return cached;
 
         YearMonth ym = YearMonth.parse(month, MONTH_FMT);
@@ -273,16 +274,16 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
-    public Object getLeaveAnalysis(String month) {
+    public List<Map<String, Object>> getLeaveAnalysis(String month) {
         String cacheKey = "cache:report:admin:leave:" + month;
-        Object cached = redisService.get(cacheKey);
+        List<Map<String, Object>> cached = redisService.getJson(cacheKey, new TypeReference<List<Map<String, Object>>>() {});
         if (cached != null) return cached;
 
         YearMonth ym = YearMonth.parse(month, MONTH_FMT);
         LambdaQueryWrapper<OaLeaveApply> wrapper = new LambdaQueryWrapper<>();
         wrapper.ge(OaLeaveApply::getStartTime, ym.atDay(1).atStartOfDay())
                .le(OaLeaveApply::getEndTime, ym.atEndOfMonth().atTime(23, 59, 59))
-               .eq(OaLeaveApply::getStatus, 2);
+               .eq(OaLeaveApply::getStatus, 1);
         List<OaLeaveApply> leaves = leaveApplyMapper.selectList(wrapper);
 
         Map<String, Long> byType = leaves.stream()
@@ -301,9 +302,9 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
-    public Object getEmployeeRanking(String month, String type) {
+    public List<Map<String, Object>> getEmployeeRanking(String month, String type) {
         String cacheKey = "cache:report:admin:ranking:" + month + ":" + type;
-        Object cached = redisService.get(cacheKey);
+        List<Map<String, Object>> cached = redisService.getJson(cacheKey, new TypeReference<List<Map<String, Object>>>() {});
         if (cached != null) return cached;
 
         YearMonth ym = YearMonth.parse(month, MONTH_FMT);

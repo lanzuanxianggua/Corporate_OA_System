@@ -124,9 +124,9 @@ const rules: FormRules = {
 
 const refreshCaptcha = async () => {
   try {
-    const res: any = await getCaptcha();
+    const res = await getCaptcha();
     if (res.data) {
-      captchaImg.value = res.data.img;
+      captchaImg.value = res.data.image;
       captchaUuid.value = res.data.uuid;
       loginForm.captchaCode = "";
     }
@@ -146,25 +146,27 @@ onMounted(() => {
 
 const handleLogin = async () => {
   if (!loginFormRef.value) return;
-  await loginFormRef.value.validate(async (valid) => {
-    if (!valid) return;
-    loading.value = true;
-    try {
-      await userStore.loginAction(loginForm.username, loginForm.password, captchaUuid.value, loginForm.captchaCode);
-      if (loginForm.remember) {
-        localStorage.setItem("remembered_username", loginForm.username);
-      } else {
-        localStorage.removeItem("remembered_username");
-      }
-      ElMessage.success("登录成功");
-      router.push("/welcome");
-    } catch (error: any) {
-      ElMessage.error(error.message || "登录失败");
-      refreshCaptcha();
-    } finally {
-      loading.value = false;
+  try {
+    await loginFormRef.value.validate();
+  } catch {
+    return;
+  }
+  loading.value = true;
+  try {
+    await userStore.loginAction(loginForm.username, loginForm.password, captchaUuid.value, loginForm.captchaCode);
+    if (loginForm.remember) {
+      localStorage.setItem("remembered_username", loginForm.username);
+    } else {
+      localStorage.removeItem("remembered_username");
     }
-  });
+    ElMessage.success("登录成功");
+    router.push("/welcome");
+  } catch (error: any) {
+    ElMessage.error(error.message || "登录失败");
+    refreshCaptcha();
+  } finally {
+    loading.value = false;
+  }
 };
 </script>
 

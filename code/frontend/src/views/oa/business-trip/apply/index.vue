@@ -90,12 +90,13 @@ import { withdrawApplication, urgeTask } from "@/api/workflow";
 import { getBusinessTripPage, submitBusinessTrip } from "@/api/businessTrip";
 import { useUserStore } from "@/store/user";
 import { formatTime, formatStatusText, formatStatusTagType } from "@/utils/format";
+import type { BusinessTrip } from "@/types/api";
 
 const userStore = useUserStore();
 
 // --- 列表 ---
 const loading = ref(false);
-const tableData = ref<any[]>([]);
+const tableData = ref<BusinessTrip[]>([]);
 const pageNum = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
@@ -103,7 +104,7 @@ const total = ref(0);
 const fetchList = async () => {
   loading.value = true;
   try {
-    const res: any = await getBusinessTripPage({ pageNum: pageNum.value, pageSize: pageSize.value });
+    const res = await getBusinessTripPage({ pageNum: pageNum.value, pageSize: pageSize.value } as any);
     tableData.value = res.data?.list || [];
     total.value = res.data?.total || 0;
   } catch (e) {
@@ -121,8 +122,8 @@ const calcDays = (startTime?: string, endTime?: string) => {
 
 // --- 详情 ---
 const detailVisible = ref(false);
-const detailRow = ref<any>(null);
-const showDetail = (row: any) => {
+const detailRow = ref<BusinessTrip | null>(null);
+const showDetail = (row: BusinessTrip) => {
   detailRow.value = row;
   detailVisible.value = true;
 };

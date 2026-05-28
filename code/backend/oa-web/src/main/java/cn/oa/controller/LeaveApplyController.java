@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/leave")
 @Tag(name = "请假管理")
 @Slf4j
+@SuppressWarnings("deprecation")
 public class LeaveApplyController {
 
     private static final String[] LEAVE_TYPE_TEXT = {"", "年假", "事假", "病假", "婚假", "产假", "丧假"};

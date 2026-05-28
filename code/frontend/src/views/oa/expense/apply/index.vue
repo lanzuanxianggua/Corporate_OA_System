@@ -95,13 +95,15 @@ import { getExpensePage, submitExpense } from "@/api/expense";
 import { useUserStore } from "@/store/user";
 import { formatStatusText, formatStatusTagType } from "@/utils/format";
 import { downloadFile } from "@/utils/download";
+import { EXPENSE_CATEGORY_MAP } from "@/utils/constants";
+import type { Expense } from "@/types/api";
 
 const userStore = useUserStore();
-const categoryMap: Record<number, string> = { 1: "差旅费", 2: "办公用品", 3: "招待费", 4: "其他" };
+const categoryMap = EXPENSE_CATEGORY_MAP;
 
 // --- 列表 ---
 const loading = ref(false);
-const tableData = ref<any[]>([]);
+const tableData = ref<Expense[]>([]);
 const pageNum = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
@@ -109,7 +111,7 @@ const total = ref(0);
 const fetchList = async () => {
   loading.value = true;
   try {
-    const res: any = await getExpensePage({ pageNum: pageNum.value, pageSize: pageSize.value });
+    const res = await getExpensePage({ pageNum: pageNum.value, pageSize: pageSize.value } as any);
     tableData.value = res.data?.list || [];
     total.value = res.data?.total || 0;
   } catch (e) {
@@ -126,8 +128,8 @@ const formatAmount = (amount?: number) => {
 
 // --- 详情 ---
 const detailVisible = ref(false);
-const detailRow = ref<any>(null);
-const showDetail = (row: any) => {
+const detailRow = ref<Expense | null>(null);
+const showDetail = (row: Expense) => {
   detailRow.value = row;
   detailVisible.value = true;
 };
@@ -178,18 +180,18 @@ const resetForm = () => {
   formRef.value?.resetFields();
 };
 
-const handleWithdraw = async (row: any) => {
+const handleWithdraw = async (row: Expense) => {
   try {
     await ElMessageBox.confirm("确定要撤回此申请吗？", "撤回确认", { type: "warning" });
-    await withdrawApplication({ businessType: "expense", businessId: row.id });
+    await withdrawApplication({ businessType: "expense", businessId: row.id! });
     ElMessage.success("申请已撤回");
     fetchList();
   } catch {}
 };
 
-const handleUrge = async (row: any) => {
+const handleUrge = async (row: Expense) => {
   try {
-    await urgeTask({ businessType: "expense", businessId: row.id });
+    await urgeTask({ businessType: "expense", businessId: row.id! });
     ElMessage.success("已发送催办提醒");
   } catch {}
 };

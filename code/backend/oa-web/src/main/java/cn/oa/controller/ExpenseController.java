@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/expense")
 @Tag(name = "经费管理")
 @Slf4j
+@SuppressWarnings("deprecation")
 public class ExpenseController {
 
     private static final String[] STATUS_TEXT = {"待审批", "已通过", "已拒绝", "", "已撤回"};

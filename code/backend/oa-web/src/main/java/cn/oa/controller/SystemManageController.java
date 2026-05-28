@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @RestController
 @CrossOrigin
+@SuppressWarnings({"unchecked", "deprecation"})
 public class SystemManageController {
 
     @Autowired

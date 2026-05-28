@@ -62,7 +62,7 @@
         show-checkbox
         node-key="id"
         :default-checked-keys="checkedMenuIds"
-        :props="{ label: 'name', children: 'children' }"
+        :props="{ label: 'menuName', children: 'children' }"
         :check-strictly="false"
         default-expand-all
       />

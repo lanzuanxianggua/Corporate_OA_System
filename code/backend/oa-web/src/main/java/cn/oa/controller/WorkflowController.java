@@ -184,6 +184,8 @@ public class WorkflowController {
     @RequireRole({"DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"})
     @Operation(summary = "催办")
     public R<Void> urgeTask(@RequestBody @Valid Map<String, Object> params, HttpServletRequest request) {
+        if (params.get("businessType") == null) return R.fail("businessType不能为空");
+        if (params.get("businessId") == null) return R.fail("businessId不能为空");
         String businessType = params.get("businessType").toString();
         Long businessId = Long.valueOf(params.get("businessId").toString());
         Object empIdObj = request.getAttribute("empId");

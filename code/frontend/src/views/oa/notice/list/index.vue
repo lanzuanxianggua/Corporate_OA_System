@@ -134,13 +134,14 @@ import { Search } from "@element-plus/icons-vue";
 import {
   getNoticePage,
   getNoticeById,
-  markNoticeAsRead,
-  type NoticeVO
+  markNoticeAsRead
 } from "@/api/notice";
+import { formatTime } from "@/utils/format";
+import type { Notice } from "@/types/api";
 
 // --- 列表 ---
 const loading = ref(false);
-const noticeList = ref<NoticeVO[]>([]);
+const noticeList = ref<Notice[]>([]);
 const pageNum = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
@@ -158,7 +159,7 @@ const fetchList = async () => {
     if (searchKey.value.trim()) {
       params.title = searchKey.value.trim();
     }
-    const res: any = await getNoticePage(params);
+    const res = await getNoticePage(params as any);
     noticeList.value = res.data?.list || [];
     total.value = res.data?.total || 0;
   } catch {
@@ -178,11 +179,11 @@ const handleSearch = () => {
 
 // --- 详情 ---
 const detailVisible = ref(false);
-const currentNotice = ref<NoticeVO | null>(null);
+const currentNotice = ref<Notice | null>(null);
 
-const openDetail = async (item: NoticeVO) => {
+const openDetail = async (item: Notice) => {
   try {
-    const res: any = await getNoticeById(item.id!);
+    const res = await getNoticeById(item.id!);
     currentNotice.value = res.data || item;
     detailVisible.value = true;
 
@@ -201,11 +202,6 @@ const openDetail = async (item: NoticeVO) => {
 };
 
 // --- 工具 ---
-const formatTime = (time?: string) => {
-  if (!time) return "-";
-  return time.replace("T", " ").substring(0, 16);
-};
-
 const stripHtml = (html?: string) => {
   if (!html) return "";
   return html.replace(/<[^>]*>/g, "");

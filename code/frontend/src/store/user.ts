@@ -2,6 +2,24 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import { login as loginApi, logout as logoutApi, getCaptcha } from "@/api/auth";
 import router from "@/router";
+import type { UserVO, LoginVO } from "@/types/api";
+
+interface UserStoreInfo {
+  id?: number;
+  username?: string;
+  nickname?: string;
+  empName?: string;
+  empId?: number;
+  phone?: string;
+  email?: string;
+  status?: number;
+  avatar?: string;
+  createTime?: string;
+  accessToken?: string;
+  refreshToken?: string;
+  roles?: string[];
+  permissions?: string[];
+}
 
 function parseJwtPayload(token: string) {
   try {
@@ -14,7 +32,7 @@ function parseJwtPayload(token: string) {
 
 export const useUserStore = defineStore("user", () => {
   const token = ref(localStorage.getItem("token") || "");
-  const userInfo = ref<any>(
+  const userInfo = ref<UserStoreInfo | null>(
     localStorage.getItem("userInfo")
       ? JSON.parse(localStorage.getItem("userInfo")!)
       : null
@@ -36,7 +54,7 @@ export const useUserStore = defineStore("user", () => {
   const isAdmin = () => hasRole("ADMIN");
 
   const loginAction = async (username: string, password: string, captchaUuid: string, captchaCode: string) => {
-    const res: any = await loginApi({ username, password, captchaUuid, captchaCode });
+    const res = await loginApi({ username, password, captchaUuid, captchaCode });
     if (res.data) {
       const data = res.data;
       const claims = parseJwtPayload(data.accessToken);
@@ -45,7 +63,7 @@ export const useUserStore = defineStore("user", () => {
         ...data,
         empName: data.nickname,
         empId: claims?.empId
-      };
+      } as UserStoreInfo;
       localStorage.setItem("token", data.accessToken);
       if (data.refreshToken) {
         localStorage.setItem("refreshToken", data.refreshToken);

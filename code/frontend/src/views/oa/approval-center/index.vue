@@ -13,6 +13,15 @@
         <el-tab-pane label="已审批" name="history" />
       </el-tabs>
 
+      <!-- History type selector - shown above table when on history tab -->
+      <div v-if="activeTab === 'history'" class="mb-4">
+        <el-radio-group v-model="activeHistoryType" @change="fetchHistoryTasks">
+          <el-radio-button v-for="t in historyTypes" :key="t" :value="t">
+            {{ businessTypeLabel(t) }}
+          </el-radio-button>
+        </el-radio-group>
+      </div>
+
       <!-- Pending tasks table -->
       <template v-if="activeTab === 'pending'">
         <el-table
@@ -204,12 +213,7 @@
           </el-table-column>
         </el-table>
 
-        <div class="mt-4 flex items-center justify-between">
-          <el-radio-group v-model="activeHistoryType" @change="fetchHistoryTasks">
-            <el-radio-button v-for="t in historyTypes" :key="t" :value="t">
-              {{ businessTypeLabel(t) }}
-            </el-radio-button>
-          </el-radio-group>
+        <div class="mt-4 flex justify-end">
           <el-pagination
             v-model:current-page="historyPageNum"
             v-model:page-size="historyPageSize"
@@ -483,8 +487,8 @@ const fetchHistoryTasks = async () => {
       status: undefined
     });
     const list: any[] = res.data?.list || [];
-    // Only show records that have been through workflow (status != 0)
-    historyTasks.value = list.filter((r: any) => r.status !== 0);
+    // Only show records that have been through workflow (status != 0, handle both string and number)
+    historyTasks.value = list.filter((r: any) => r.status !== 0 && r.status !== "0");
     historyTotal.value = res.data?.total || 0;
   } catch {
     /* handled by interceptor */

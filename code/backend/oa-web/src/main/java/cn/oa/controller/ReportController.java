@@ -26,6 +26,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/report")
 @Tag(name = "数据报表")
+@SuppressWarnings("unchecked")
 public class ReportController {
 
     @Autowired

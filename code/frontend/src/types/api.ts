@@ -229,6 +229,7 @@ export interface LeaveApply {
   id?: number;
   empId?: number;
   empName?: string;
+  deptName?: string;
   leaveType?: number;
   startTime?: string;
   endTime?: string;

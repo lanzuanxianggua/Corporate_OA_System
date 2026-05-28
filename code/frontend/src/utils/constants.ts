@@ -8,18 +8,24 @@ export const LEAVE_TYPE_MAP: Record<number, string> = {
   7: "丧假"
 };
 
+// Consistent with format.ts: 0=pending, 1=approved, 2=rejected
 export const STATUS_MAP: Record<number, string> = {
   0: "待审批",
-  1: "审批中",
-  2: "已通过",
-  3: "已驳回",
-  4: "已撤回"
+  1: "已通过",
+  2: "已拒绝",
+  3: "已撤回"
 };
 
 export const STATUS_TAG_TYPE: Record<number, string> = {
-  0: "info",
-  1: "warning",
-  2: "success",
-  3: "danger",
-  4: "info"
+  0: "warning",
+  1: "success",
+  2: "danger",
+  3: "info"
+};
+
+export const EXPENSE_CATEGORY_MAP: Record<number, string> = {
+  1: "差旅费",
+  2: "办公用品",
+  3: "招待费",
+  4: "其他"
 };

@@ -1,9 +1,6 @@
 import request from "@/utils/request";
 import type { ApiResponse, PageResult, Notice } from "@/types/api";
 
-/** @deprecated Use Notice from @/types/api instead */
-export type NoticeVO = Notice;
-
 export const getNoticePage = (params: {
   pageNum: number;
   pageSize: number;

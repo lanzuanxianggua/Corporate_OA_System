@@ -105,7 +105,7 @@
             {{ currentRow.empName }}
           </el-descriptions-item>
           <el-descriptions-item label="部门">
-            {{ (currentRow as any).deptName ?? "-" }}
+            {{ currentRow.deptName ?? "-" }}
           </el-descriptions-item>
           <el-descriptions-item label="请假类型">
             {{ leaveTypeMap[currentRow.leaveType!] || "其他" }}
@@ -161,9 +161,9 @@ import { ElMessage } from "element-plus";
 import ApprovalTimeline from "@/components/ApprovalTimeline.vue";
 import {
   getLeavePage,
-  approveLeave,
-  type LeaveApplyVO
+  approveLeave
 } from "@/api/leave";
+import type { LeaveApply } from "@/types/api";
 import { LEAVE_TYPE_MAP } from "@/utils/constants";
 import { formatStatusText, formatStatusTagType } from "@/utils/format";
 
@@ -177,7 +177,7 @@ const calcDays = (startTime?: string, endTime?: string) => {
 
 // --- 列表 ---
 const loading = ref(false);
-const tableData = ref<LeaveApplyVO[]>([]);
+const tableData = ref<LeaveApply[]>([]);
 const pageNum = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
@@ -187,14 +187,14 @@ const fetchList = async () => {
   loading.value = true;
   tableData.value = [];
   try {
-    const params: any = {
+    const params = {
       pageNum: pageNum.value,
       pageSize: pageSize.value
-    };
+    } as Record<string, unknown>;
     if (statusFilter.value !== undefined) {
       params.status = statusFilter.value;
     }
-    const res: any = await getLeavePage(params);
+    const res = await getLeavePage(params as any);
     tableData.value = res.data?.list || [];
     total.value = res.data?.total || 0;
   } catch (e) {
@@ -212,11 +212,11 @@ const handleFilterChange = () => {
 // --- 审批 ---
 const dialogVisible = ref(false);
 const approving = ref(false);
-const currentRow = ref<LeaveApplyVO | null>(null);
+const currentRow = ref<LeaveApply | null>(null);
 const approveAction = ref(1);
 const approveRemark = ref("");
 
-const openApproveDialog = (row: LeaveApplyVO, action: number) => {
+const openApproveDialog = (row: LeaveApply, action: number) => {
   currentRow.value = row;
   approveAction.value = action;
   approveRemark.value = "";

@@ -101,13 +101,14 @@ import { useUserStore } from "@/store/user";
 import { downloadFile } from "@/utils/download";
 import { LEAVE_TYPE_MAP } from "@/utils/constants";
 import { formatTime, formatStatusText, formatStatusTagType } from "@/utils/format";
+import type { LeaveApply } from "@/types/api";
 
 const userStore = useUserStore();
 const leaveTypeMap = LEAVE_TYPE_MAP;
 
 // --- 列表 ---
 const loading = ref(false);
-const tableData = ref<any[]>([]);
+const tableData = ref<LeaveApply[]>([]);
 const pageNum = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
@@ -115,7 +116,7 @@ const total = ref(0);
 const fetchList = async () => {
   loading.value = true;
   try {
-    const res: any = await getLeavePage({ pageNum: pageNum.value, pageSize: pageSize.value });
+    const res = await getLeavePage({ pageNum: pageNum.value, pageSize: pageSize.value });
     tableData.value = res.data?.list || [];
     total.value = res.data?.total || 0;
   } catch (e) {
@@ -133,8 +134,8 @@ const calcDays = (startTime?: string, endTime?: string) => {
 
 // --- 详情 ---
 const detailVisible = ref(false);
-const detailRow = ref<any>(null);
-const showDetail = (row: any) => {
+const detailRow = ref<LeaveApply | null>(null);
+const showDetail = (row: LeaveApply) => {
   detailRow.value = row;
   detailVisible.value = true;
 };
@@ -195,18 +196,18 @@ const resetForm = () => {
   formRef.value?.resetFields();
 };
 
-const handleWithdraw = async (row: any) => {
+const handleWithdraw = async (row: LeaveApply) => {
   try {
     await ElMessageBox.confirm("确定要撤回此申请吗？", "撤回确认", { type: "warning" });
-    await withdrawApplication({ businessType: "leave", businessId: row.id });
+    await withdrawApplication({ businessType: "leave", businessId: row.id! });
     ElMessage.success("申请已撤回");
     fetchList();
   } catch {}
 };
 
-const handleUrge = async (row: any) => {
+const handleUrge = async (row: LeaveApply) => {
   try {
-    await urgeTask({ businessType: "leave", businessId: row.id });
+    await urgeTask({ businessType: "leave", businessId: row.id! });
     ElMessage.success("已发送催办提醒");
   } catch {}
 };

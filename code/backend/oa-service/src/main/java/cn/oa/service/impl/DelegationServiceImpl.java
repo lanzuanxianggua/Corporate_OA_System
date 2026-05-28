@@ -2,6 +2,7 @@ package cn.oa.service.impl;
 
 import lombok.extern.slf4j.Slf4j;
 
+import cn.oa.common.exception.BusinessException;
 import cn.oa.entity.WfDelegation;
 import cn.oa.mapper.WfDelegationMapper;
 import cn.oa.service.DelegationService;
@@ -18,6 +19,17 @@ public class DelegationServiceImpl extends ServiceImpl<WfDelegationMapper, WfDel
 
     @Override
     public void setDelegation(WfDelegation delegation) {
+        // 验证不能委托给自己
+        if (delegation.getDelegatorId() != null && delegation.getDelegatorId().equals(delegation.getDelegateToId())) {
+            throw new BusinessException("不能将审批委托给自己");
+        }
+        // 验证委托时间
+        if (delegation.getStartTime() == null || delegation.getEndTime() == null) {
+            throw new BusinessException("委托开始时间和结束时间不能为空");
+        }
+        if (delegation.getStartTime().isAfter(delegation.getEndTime())) {
+            throw new BusinessException("委托开始时间不能晚于结束时间");
+        }
         delegation.setStatus("0");
         delegation.setCreateTime(LocalDateTime.now());
         this.save(delegation);

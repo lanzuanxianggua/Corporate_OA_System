@@ -48,7 +48,19 @@ const fetchList = async () => {
   loading.value = true;
   try {
     const res: any = await getMySalary({ month: month.value || undefined });
-    tableData.value = res.data?.list || res.data || [];
+    const data = res.data;
+    // API returns single object, wrap in array for table
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+      tableData.value = [data];
+    } else if (Array.isArray(data)) {
+      tableData.value = data;
+    } else if (data?.list) {
+      tableData.value = data.list;
+    } else {
+      tableData.value = [];
+    }
+  } catch {
+    tableData.value = [];
   } finally {
     loading.value = false;
   }

@@ -1,5 +1,6 @@
 package cn.oa.service.impl;
 
+import cn.oa.common.exception.BusinessException;
 import cn.oa.entity.OaTodo;
 import cn.oa.mapper.OaTodoMapper;
 import cn.oa.service.TodoService;
@@ -34,7 +35,7 @@ public class TodoServiceImpl extends ServiceImpl<OaTodoMapper, OaTodo> implement
     public void doneTodo(Long todoId) {
         OaTodo todo = this.getById(todoId);
         if (todo == null) {
-            throw new RuntimeException("待办不存在");
+            throw new BusinessException("待办不存在");
         }
         todo.setStatus("1");
         todo.setDoneTime(LocalDateTime.now());
@@ -46,7 +47,7 @@ public class TodoServiceImpl extends ServiceImpl<OaTodoMapper, OaTodo> implement
     public void ignoreTodo(Long todoId) {
         OaTodo todo = this.getById(todoId);
         if (todo == null) {
-            throw new RuntimeException("待办不存在");
+            throw new BusinessException("待办不存在");
         }
         todo.setStatus("2");
         todo.setDoneTime(LocalDateTime.now());

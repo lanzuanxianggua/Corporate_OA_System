@@ -57,10 +57,12 @@
 import { ref, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import { getMessagePage, markAsRead } from "@/api/message";
+import { formatTime } from "@/utils/format";
+import type { Message } from "@/types/api";
 
-const messages = ref<any[]>([]);
+const messages = ref<Message[]>([]);
 const dialogVisible = ref(false);
-const currentMsg = ref<any>(null);
+const currentMsg = ref<Message | null>(null);
 const pageNum = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
@@ -68,14 +70,9 @@ const total = ref(0);
 const colors = ["#409EFF", "#67C23A", "#E6A23C", "#F56C6C", "#9254de"];
 const avatarColor = (name?: string) => colors[(name?.charCodeAt(0) || 0) % colors.length];
 
-const formatTime = (time?: string) => {
-  if (!time) return "-";
-  return time.replace("T", " ").substring(0, 16);
-};
-
-const handleRead = async (item: any) => {
+const handleRead = async (item: Message) => {
   try {
-    await markAsRead(item.id);
+    await markAsRead(item.id!);
     item.isRead = 1;
     ElMessage.success("已标记为已读");
   } catch {
@@ -83,7 +80,7 @@ const handleRead = async (item: any) => {
   }
 };
 
-const openDetail = (item: any) => {
+const openDetail = (item: Message) => {
   currentMsg.value = item;
   dialogVisible.value = true;
   if (!item.isRead) handleRead(item);
@@ -91,7 +88,7 @@ const openDetail = (item: any) => {
 
 const fetchMessages = async () => {
   try {
-    const res: any = await getMessagePage({ pageNum: pageNum.value, pageSize: pageSize.value });
+    const res = await getMessagePage({ pageNum: pageNum.value, pageSize: pageSize.value });
     if (res.data) {
       messages.value = res.data.list || [];
       total.value = res.data.total || 0;

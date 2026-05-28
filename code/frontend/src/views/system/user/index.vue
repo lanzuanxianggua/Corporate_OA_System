@@ -4,7 +4,7 @@
     <div class="flex items-center gap-3 mb-4 flex-wrap">
       <el-input v-model="searchName" placeholder="搜索员工姓名/工号" clearable class="w-56" :prefix-icon="Search" @keyup.enter="handleSearch" @clear="handleSearch" />
       <el-select v-model="searchDeptId" placeholder="部门" clearable class="w-44">
-        <el-option v-for="d in deptOptions" :key="d.id" :label="d.deptName" :value="d.id" />
+        <el-option v-for="d in deptOptions" :key="d.id" :label="d.deptName" :value="d.id!" />
       </el-select>
       <el-select v-model="searchStatus" placeholder="状态" clearable class="w-32">
         <el-option label="启用" :value="1" />
@@ -89,7 +89,7 @@
         </el-form-item>
         <el-form-item label="角色">
           <el-select v-model="editRoleIds" multiple placeholder="请选择角色" class="w-full">
-            <el-option v-for="role in roleList" :key="role.id" :label="role.name || role.roleName" :value="role.id" />
+            <el-option v-for="role in roleList" :key="role.id" :label="role.name || role.roleName" :value="role.id!" />
           </el-select>
         </el-form-item>
         <el-form-item v-if="!isEdit" label="初始密码">
@@ -109,7 +109,7 @@
         <span class="font-medium">{{ roleDialogEmpName }}</span>
       </div>
       <el-checkbox-group v-model="roleDialogRoleIds">
-        <el-checkbox v-for="role in roleList" :key="role.id" :value="role.id">{{ role.name || role.roleName }}</el-checkbox>
+        <el-checkbox v-for="role in roleList" :key="role.id" :value="role.id!">{{ role.name || role.roleName }}</el-checkbox>
       </el-checkbox-group>
       <template #footer>
         <el-button @click="roleDialogVisible = false">取消</el-button>
@@ -127,6 +127,7 @@ import { Plus, Delete, Search } from "@element-plus/icons-vue";
 import { getEmployeePage, addEmployee, updateEmployee, deleteEmployee } from "@/api/employee";
 import { getAllRoles, getEmpRoles, assignRoles } from "@/api/system";
 import { getDeptTree } from "@/api/dept";
+import type { Employee, Role, Dept } from "@/types/api";
 
 function generateRandomPassword(length = 10): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
@@ -141,19 +142,19 @@ const loading = ref(false);
 const searchName = ref("");
 const searchDeptId = ref<number | undefined>(undefined);
 const searchStatus = ref<number | undefined>(undefined);
-const userList = ref<any[]>([]);
+const userList = ref<Employee[]>([]);
 const page = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
 const selectedIds = ref<number[]>([]);
-const selectedRows = ref<any[]>([]);
+const selectedRows = ref<Employee[]>([]);
 
 const dialogVisible = ref(false);
 const isEdit = ref(false);
 const submitting = ref(false);
-const deptOptions = ref<any[]>([]);
-const deptTreeData = ref<any[]>([]);
-const roleList = ref<any[]>([]);
+const deptOptions = ref<Dept[]>([]);
+const deptTreeData = ref<Dept[]>([]);
+const roleList = ref<Role[]>([]);
 const editRoleIds = ref<number[]>([]);
 const formRef = ref<FormInstance>();
 
@@ -191,8 +192,8 @@ const roleDialogEmpName = ref("");
 const roleDialogRoleIds = ref<number[]>([]);
 const roleSaving = ref(false);
 
-const flattenDepts = (list: any[]): any[] => {
-  const result: any[] = [];
+const flattenDepts = (list: Dept[]): Dept[] => {
+  const result: Dept[] = [];
   for (const item of list) {
     result.push(item);
     if (item.children?.length) result.push(...flattenDepts(item.children));
@@ -207,7 +208,7 @@ const getDeptName = (deptId: number | undefined) => {
 
 const fetchRoles = async () => {
   try {
-    const res: any = await getAllRoles();
+    const res = await getAllRoles();
     roleList.value = res.data || [];
   } catch {
     roleList.value = [];
@@ -227,9 +228,9 @@ const resetSearch = () => {
   fetchData();
 };
 
-const handleSelectionChange = (rows: any[]) => {
+const handleSelectionChange = (rows: Employee[]) => {
   selectedRows.value = rows;
-  selectedIds.value = rows.map((r) => r.id);
+  selectedIds.value = rows.map((r) => r.id!);
 };
 
 const handleBatchDelete = async () => {
@@ -248,14 +249,14 @@ const handleBatchStatus = async (status: number) => {
   try {
     await ElMessageBox.confirm(`确定${label}选中的 ${selectedIds.value.length} 名员工？`, `批量${label}`, { type: "warning" });
     for (const row of selectedRows.value) {
-      await updateEmployee({ id: row.id, empCode: row.empCode, empName: row.empName, phone: row.phone, email: row.email, deptId: row.deptId, status });
+      await updateEmployee({ id: row.id, empCode: row.empCode, empName: row.empName, phone: row.phone, email: row.email, deptId: row.deptId, status } as any);
     }
     ElMessage.success(`批量${label}成功`);
     fetchData();
   } catch { /* cancelled */ }
 };
 
-const openDialog = async (row?: any) => {
+const openDialog = async (row?: Employee) => {
   isEdit.value = !!row;
   editRoleIds.value = [];
   if (row) {
@@ -269,8 +270,8 @@ const openDialog = async (row?: any) => {
       password: ""
     });
     try {
-      const res: any = await getEmpRoles(row.id);
-      editRoleIds.value = (res.data || []).map((id: any) => Number(id));
+      const res = await getEmpRoles(row.id!);
+      editRoleIds.value = (res.data || []).map((id) => Number(id));
     } catch {
       editRoleIds.value = [];
     }
@@ -280,13 +281,13 @@ const openDialog = async (row?: any) => {
   dialogVisible.value = true;
 };
 
-const openRoleDialog = async (row: any) => {
+const openRoleDialog = async (row: Employee) => {
   roleDialogEmpId.value = row.id;
-  roleDialogEmpName.value = row.empName;
+  roleDialogEmpName.value = row.empName || "";
   roleDialogRoleIds.value = [];
   try {
-    const res: any = await getEmpRoles(row.id);
-    roleDialogRoleIds.value = (res.data || []).map((id: any) => Number(id));
+    const res = await getEmpRoles(row.id!);
+    roleDialogRoleIds.value = (res.data || []).map((id) => Number(id));
   } catch {
     roleDialogRoleIds.value = [];
   }
@@ -311,11 +312,11 @@ const handleRoleAssign = async () => {
 const fetchData = async () => {
   loading.value = true;
   try {
-    const params: any = { pageNum: page.value, pageSize: pageSize.value };
+    const params: Record<string, unknown> = { pageNum: page.value, pageSize: pageSize.value };
     if (searchName.value) params.empName = searchName.value;
     if (searchDeptId.value !== undefined) params.deptId = searchDeptId.value;
     if (searchStatus.value !== undefined) params.status = searchStatus.value;
-    const r: any = await getEmployeePage(params);
+    const r = await getEmployeePage(params as any);
     if (r.data?.list) {
       userList.value = r.data.list;
       total.value = r.data.total || 0;
@@ -363,7 +364,7 @@ onMounted(async () => {
   fetchRoles();
   fetchData();
   try {
-    const r: any = await getDeptTree();
+    const r = await getDeptTree();
     if (r.data) {
       const raw = Array.isArray(r.data) ? r.data : [];
       deptTreeData.value = raw;

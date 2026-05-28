@@ -90,12 +90,13 @@ import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import { ElMessage } from "element-plus";
 import { getTodayAttendance, getAttendanceHistory, clockIn as clockInApi, clockOut as clockOutApi } from "@/api/attendance";
+import type { Attendance } from "@/types/api";
 
 dayjs.extend(isoWeek);
 
 const currentTime = ref(dayjs().format("HH:mm:ss"));
 const currentDate = ref(dayjs().format("YYYY年MM月DD日 dddd"));
-const todayData = ref<any>(null);
+const todayData = ref<Attendance | null>(null);
 const clockingIn = ref(false);
 const clockingOut = ref(false);
 const clockedInDone = ref(false);
@@ -104,7 +105,7 @@ let timer: number;
 
 const historyPeriod = ref("day");
 const queryDate = ref(dayjs().format("YYYY-MM-DD"));
-const historyList = ref<any[]>([]);
+const historyList = ref<Attendance[]>([]);
 
 const statusMap: Record<number, { text: string; type: string }> = {
   0: { text: "正常", type: "success" },
@@ -114,7 +115,12 @@ const statusMap: Record<number, { text: string; type: string }> = {
   4: { text: "请假", type: "info" }
 };
 const statusText = (s?: number) => statusMap[s ?? -1]?.text || "未打卡";
-const statusType = (s?: number) => (statusMap[s ?? -1]?.type || "info") as any;
+const statusType = (s?: number): "success" | "warning" | "danger" | "info" => {
+  const map: Record<number, "success" | "warning" | "danger" | "info"> = {
+    0: "success", 1: "warning", 2: "warning", 3: "danger", 4: "info"
+  };
+  return map[s ?? -1] || "info";
+};
 
 const calcWorkHours = (clockIn?: string, clockOut?: string) => {
   if (!clockIn || !clockOut) return "-";
@@ -138,7 +144,7 @@ const getDateRange = () => {
 const fetchHistory = async () => {
   const { start, end } = getDateRange();
   try {
-    const r: any = await getAttendanceHistory(start, end);
+    const r = await getAttendanceHistory(start, end);
     if (r.data) historyList.value = r.data;
   } catch { historyList.value = []; }
 };
@@ -150,7 +156,7 @@ const handlePeriodChange = () => {
 
 const fetchToday = async () => {
   try {
-    const r: any = await getTodayAttendance();
+    const r = await getTodayAttendance();
     if (r.data) {
       todayData.value = r.data;
       if (r.data.clockIn) clockedInDone.value = true;

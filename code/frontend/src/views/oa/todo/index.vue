@@ -47,9 +47,11 @@
 import { ref, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import { getTodoPage, doneTodo, ignoreTodo } from "@/api/todo";
+import { formatTime } from "@/utils/format";
+import type { Todo } from "@/types/api";
 
 const loading = ref(false);
-const tableData = ref<any[]>([]);
+const tableData = ref<Todo[]>([]);
 const pageNum = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
@@ -58,9 +60,9 @@ const statusFilter = ref<number | undefined>(undefined);
 const fetchList = async () => {
   loading.value = true;
   try {
-    const params: any = { pageNum: pageNum.value, pageSize: pageSize.value };
+    const params: Record<string, unknown> = { pageNum: pageNum.value, pageSize: pageSize.value };
     if (statusFilter.value !== undefined) params.status = statusFilter.value;
-    const res: any = await getTodoPage(params);
+    const res = await getTodoPage(params as any);
     tableData.value = res.data?.list || [];
     total.value = res.data?.total || 0;
   } finally {
@@ -73,14 +75,14 @@ const handleFilterChange = () => {
   fetchList();
 };
 
-const handleDone = async (row: any) => {
-  await doneTodo(row.id);
+const handleDone = async (row: Todo) => {
+  await doneTodo(row.id!);
   ElMessage.success("已标记完成");
   fetchList();
 };
 
-const handleIgnore = async (row: any) => {
-  await ignoreTodo(row.id);
+const handleIgnore = async (row: Todo) => {
+  await ignoreTodo(row.id!);
   ElMessage.success("已忽略");
   fetchList();
 };
@@ -93,11 +95,6 @@ const todoStatusText = (status?: number) => {
 const todoStatusType = (status?: number) => {
   const map: Record<number, string> = { 0: "warning", 1: "success", 2: "info" };
   return map[status ?? -1] || "info";
-};
-
-const formatTime = (time?: string) => {
-  if (!time) return "-";
-  return time.replace("T", " ").substring(0, 16);
 };
 
 onMounted(() => { fetchList(); });

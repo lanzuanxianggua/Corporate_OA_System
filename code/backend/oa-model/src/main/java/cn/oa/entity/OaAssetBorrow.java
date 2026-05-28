@@ -33,4 +33,12 @@ public class OaAssetBorrow {
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
+
+    /** 资产名称（非数据库字段） */
+    @TableField(exist = false)
+    private String assetName;
+
+    /** 借用人姓名（非数据库字段） */
+    @TableField(exist = false)
+    private String borrower;
 }

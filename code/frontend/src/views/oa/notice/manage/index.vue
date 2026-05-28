@@ -141,13 +141,14 @@ import {
   getNoticePage,
   addNotice,
   updateNotice,
-  deleteNotice,
-  type NoticeVO
+  deleteNotice
 } from "@/api/notice";
+import { formatTime } from "@/utils/format";
+import type { Notice } from "@/types/api";
 
 // --- 列表 ---
 const loading = ref(false);
-const tableData = ref<NoticeVO[]>([]);
+const tableData = ref<Notice[]>([]);
 const pageNum = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
@@ -158,11 +159,11 @@ let searchTimer: ReturnType<typeof setTimeout> | null = null;
 const fetchList = async () => {
   loading.value = true;
   try {
-    const res: any = await getNoticePage({
+    const res = await getNoticePage({
       pageNum: pageNum.value,
       pageSize: pageSize.value
     });
-    let list: NoticeVO[] = res.data?.list || [];
+    let list: Notice[] = res.data?.list || [];
     if (searchKey.value.trim()) {
       const key = searchKey.value.trim().toLowerCase();
       list = list.filter((n) => n.title?.toLowerCase().includes(key));
@@ -203,7 +204,7 @@ const rules = reactive<FormRules>({
   noticeType: [{ required: true, message: "请选择紧急程度", trigger: "change" }]
 });
 
-const openDialog = (row?: NoticeVO) => {
+const openDialog = (row?: Notice) => {
   if (row) {
     isEdit.value = true;
     form.id = row.id;
@@ -226,7 +227,7 @@ const handleSubmit = async () => {
 
   submitting.value = true;
   try {
-    const data: Partial<NoticeVO> = {
+    const data: Partial<Notice> = {
       title: form.title,
       content: form.content,
       noticeType: form.noticeType
@@ -249,7 +250,7 @@ const handleSubmit = async () => {
 };
 
 // --- 删除 ---
-const handleDelete = async (row: NoticeVO) => {
+const handleDelete = async (row: Notice) => {
   try {
     await ElMessageBox.confirm(
       `确定要删除公告「${row.title}」吗？`,
@@ -277,11 +278,6 @@ const urgentText = (urgent?: number) => {
 const urgentTagType = (urgent?: number) => {
   const map: Record<number, string> = { 0: "info", 1: "warning", 2: "danger" };
   return map[urgent ?? 0] || "info";
-};
-
-const formatTime = (time?: string) => {
-  if (!time) return "-";
-  return time.replace("T", " ").substring(0, 16);
 };
 
 onMounted(() => {

@@ -133,6 +133,7 @@ import { getUnreadCount } from "@/api/message";
 import { getSchedulePage } from "@/api/schedule";
 import { getLeavePage } from "@/api/leave";
 import { getPersonalAttendanceSummary } from "@/api/report";
+import type { Attendance, Notice } from "@/types/api";
 
 const userStore = useUserStore();
 
@@ -145,7 +146,7 @@ const greeting = computed(() => {
 const currentDate = computed(() => dayjs().format("YYYY年MM月DD日 dddd"));
 
 const dashboardData = reactive({ clockedIn: 0, leaveTotal: 0, unreadMessage: 0, todaySchedule: 0 });
-const todayAtt = ref<any>(null);
+const todayAtt = ref<Attendance | null>(null);
 const monthStats = reactive({ normalDays: 0, lateDays: 0, earlyLeaveDays: 0, absentDays: 0 });
 
 const statusText = computed(() => {
@@ -180,51 +181,51 @@ const quickEntries = [
   { label: "我的日程", icon: "Calendar", color: "#67C23A", path: "/oa/schedule/index" }
 ];
 
-const noticeList = ref<any[]>([]);
+const noticeList = ref<Notice[]>([]);
 const noticeDialogVisible = ref(false);
-const currentNotice = ref<any>(null);
+const currentNotice = ref<Notice | null>(null);
 
-const handleViewNotice = async (item: any) => {
+const handleViewNotice = async (item: Notice) => {
   currentNotice.value = item;
   noticeDialogVisible.value = true;
 };
 
 onMounted(async () => {
   try {
-    const res: any = await getTodayAttendance();
+    const res = await getTodayAttendance();
     if (res.data) {
       todayAtt.value = res.data;
       dashboardData.clockedIn = res.data.clockIn ? 1 : 0;
     }
   } catch {}
   try {
-    const res: any = await getLeavePage({ pageNum: 1, pageSize: 1, status: 0 });
+    const res = await getLeavePage({ pageNum: 1, pageSize: 1, status: 0 } as any);
     if (res.data?.total !== undefined) dashboardData.leaveTotal = res.data.total;
   } catch {}
   try {
-    const res: any = await getUnreadCount();
+    const res = await getUnreadCount();
     if (res.data !== undefined) dashboardData.unreadMessage = res.data;
   } catch {}
   try {
     const today = dayjs().format("YYYY-MM-DD");
-    const res: any = await getSchedulePage({ pageNum: 1, pageSize: 100 });
+    const res = await getSchedulePage({ pageNum: 1, pageSize: 100 });
     if (res.data?.list) {
-      dashboardData.todaySchedule = res.data.list.filter((s: any) =>
+      dashboardData.todaySchedule = res.data.list.filter((s) =>
         (s.startTime || "").startsWith(today)
       ).length;
     }
   } catch {}
   try {
-    const res: any = await getPersonalAttendanceSummary(dayjs().format("YYYY-MM"));
+    const res = await getPersonalAttendanceSummary(dayjs().format("YYYY-MM"));
     if (res.data) {
-      monthStats.normalDays = res.data.normalDays || 0;
-      monthStats.lateDays = res.data.lateDays || 0;
-      monthStats.earlyLeaveDays = res.data.earlyLeaveDays || 0;
-      monthStats.absentDays = res.data.absentDays || 0;
+      monthStats.normalDays = (res.data as any).normalDays || 0;
+      monthStats.lateDays = (res.data as any).lateDays || 0;
+      monthStats.earlyLeaveDays = (res.data as any).earlyLeaveDays || 0;
+      monthStats.absentDays = (res.data as any).absentDays || 0;
     }
   } catch {}
   try {
-    const res: any = await getNoticePage({ pageNum: 1, pageSize: 5 });
+    const res = await getNoticePage({ pageNum: 1, pageSize: 5 });
     if (res.data?.list) noticeList.value = res.data.list;
   } catch {}
 });
