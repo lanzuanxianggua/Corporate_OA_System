@@ -53,15 +53,16 @@ public class ScheduleController {
     @PostMapping
     @Operation(summary = "新增日程")
     @OperationLog(module = "日程管理", operation = "新增日程")
-    public R<Void> add(@RequestBody @Valid ScheduleDTO dto) {
+    public R<Void> add(@RequestBody @Valid ScheduleDTO dto, HttpServletRequest request) {
         OaSchedule schedule = new OaSchedule();
-        schedule.setEmpId(dto.getEmpId());
+        Long empId = dto.getEmpId() != null ? dto.getEmpId() : WebUtil.getEmpId(request);
+        schedule.setEmpId(empId);
         schedule.setTitle(dto.getTitle());
         schedule.setContent(dto.getContent());
         schedule.setStartTime(dto.getStartTime());
         schedule.setEndTime(dto.getEndTime());
         schedule.setRemindTime(dto.getRemindTime());
-        schedule.setStatus(dto.getStatus());
+        schedule.setStatus(dto.getStatus() != null ? dto.getStatus() : 0);
         scheduleService.save(schedule);
         log.info("Schedule created: empId={}", schedule.getEmpId());
         return R.ok();

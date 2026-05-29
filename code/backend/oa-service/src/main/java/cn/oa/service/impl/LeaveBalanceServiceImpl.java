@@ -36,6 +36,13 @@ public class LeaveBalanceServiceImpl extends ServiceImpl<OaLeaveBalanceMapper, O
         // Default leave types: 0-annual, 1-sick, 2-personal, 3-marriage, 4-maternity
         BigDecimal[] defaults = {new BigDecimal("10"), new BigDecimal("15"), new BigDecimal("5"), new BigDecimal("10"), new BigDecimal("158")};
         for (int i = 0; i < defaults.length; i++) {
+            OaLeaveBalance existing = this.getOne(new LambdaQueryWrapper<OaLeaveBalance>()
+                    .eq(OaLeaveBalance::getEmpId, empId)
+                    .eq(OaLeaveBalance::getLeaveType, i)
+                    .eq(OaLeaveBalance::getYear, year));
+            if (existing != null) {
+                continue;
+            }
             OaLeaveBalance balance = new OaLeaveBalance();
             balance.setEmpId(empId);
             balance.setLeaveType(i);

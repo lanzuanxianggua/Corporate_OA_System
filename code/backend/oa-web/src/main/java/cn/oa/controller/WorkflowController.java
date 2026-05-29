@@ -141,7 +141,8 @@ public class WorkflowController {
     @Operation(summary = "查找待处理任务")
     public R<WfTask> findTask(@RequestParam String businessType, @RequestParam Long businessId, HttpServletRequest request) {
         Long empId = WebUtil.getEmpId(request);
-        return R.ok(workflowService.findPendingTask(businessType, businessId, empId));
+        WfTask task = workflowService.findPendingTask(businessType, businessId, empId);
+        return R.ok(task);
     }
 
     @PostMapping("/task/transfer")
