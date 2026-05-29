@@ -17,20 +17,27 @@ public class OaDocument {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    @TableField("title")
     private String docName;
 
+    @TableField("content")
     private String description;
 
+    @TableField("file_url")
     private String filePath;
 
+    @TableField(exist = false)
     private Long fileSize;
 
+    @TableField(exist = false)
     private String fileType;
 
     private Long categoryId;
 
+    @TableField(exist = false)
     private Integer downloadCount = 0;
 
+    @TableField("emp_id")
     private Long uploaderId;
 
     @TableField(fill = FieldFill.INSERT)

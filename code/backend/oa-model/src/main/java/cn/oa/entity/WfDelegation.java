@@ -1,6 +1,7 @@
 package cn.oa.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -12,6 +13,7 @@ public class WfDelegation {
     @TableId(type = IdType.ASSIGN_ID)
     private Long id;
     private Long delegatorId;
+    @TableField("delegate_id")
     private Long delegateToId;
     private LocalDateTime startTime;
     private LocalDateTime endTime;

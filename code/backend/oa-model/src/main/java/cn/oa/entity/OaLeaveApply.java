@@ -32,6 +32,7 @@ public class OaLeaveApply {
 
     private Integer status = 0;
 
+    @TableField(exist = false)
     private String leavePeriod = "full";
 
     @TableField(fill = FieldFill.INSERT)

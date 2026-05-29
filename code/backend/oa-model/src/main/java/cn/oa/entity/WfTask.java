@@ -35,24 +35,32 @@ public class WfTask {
 
     private String remark;
 
+    @TableField(exist = false)
     private String actionSource;
 
+    @TableField(exist = false)
     private Long transferFromId;
 
+    @TableField(exist = false)
     private String transferReason;
 
+    @TableField(exist = false)
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime deadline;
 
+    @TableField(exist = false)
     private Integer remindCount;
 
+    @TableField(exist = false)
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime lastRemindTime;
 
     /** Parent task ID for countersign/orsign */
+    @TableField(exist = false)
     private Long parentTaskId;
 
     /** countersign / orsign / null */
+    @TableField(exist = false)
     private String multiType;
 
     @TableField(fill = FieldFill.INSERT)

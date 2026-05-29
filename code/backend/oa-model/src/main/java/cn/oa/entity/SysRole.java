@@ -1,6 +1,7 @@
 package cn.oa.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -18,6 +19,7 @@ public class SysRole {
 
     private String roleKey;
 
+    @TableField("role_sort")
     private Integer sort;
 
     private Integer status;

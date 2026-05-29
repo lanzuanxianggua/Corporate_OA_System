@@ -35,14 +35,18 @@ public class WfProcessInstance {
     private String status = "0";
 
     /** Comma-separated active nodeIds for parallel gateway */
+    @TableField(exist = false)
     private String activeNodes;
 
     /** Snapshot of node config at process start time */
+    @TableField(exist = false)
     private String snapshotNodeConfig;
 
     /** Parent instance ID for subprocess nesting */
+    @TableField(exist = false)
     private Long parentInstanceId;
 
+    @TableField(exist = false)
     private Integer processVersion;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

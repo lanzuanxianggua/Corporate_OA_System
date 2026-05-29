@@ -21,8 +21,10 @@ public class OaNotice {
 
     private String content;
 
+    @TableField("type")
     private Integer noticeType;
 
+    @TableField("emp_id")
     private Long publisherId;
 
     private Integer status = 0;

@@ -22,10 +22,12 @@ public class SysDept {
 
     private Long parentId;
 
+    @TableField("order_num")
     private Integer sort;
 
     private String leader;
 
+    @TableField(exist = false)
     private String phone;
 
     private Integer status = 1;

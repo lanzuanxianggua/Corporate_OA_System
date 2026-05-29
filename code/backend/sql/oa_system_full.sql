@@ -76,6 +76,7 @@ CREATE TABLE `sys_role` (
   `create_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_by`   BIGINT       DEFAULT NULL            COMMENT '更新人',
   `update_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `remark`      VARCHAR(500) DEFAULT NULL            COMMENT '备注',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_role_key` (`role_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='角色表';
@@ -1001,3 +1002,49 @@ CREATE TABLE `oa_approval_record` (
   KEY `idx_process_instance_id` (`process_instance_id`),
   KEY `idx_action_emp_id` (`action_emp_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='审批记录表';
+
+-- ---------------------------------------------------------------------------
+-- 5.4 告警规则表
+-- ---------------------------------------------------------------------------
+DROP TABLE IF EXISTS `rpt_alert_rule`;
+CREATE TABLE `rpt_alert_rule` (
+  `id`             BIGINT       NOT NULL AUTO_INCREMENT COMMENT '规则ID',
+  `rule_name`      VARCHAR(200) NOT NULL                COMMENT '规则名称',
+  `rule_type`      VARCHAR(64)  DEFAULT NULL            COMMENT '规则类型',
+  `metric`         VARCHAR(128) DEFAULT NULL            COMMENT '监控指标',
+  `condition_type` VARCHAR(32)  DEFAULT NULL            COMMENT '条件类型(gt/lt/eq/between)',
+  `threshold`      DECIMAL(18,2) NOT NULL               COMMENT '阈值',
+  `threshold_max`  DECIMAL(18,2) DEFAULT NULL           COMMENT '上限阈值(between时使用)',
+  `check_cron`     VARCHAR(64)  DEFAULT NULL            COMMENT '检查周期Cron',
+  `notify_type`    VARCHAR(32)  DEFAULT 'inner'         COMMENT '通知方式(inner/email/sms)',
+  `notify_targets` VARCHAR(500) DEFAULT NULL            COMMENT '通知目标',
+  `status`         CHAR(1)      NOT NULL DEFAULT '0'    COMMENT '状态(0启用 1停用)',
+  `del_flag`       INT          NOT NULL DEFAULT 0      COMMENT '删除标志(0存在 1删除)',
+  `create_by`      BIGINT       DEFAULT NULL            COMMENT '创建人',
+  `create_time`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_by`      BIGINT       DEFAULT NULL            COMMENT '更新人',
+  `update_time`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='告警规则表';
+
+-- ---------------------------------------------------------------------------
+-- 5.5 告警日志表
+-- ---------------------------------------------------------------------------
+DROP TABLE IF EXISTS `rpt_alert_log`;
+CREATE TABLE `rpt_alert_log` (
+  `id`             BIGINT       NOT NULL AUTO_INCREMENT COMMENT '日志ID',
+  `rule_id`        BIGINT       NOT NULL                COMMENT '规则ID',
+  `alert_level`    CHAR(1)      DEFAULT '0'             COMMENT '告警级别(0低 1中 2高)',
+  `metric_value`   DECIMAL(18,2) DEFAULT NULL           COMMENT '指标值',
+  `threshold`      DECIMAL(18,2) DEFAULT NULL           COMMENT '阈值',
+  `alert_content`  TEXT         DEFAULT NULL            COMMENT '告警内容',
+  `notify_status`  CHAR(1)      DEFAULT '0'             COMMENT '通知状态(0未通知 1已通知)',
+  `handle_status`  CHAR(1)      DEFAULT '0'             COMMENT '处理状态(0未处理 1已处理)',
+  `handler`        VARCHAR(64)  DEFAULT NULL            COMMENT '处理人',
+  `handle_remark`  VARCHAR(500) DEFAULT NULL            COMMENT '处理备注',
+  `alert_time`     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '告警时间',
+  `handle_time`    DATETIME     DEFAULT NULL            COMMENT '处理时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_rule_id` (`rule_id`),
+  KEY `idx_handle_status` (`handle_status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='告警日志表';

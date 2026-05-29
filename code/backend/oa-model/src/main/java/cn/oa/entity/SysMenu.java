@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @TableName("sys_menu")
 public class SysMenu {
 
-    @TableId(value = "menu_id", type = IdType.ASSIGN_ID)
+    @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
 
     private Long parentId;

@@ -21,6 +21,7 @@ public class OaMessage {
 
     private Long receiverId;
 
+    @TableField(exist = false)
     private Integer msgType;
 
     private String title;
