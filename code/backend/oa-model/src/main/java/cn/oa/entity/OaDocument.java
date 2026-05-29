@@ -40,6 +40,8 @@ public class OaDocument {
     @TableField("emp_id")
     private Long uploaderId;
 
+    private Integer status = 0;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 
