@@ -58,11 +58,12 @@ jobs:
       - name: Initialize database
         run: |
           # Step 1: Create all tables from unified DDL
-          sed 's/oa_system/oa_system_test/g; s/CREATE DATABASE[^;]*;//g; s/USE[^;]*;//g' \
+          # Replace oa_system -> oa_system_test, keep CREATE DATABASE and USE (also replaced)
+          sed 's/oa_system/oa_system_test/g' \
             code/backend/sql/oa_system_full.sql | \
-            mysql --force -h 127.0.0.1 -u root -ptest_password oa_system_test 2>&1
-          # Step 2: Insert seed data (employees, depts, roles, dict, workflows, etc.)
-          sed 's/oa_system/oa_system_test/g; s/CREATE DATABASE[^;]*;//g; s/USE[^;]*;//g' \
+            mysql -h 127.0.0.1 -u root -ptest_password 2>&1
+          # Step 2: Insert seed data
+          sed 's/oa_system/oa_system_test/g; s/CREATE DATABASE[^;]*;//g' \
             code/backend/sql/seed_data.sql | \
             mysql --force -h 127.0.0.1 -u root -ptest_password oa_system_test 2>&1
 
