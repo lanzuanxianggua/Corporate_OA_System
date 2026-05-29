@@ -144,10 +144,11 @@ public class SystemManageController {
         List<Map<String, Object>> list = roles.stream().map(r -> {
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("id", r.getId());
-            item.put("name", r.getRoleName());
-            item.put("code", r.getRoleKey());
-            item.put("status", 1);
-            item.put("remark", r.getRoleName());
+            item.put("roleName", r.getRoleName());
+            item.put("roleKey", r.getRoleKey());
+            item.put("roleSort", r.getSort());
+            item.put("status", r.getStatus());
+            item.put("remark", r.getRemark());
             item.put("createTime", r.getCreateTime() != null ? r.getCreateTime().toString() : "");
             return item;
         }).collect(Collectors.toList());
@@ -173,14 +174,14 @@ public class SystemManageController {
         SysRole role = new SysRole();
         role.setRoleName(roleName);
         role.setRoleKey(roleKey);
-        if (params.get("remark") != null) {
-            role.setRemark((String) params.get("remark"));
-        }
         if (params.get("status") != null) {
             role.setStatus(((Number) params.get("status")).intValue());
         }
         if (params.get("sort") != null) {
             role.setSort(((Number) params.get("sort")).intValue());
+        }
+        if (params.get("remark") != null) {
+            role.setRemark((String) params.get("remark"));
         }
         roleMapper.insert(role);
         log.info("Role created: roleName={}", roleName);
@@ -206,14 +207,14 @@ public class SystemManageController {
         if (params.get("roleKey") != null) {
             role.setRoleKey((String) params.get("roleKey"));
         }
-        if (params.get("remark") != null) {
-            role.setRemark((String) params.get("remark"));
-        }
         if (params.get("status") != null) {
             role.setStatus(((Number) params.get("status")).intValue());
         }
         if (params.get("sort") != null) {
             role.setSort(((Number) params.get("sort")).intValue());
+        }
+        if (params.get("remark") != null) {
+            role.setRemark((String) params.get("remark"));
         }
         roleMapper.updateById(role);
         log.info("Role updated: id={}", id);

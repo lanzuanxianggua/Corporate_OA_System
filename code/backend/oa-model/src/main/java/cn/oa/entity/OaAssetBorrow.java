@@ -32,19 +32,7 @@ public class OaAssetBorrow {
     private String remark;
 
     @TableField(fill = FieldFill.INSERT)
-    private String createBy;
-
-    @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
-
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private String updateBy;
-
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime updateTime;
-
-    @TableLogic
-    private String delFlag;
 
     /** 资产名称（非数据库字段） */
     @TableField(exist = false)

@@ -1,6 +1,7 @@
 package cn.oa.controller;
 
 import cn.oa.entity.OaOvertime;
+import cn.oa.mapper.SysEmployeeMapper;
 import cn.oa.service.OvertimeService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -38,6 +39,9 @@ class OvertimeControllerTest extends BaseControllerTest {
 
     @MockitoBean
     private OvertimeService overtimeService;
+
+    @MockitoBean
+    private SysEmployeeMapper employeeMapper;
 
     private OaOvertime buildOvertime(Long id) {
         OaOvertime overtime = new OaOvertime();

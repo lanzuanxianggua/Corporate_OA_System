@@ -8,14 +8,14 @@
     </div>
     <el-card>
       <el-table :data="roleList" v-loading="loading" stripe style="width: 100%">
-        <el-table-column label="角色名称" prop="name" min-width="150" />
-        <el-table-column label="角色标识" prop="code" min-width="120" />
+        <el-table-column label="角色名称" prop="roleName" min-width="150" />
+        <el-table-column label="角色标识" prop="roleKey" min-width="120" />
         <el-table-column label="状态" width="80" align="center">
           <template #default="{ row }">
             <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">{{ row.status === 1 ? "启用" : "禁用" }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="备注" prop="remark" min-width="200" show-overflow-tooltip />
+        <el-table-column label="排序" prop="roleSort" width="80" align="center" />
         <el-table-column label="创建时间" prop="createTime" width="170" />
         <el-table-column label="操作" width="220" align="center">
           <template #default="{ row }">
@@ -42,7 +42,6 @@
         <el-form-item label="状态">
           <el-switch v-model="form.status" :active-value="1" :inactive-value="0" active-text="启用" inactive-text="禁用" />
         </el-form-item>
-        <el-form-item label="备注"><el-input v-model="form.remark" type="textarea" :rows="3" placeholder="请输入备注" /></el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -94,7 +93,7 @@ const roleList = ref<any[]>([]);
 const searchKey = ref("");
 const dialogVisible = ref(false);
 const saving = ref(false);
-const form = reactive({ id: undefined as number | undefined, name: "", code: "", remark: "", status: 1 });
+const form = reactive({ id: undefined as number | undefined, name: "", code: "", status: "0" });
 
 // Permission dialog state
 const permDialogVisible = ref(false);
@@ -115,7 +114,7 @@ const fetchRoles = async () => {
     // Client-side search filter
     if (searchKey.value.trim()) {
       const key = searchKey.value.trim().toLowerCase();
-      list = list.filter((item: any) => (item.name || "").toLowerCase().includes(key));
+      list = list.filter((item: any) => (item.roleName || "").toLowerCase().includes(key));
     }
     roleList.value = list;
   } catch { /* ignore */ }
@@ -124,9 +123,9 @@ const fetchRoles = async () => {
 
 const openDialog = (row?: any) => {
   if (row) {
-    Object.assign(form, { id: row.id, name: row.name, code: row.code, remark: row.remark || "", status: row.status ?? 1 });
+    Object.assign(form, { id: row.id, name: row.roleName, code: row.roleKey, status: row.status ?? 1 });
   } else {
-    Object.assign(form, { id: undefined, name: "", code: "", remark: "", status: 1 });
+    Object.assign(form, { id: undefined, name: "", code: "", status: 1 });
   }
   dialogVisible.value = true;
 };
@@ -170,7 +169,7 @@ const handleDelete = async (id: number) => {
 // Permission assignment
 const openPermDialog = async (row: any) => {
   permDialogRoleId.value = row.id;
-  permDialogRoleName.value = row.name || "";
+  permDialogRoleName.value = row.roleName || "";
   checkedMenuIds.value = [];
   permDialogVisible.value = true;
 

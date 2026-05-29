@@ -167,16 +167,30 @@ const fetchToday = async () => {
 
 const handleClockIn = async () => {
   clockingIn.value = true;
-  try { await clockInApi(); ElMessage.success("上班打卡成功"); clockedInDone.value = true; await fetchToday(); }
-  catch (e: any) { ElMessage.error(e.message || "打卡失败"); }
-  finally { clockingIn.value = false; }
+  try {
+    await clockInApi();
+    ElMessage.success("上班打卡成功");
+    clockedInDone.value = true;
+  } catch {
+    // interceptor already shows the error
+  } finally {
+    clockingIn.value = false;
+    await fetchToday();
+  }
 };
 
 const handleClockOut = async () => {
   clockingOut.value = true;
-  try { await clockOutApi(); ElMessage.success("下班打卡成功"); clockedOutDone.value = true; await fetchToday(); }
-  catch (e: any) { ElMessage.error(e.message || "打卡失败"); }
-  finally { clockingOut.value = false; }
+  try {
+    await clockOutApi();
+    ElMessage.success("下班打卡成功");
+    clockedOutDone.value = true;
+  } catch {
+    // interceptor already shows the error
+  } finally {
+    clockingOut.value = false;
+    await fetchToday();
+  }
 };
 
 onMounted(() => {

@@ -67,7 +67,7 @@ class EmployeeControllerTest extends BaseControllerTest {
         page.setTotal(1);
         page.setRecords(List.of(buildEmp(1L, "admin", "管理员")));
 
-        when(employeeService.pageList(1, 10, null, null)).thenReturn(page);
+        when(employeeService.pageList(1, 10, null, null, null)).thenReturn(page);
 
         mockMvc.perform(get("/api/employee/page")
                         .param("pageNum", "1")
@@ -85,7 +85,7 @@ class EmployeeControllerTest extends BaseControllerTest {
         page.setTotal(0);
         page.setRecords(List.of());
 
-        when(employeeService.pageList(1, 10, "张三", 2L)).thenReturn(page);
+        when(employeeService.pageList(1, 10, "张三", 2L, null)).thenReturn(page);
 
         mockMvc.perform(get("/api/employee/page")
                         .param("pageNum", "1")

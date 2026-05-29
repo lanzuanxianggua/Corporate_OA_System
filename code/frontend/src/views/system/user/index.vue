@@ -336,13 +336,13 @@ const handleSubmit = async () => {
   try {
     if (isEdit.value && form.id) {
       await updateEmployee({ id: form.id, empCode: form.empCode, empName: form.empName, phone: form.phone, email: form.email, deptId: form.deptId });
+      await assignRoles(form.id, editRoleIds.value);
     } else {
-      await addEmployee({ empCode: form.empCode, empName: form.empName, phone: form.phone, email: form.email, deptId: form.deptId, password: form.password || generateRandomPassword() });
-    }
-    if (form.id) {
-      try {
-        await assignRoles(form.id, editRoleIds.value);
-      } catch { /* ignore */ }
+      const res = await addEmployee({ empCode: form.empCode, empName: form.empName, phone: form.phone, email: form.email, deptId: form.deptId, password: form.password || generateRandomPassword() });
+      const newId = res.data;
+      if (newId && editRoleIds.value.length > 0) {
+        await assignRoles(newId, editRoleIds.value);
+      }
     }
     ElMessage.success(isEdit.value ? "编辑成功" : "新增成功");
     dialogVisible.value = false;

@@ -23,9 +23,6 @@ public class OaLoan {
 
     private String status = "0";
 
-    /** 关联流程实例ID */
-    private Long processInstanceId;
-
     private String createBy;
 
     @TableField(fill = FieldFill.INSERT)
@@ -33,7 +30,6 @@ public class OaLoan {
 
     private String updateBy;
 
-    @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
 
     @TableLogic
@@ -41,4 +37,7 @@ public class OaLoan {
 
     @TableField(exist = false)
     private String empName;
+
+    @TableField(exist = false)
+    private Long processInstanceId;
 }

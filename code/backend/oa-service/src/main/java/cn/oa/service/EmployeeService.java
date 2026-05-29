@@ -9,7 +9,7 @@ public interface EmployeeService extends IService<SysEmployee> {
     /**
      * 分页查询员工列表
      */
-    IPage<SysEmployee> pageList(int pageNum, int pageSize, String empName, Long deptId);
+    IPage<SysEmployee> pageList(int pageNum, int pageSize, String empName, Long deptId, Integer status);
 
     /**
      * 修改密码

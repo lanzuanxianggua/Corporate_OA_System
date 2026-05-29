@@ -6,7 +6,10 @@
           <template #header>
             <div class="flex items-center justify-between">
               <span class="text-base font-semibold text-[#303133]">我的借支记录</span>
-              <el-tag type="info" size="small">共 {{ total }} 条</el-tag>
+              <div class="flex items-center gap-2">
+                <el-button type="success" size="small" @click="handleExport">导出</el-button>
+                <el-tag type="info" size="small">共 {{ total }} 条</el-tag>
+              </div>
             </div>
           </template>
 
@@ -76,6 +79,7 @@ import { withdrawApplication, urgeTask } from "@/api/workflow";
 import { submitLoan, getLoanPage } from "@/api/loan";
 import { useUserStore } from "@/store/user";
 import { formatStatusText, formatStatusTagType } from "@/utils/format";
+import { downloadFile } from "@/utils/download";
 
 const userStore = useUserStore();
 
@@ -153,6 +157,15 @@ const handleUrge = async (row: any) => {
     await urgeTask({ businessType: "loan", businessId: row.id });
     ElMessage.success("已发送催办提醒");
   } catch {}
+};
+
+const handleExport = async () => {
+  try {
+    await downloadFile("/api/loan/export", "借支数据.xlsx");
+    ElMessage.success("导出成功");
+  } catch {
+    ElMessage.error("导出失败");
+  }
 };
 
 onMounted(() => { fetchList(); });

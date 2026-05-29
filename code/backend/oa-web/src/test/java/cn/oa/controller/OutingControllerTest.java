@@ -1,6 +1,7 @@
 package cn.oa.controller;
 
 import cn.oa.entity.OaOuting;
+import cn.oa.mapper.SysEmployeeMapper;
 import cn.oa.service.OutingService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -36,6 +37,9 @@ class OutingControllerTest extends BaseControllerTest {
 
     @MockitoBean
     private OutingService outingService;
+
+    @MockitoBean
+    private SysEmployeeMapper employeeMapper;
 
     private OaOuting buildOuting(Long id) {
         OaOuting outing = new OaOuting();

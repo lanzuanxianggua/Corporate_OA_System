@@ -89,12 +89,6 @@ const staticRoutes: RouteRecordRaw[] = [
         component: () => import("@/views/oa/approval-center/index.vue"),
         meta: { title: "审批中心", icon: "Stamp", roles: ["ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"] }
       },
-      {
-        path: "oa/workflow-todo",
-        name: "WorkflowTodo",
-        component: () => import("@/views/oa/workflow/todo/index.vue"),
-        meta: { title: "待办任务", icon: "Tickets", roles: ["ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"] }
-      },
 
       // ── 业务申请 ──────────────────────────────────────────────────────
       {
@@ -284,6 +278,24 @@ const staticRoutes: RouteRecordRaw[] = [
         name: "WorkflowDefinition",
         component: () => import("@/views/oa/workflow/definition/index.vue"),
         meta: { title: "流程定义", icon: "SetUp", roles: ["ADMIN"] }
+      },
+      {
+        path: "oa/workflow-todo",
+        name: "WorkflowTodo",
+        component: () => import("@/views/oa/workflow/todo/index.vue"),
+        meta: { title: "待办任务", icon: "Tickets", roles: ["ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"] }
+      },
+      {
+        path: "oa/workflow/handled",
+        name: "WorkflowHandled",
+        component: () => import("@/views/oa/workflow/handled/index.vue"),
+        meta: { title: "已办任务", icon: "CircleCheck", roles: ["ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"] }
+      },
+      {
+        path: "oa/workflow/mine",
+        name: "WorkflowMine",
+        component: () => import("@/views/oa/workflow/mine/index.vue"),
+        meta: { title: "我的申请", icon: "Document" }
       },
       {
         path: "oa/workflow/cc",

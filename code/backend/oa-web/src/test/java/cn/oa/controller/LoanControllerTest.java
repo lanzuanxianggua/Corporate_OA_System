@@ -1,6 +1,7 @@
 package cn.oa.controller;
 
 import cn.oa.entity.OaLoan;
+import cn.oa.mapper.SysEmployeeMapper;
 import cn.oa.service.LoanService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -36,6 +37,9 @@ class LoanControllerTest extends BaseControllerTest {
 
     @MockitoBean
     private LoanService loanService;
+
+    @MockitoBean
+    private SysEmployeeMapper employeeMapper;
 
     private OaLoan buildLoan(Long id) {
         OaLoan loan = new OaLoan();

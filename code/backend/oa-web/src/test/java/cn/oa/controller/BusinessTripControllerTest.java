@@ -1,6 +1,7 @@
 package cn.oa.controller;
 
 import cn.oa.entity.OaBusinessTrip;
+import cn.oa.mapper.SysEmployeeMapper;
 import cn.oa.service.BusinessTripService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -36,6 +37,9 @@ class BusinessTripControllerTest extends BaseControllerTest {
 
     @MockitoBean
     private BusinessTripService businessTripService;
+
+    @MockitoBean
+    private SysEmployeeMapper employeeMapper;
 
     private OaBusinessTrip buildTrip(Long id) {
         OaBusinessTrip trip = new OaBusinessTrip();

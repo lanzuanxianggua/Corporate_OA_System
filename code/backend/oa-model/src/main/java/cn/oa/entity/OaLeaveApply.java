@@ -32,10 +32,13 @@ public class OaLeaveApply {
 
     private Integer status = 0;
 
-    /** 关联流程实例ID */
-    private Long processInstanceId;
-
     private String leavePeriod = "full";
+
+    @TableField(fill = FieldFill.INSERT)
+    private LocalDateTime createTime;
+
+    @TableLogic
+    private String delFlag;
 
     @TableField(fill = FieldFill.INSERT)
     private String createBy;
@@ -43,18 +46,12 @@ public class OaLeaveApply {
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private String updateBy;
 
-    @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createTime;
-
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime updateTime;
-
-    @TableLogic
-    private String delFlag;
-
     @TableField(exist = false)
     private String empName;
 
     @TableField(exist = false)
     private String remark;
+
+    @TableField(exist = false)
+    private Long processInstanceId;
 }

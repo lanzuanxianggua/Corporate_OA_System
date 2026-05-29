@@ -1,6 +1,7 @@
 package cn.oa.controller;
 
 import cn.oa.entity.OaPurchase;
+import cn.oa.mapper.SysEmployeeMapper;
 import cn.oa.service.PurchaseService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -36,6 +37,9 @@ class PurchaseControllerTest extends BaseControllerTest {
 
     @MockitoBean
     private PurchaseService purchaseService;
+
+    @MockitoBean
+    private SysEmployeeMapper employeeMapper;
 
     private OaPurchase buildPurchase(Long id) {
         OaPurchase purchase = new OaPurchase();

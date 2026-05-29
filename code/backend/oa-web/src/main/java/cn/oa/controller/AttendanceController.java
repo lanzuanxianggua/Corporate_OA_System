@@ -110,9 +110,11 @@ public class AttendanceController {
     @RequireAdmin
     @Operation(summary = "导出考勤数据")
     public void exportAttendance(
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
             HttpServletResponse response) throws IOException {
+        if (startDate == null) startDate = LocalDate.now().withDayOfMonth(1);
+        if (endDate == null) endDate = LocalDate.now();
         List<OaAttendance> records = attendanceService.getHistoryByDateRange(startDate, endDate);
         if (records == null || records.isEmpty()) {
             ExcelExportUtil.export(response, "考勤数据", AttendanceExportVO.class, new ArrayList<>());

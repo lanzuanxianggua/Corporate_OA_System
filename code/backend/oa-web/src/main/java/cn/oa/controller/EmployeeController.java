@@ -38,8 +38,9 @@ public class EmployeeController {
     public R<PageResult<SysEmployee>> page(@RequestParam int pageNum,
                                            @RequestParam int pageSize,
                                            @RequestParam(required = false) String empName,
-                                           @RequestParam(required = false) Long deptId) {
-        IPage<SysEmployee> page = employeeService.pageList(pageNum, pageSize, empName, deptId);
+                                           @RequestParam(required = false) Long deptId,
+                                           @RequestParam(required = false) Integer status) {
+        IPage<SysEmployee> page = employeeService.pageList(pageNum, pageSize, empName, deptId, status);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 
@@ -54,7 +55,7 @@ public class EmployeeController {
     @RequireAdmin
     @Operation(summary = "新增员工")
     @OperationLog(module = "员工管理", operation = "新增员工")
-    public R<Void> add(@RequestBody @Valid EmployeeDTO dto) {
+    public R<Long> add(@RequestBody @Valid EmployeeDTO dto) {
         SysEmployee employee = new SysEmployee();
         employee.setEmpCode(dto.getEmpCode());
         employee.setEmpName(dto.getEmpName());
@@ -66,8 +67,8 @@ public class EmployeeController {
         employee.setStatus(dto.getStatus());
         employee.setPostId(dto.getPostId());
         employeeService.addEmployee(employee);
-        log.info("Employee created: empCode={}", employee.getEmpCode());
-        return R.ok();
+        log.info("Employee created: empCode={}, id={}", employee.getEmpCode(), employee.getId());
+        return R.ok(employee.getId());
     }
 
     @PutMapping

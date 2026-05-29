@@ -34,15 +34,24 @@ public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAtt
     @Transactional
     public void clockIn(Long empId) {
         OaAttendance existing = getTodayAttendance(empId);
+        LocalDateTime now = LocalDateTime.now();
         if (existing != null) {
-            throw new BusinessException("今日已打卡");
+            if (existing.getClockIn() != null) {
+                throw new BusinessException("今日已打卡");
+            }
+            existing.setClockIn(now);
+            if (Integer.valueOf(5).equals(existing.getStatus()) || Integer.valueOf(4).equals(existing.getStatus())) {
+                // preserve leave/auto-marked status but record actual clock-in
+            } else {
+                existing.setStatus(now.toLocalTime().isAfter(NINE_OCLOCK) ? 1 : 0);
+            }
+            this.updateById(existing);
+            return;
         }
         OaAttendance attendance = new OaAttendance();
         attendance.setEmpId(empId);
         attendance.setWorkDate(LocalDate.now());
-        LocalDateTime now = LocalDateTime.now();
         attendance.setClockIn(now);
-        // 0=正常, 1=迟到
         attendance.setStatus(now.toLocalTime().isAfter(NINE_OCLOCK) ? 1 : 0);
         this.save(attendance);
     }
@@ -71,7 +80,7 @@ public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAtt
         LambdaQueryWrapper<OaAttendance> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(OaAttendance::getEmpId, empId)
                 .eq(OaAttendance::getWorkDate, LocalDate.now());
-        return this.getOne(wrapper);
+        return this.getOne(wrapper, false);
     }
 
     @Override

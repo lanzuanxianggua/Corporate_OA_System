@@ -5,12 +5,15 @@
       <template #header>
         <div class="flex items-center justify-between">
           <span class="text-base font-semibold text-[#303133]">经费审批</span>
-          <el-radio-group v-model="statusFilter" @change="handleFilterChange">
-            <el-radio-button :value="undefined">全部</el-radio-button>
-            <el-radio-button :value="0">待审批</el-radio-button>
-            <el-radio-button :value="1">已通过</el-radio-button>
-            <el-radio-button :value="2">已拒绝</el-radio-button>
-          </el-radio-group>
+          <div class="flex items-center gap-2">
+            <el-radio-group v-model="statusFilter" @change="handleFilterChange">
+              <el-radio-button :value="undefined">全部</el-radio-button>
+              <el-radio-button :value="0">待审批</el-radio-button>
+              <el-radio-button :value="1">已通过</el-radio-button>
+              <el-radio-button :value="2">已拒绝</el-radio-button>
+            </el-radio-group>
+            <el-button type="success" size="small" plain @click="handleExport">导出</el-button>
+          </div>
         </div>
       </template>
 
@@ -86,6 +89,7 @@ import { ElMessage } from "element-plus";
 import ApprovalTimeline from "@/components/ApprovalTimeline.vue";
 import { getExpensePage, approveExpense } from "@/api/expense";
 import { formatStatusText, formatStatusTagType } from "@/utils/format";
+import { downloadFile } from "@/utils/download";
 
 const categoryMap: Record<number, string> = { 1: "差旅费", 2: "办公用品", 3: "招待费", 4: "其他" };
 
@@ -163,4 +167,15 @@ const formatAmount = (amount?: number) => {
 onMounted(() => {
   fetchList();
 });
+
+const handleExport = async () => {
+  try {
+    const params = new URLSearchParams();
+    if (statusFilter.value !== undefined) params.set("status", String(statusFilter.value));
+    await downloadFile(`/api/expense/export?${params.toString()}`, "经费数据.xlsx");
+    ElMessage.success("导出成功");
+  } catch {
+    ElMessage.error("导出失败");
+  }
+};
 </script>

@@ -22,7 +22,7 @@ public class EmployeeServiceImpl extends ServiceImpl<SysEmployeeMapper, SysEmplo
 
 
     @Override
-    public IPage<SysEmployee> pageList(int pageNum, int pageSize, String empName, Long deptId) {
+    public IPage<SysEmployee> pageList(int pageNum, int pageSize, String empName, Long deptId, Integer status) {
         Page<SysEmployee> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<SysEmployee> wrapper = new LambdaQueryWrapper<>();
         if (StringUtils.hasText(empName)) {
@@ -30,6 +30,9 @@ public class EmployeeServiceImpl extends ServiceImpl<SysEmployeeMapper, SysEmplo
         }
         if (deptId != null) {
             wrapper.eq(SysEmployee::getDeptId, deptId);
+        }
+        if (status != null) {
+            wrapper.eq(SysEmployee::getStatus, String.valueOf(status));
         }
         wrapper.eq(SysEmployee::getDelFlag, "0");
         wrapper.select(SysEmployee::getId, SysEmployee::getEmpCode, SysEmployee::getEmpName,

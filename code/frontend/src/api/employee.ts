@@ -6,6 +6,7 @@ export const getEmployeePage = (params: {
   pageSize: number;
   empName?: string;
   deptId?: number;
+  status?: number;
 }) => {
   return request.get<unknown, ApiResponse<PageResult<Employee>>>("/api/employee/page", { params });
 };
@@ -15,7 +16,7 @@ export const getEmployeeById = (id: number) => {
 };
 
 export const addEmployee = (data: Partial<Employee>) => {
-  return request.post<unknown, ApiResponse<void>>("/api/employee", data);
+  return request.post<unknown, ApiResponse<number>>("/api/employee", data);
 };
 
 export const updateEmployee = (data: Partial<Employee>) => {

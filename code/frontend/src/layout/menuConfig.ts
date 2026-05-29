@@ -45,22 +45,20 @@ export const menuConfig: MenuItem[] = [
   {
     title: "审批中心",
     icon: "Stamp",
-    roles: APPROVER_ROLES,
     children: [
-      { path: "/oa/approval-center", title: "审批中心" },
       { path: "/oa/workflow-todo", title: "待办任务", roles: APPROVER_ROLES },
-      {
-        title: "审批列表",
-        children: [
-          { path: "/oa/leave/approval", title: "请假审批", roles: APPROVER_ROLES },
-          { path: "/oa/business-trip/approval", title: "出差审批", roles: APPROVER_ROLES },
-          { path: "/oa/outing/approval", title: "外出审批", roles: APPROVER_ROLES },
-          { path: "/oa/overtime-approval", title: "加班审批", roles: APPROVER_ROLES },
-          { path: "/oa/expense/approval", title: "报销审批", roles: APPROVER_ROLES },
-          { path: "/oa/purchase/approval", title: "采购审批", roles: APPROVER_ROLES },
-          { path: "/oa/loan-approval", title: "借款审批", roles: APPROVER_ROLES }
-        ]
-      }
+      { path: "/oa/workflow/handled", title: "已办任务", roles: APPROVER_ROLES },
+      { path: "/oa/workflow/mine", title: "我的申请" },
+      { path: "/oa/workflow/cc", title: "抄送我的", roles: APPROVER_ROLES },
+      { path: "/oa/workflow/delegation", title: "审批委派", roles: APPROVER_ROLES },
+      { path: "/oa/leave/approval", title: "请假审批", roles: APPROVER_ROLES },
+      { path: "/oa/business-trip/approval", title: "出差审批", roles: APPROVER_ROLES },
+      { path: "/oa/outing/approval", title: "外出审批", roles: APPROVER_ROLES },
+      { path: "/oa/overtime-approval", title: "加班审批", roles: APPROVER_ROLES },
+      { path: "/oa/expense/approval", title: "报销审批", roles: APPROVER_ROLES },
+      { path: "/oa/purchase/approval", title: "采购审批", roles: APPROVER_ROLES },
+      { path: "/oa/loan-approval", title: "借款审批", roles: APPROVER_ROLES },
+      { path: "/oa/workflow-definition", title: "流程定义", roles: ["ADMIN"] }
     ]
   },
 
@@ -104,18 +102,6 @@ export const menuConfig: MenuItem[] = [
       { path: "/oa/archive", title: "员工档案", roles: ["ADMIN"] },
       { path: "/oa/salary", title: "薪资管理", roles: ["ADMIN"] },
       { path: "/oa/salary-my", title: "我的薪资" }
-    ]
-  },
-
-  // ── 工作流 ────────────────────────────────────────────────────────────
-  {
-    title: "工作流",
-    icon: "SetUp",
-    children: [
-      { path: "/oa/workflow-definition", title: "流程定义", roles: ["ADMIN"] },
-      { path: "/oa/workflow-todo", title: "待办任务", roles: APPROVER_ROLES },
-      { path: "/oa/workflow/cc", title: "抄送我的", roles: APPROVER_ROLES },
-      { path: "/oa/workflow/delegation", title: "审批委派", roles: APPROVER_ROLES }
     ]
   },
 
