@@ -57,56 +57,21 @@ jobs:
 
       - name: Initialize database
         run: |
-          # Base tables (12 core tables + seed data for dept/employee/role)
-          sed 's/oa_system/oa_system_test/g; s/CREATE DATABASE[^;]*;//g' \
-            code/backend/oa-web/src/main/resources/sql/init.sql | \
+          # Step 1: Create all tables from unified DDL
+          sed 's/oa_system/oa_system_test/g; s/CREATE DATABASE[^;]*;//g; s/USE[^;]*;//g' \
+            code/backend/sql/oa_system_full.sql | \
             mysql --force -h 127.0.0.1 -u root -ptest_password oa_system_test 2>&1
-          # All remaining tables + ALTER columns for base tables
-          sed 's/oa_system/oa_system_test/g; s/CREATE DATABASE[^;]*;//g' \
-            code/backend/sql/phase_all_ddl.sql | \
-            mysql --force -h 127.0.0.1 -u root -ptest_password oa_system_test 2>&1 || true
-          # Workflow migration: wf_cc_record, wf_delegation, task ALTERs
-          sed 's/oa_system/oa_system_test/g' \
-            code/backend/workflow_migration.sql | \
-            mysql --force -h 127.0.0.1 -u root -ptest_password oa_system_test 2>&1 || true
-          # Add missing columns that entities expect but init.sql didn't define
-          mysql --force -h 127.0.0.1 -u root -ptest_password oa_system_test -e "
-            ALTER TABLE sys_role ADD COLUMN remark VARCHAR(500) DEFAULT '' COMMENT '备注';
-            ALTER TABLE sys_role ADD COLUMN del_flag CHAR(1) DEFAULT '0' COMMENT '删除标志';
-            ALTER TABLE sys_role ADD COLUMN update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间';
-            ALTER TABLE sys_emp_role ADD COLUMN del_flag CHAR(1) DEFAULT '0' COMMENT '删除标志';
-            ALTER TABLE oa_attendance ADD COLUMN ip VARCHAR(50) DEFAULT '' COMMENT 'IP地址';
-            ALTER TABLE oa_attendance ADD COLUMN address VARCHAR(200) DEFAULT '' COMMENT '地址';
-            ALTER TABLE oa_leave_apply ADD COLUMN leave_period VARCHAR(20) DEFAULT 'full' COMMENT '请假时段';
-          " 2>/dev/null || true
-          # Seed: extra employees (wujiu etc.) + attendance history
-          sed 's/oa_system/oa_system_test/g' \
-            code/backend/init_dashboard_data.sql | \
-            mysql --force -h 127.0.0.1 -u root -ptest_password oa_system_test 2>&1 || true
-          # Seed: dict types/data
-          sed 's/oa_system/oa_system_test/g' \
-            code/backend/sql/test_data.sql | \
-            mysql --force -h 127.0.0.1 -u root -ptest_password oa_system_test 2>&1 || true
-          # Seed: workflow roles
-          sed 's/oa_system/oa_system_test/g' \
-            code/backend/sql/seed_workflow_roles.sql | \
-            mysql --force -h 127.0.0.1 -u root -ptest_password oa_system_test 2>&1 || true
-          # Seed: workflow definitions (leave/trip/outing/purchase/expense) + meeting rooms
-          sed 's/oa_system/oa_system_test/g' \
-            code/backend/init_workflow_meeting.sql | \
-            mysql --force -h 127.0.0.1 -u root -ptest_password oa_system_test 2>&1 || true
-          # Add missing overtime and loan workflow definitions
-          mysql --force -h 127.0.0.1 -u root -ptest_password oa_system_test -e "
-            INSERT IGNORE INTO wf_process_definition (id, process_type, process_name, node_config, version, status)
-            VALUES (100, 'overtime', '加班申请', '[{\"nodeIndex\":1,\"nodeName\":\"部门主管审批\",\"nodeType\":\"approval\",\"assigneeType\":\"dept_manager\"}]', 1, '0');
-            INSERT IGNORE INTO wf_process_definition (id, process_type, process_name, node_config, version, status)
-            VALUES (101, 'loan', '借支申请', '[{\"nodeIndex\":1,\"nodeName\":\"部门主管审批\",\"nodeType\":\"approval\",\"assigneeType\":\"dept_manager\"}]', 1, '0');
-          " 2>&1 || true
+          # Step 2: Insert seed data (employees, depts, roles, dict, workflows, etc.)
+          sed 's/oa_system/oa_system_test/g; s/CREATE DATABASE[^;]*;//g; s/USE[^;]*;//g' \
+            code/backend/sql/seed_data.sql | \
+            mysql --force -h 127.0.0.1 -u root -ptest_password oa_system_test 2>&1
 
       - name: Verify database tables
         run: |
           echo "=== Tables in oa_system_test ==="
           mysql -h 127.0.0.1 -u root -ptest_password oa_system_test -e "SHOW TABLES;"
+          echo "=== Table count ==="
+          mysql -h 127.0.0.1 -u root -ptest_password oa_system_test -e "SELECT COUNT(*) as table_count FROM information_schema.tables WHERE table_schema='oa_system_test';"
           echo "=== sys_employee count ==="
           mysql -h 127.0.0.1 -u root -ptest_password oa_system_test -e "SELECT COUNT(*) as cnt FROM sys_employee;"
           echo "=== sys_employee columns ==="
@@ -124,7 +89,8 @@ jobs:
             --spring.datasource.url=jdbc:mysql://127.0.0.1:3306/oa_system_test?useSSL=false\&serverTimezone=Asia/Shanghai\&allowPublicKeyRetrieval=true \
             --spring.datasource.username=root \
             --spring.datasource.password=test_password \
-            --spring.data.redis.host=127.0.0.1 > /tmp/backend.log 2>&1 &
+            --spring.data.redis.host=127.0.0.1 \
+            --jwt.secret=test-jwt-secret-key-for-ci-testing-only > /tmp/backend.log 2>&1 &
           echo "Waiting for backend to start..."
           for i in $(seq 1 60); do
             if curl -s http://localhost:8080/api/auth/captcha > /dev/null 2>&1; then
@@ -150,7 +116,7 @@ jobs:
           echo "=== Test login admin ==="
           LR=$(curl -s -X POST http://localhost:8080/login \
             -H "Content-Type: application/json" \
-            -d "{\"username\":\"admin\",\"password\":\"123456\",\"captchaCode\":\"$CAP\",\"captchaUuid\":\"$UUID\"}")
+            -d "{\"username\":\"admin\",\"password\":\"admin123\",\"captchaCode\":\"$CAP\",\"captchaUuid\":\"$UUID\"}")
           echo "Login response: $LR"
           echo "=== Backend tail log ==="
           tail -30 /tmp/backend.log 2>/dev/null || echo "No log file"
