@@ -17,7 +17,7 @@ public class WfCcRecord {
     private Long taskId;
     @TableField("cc_user_id")
     private Long ccEmpId;
-    @TableField(exist = false)
+    private String businessType;
     private String status; // 0=unread, 1=read
     private LocalDateTime createTime;
 }

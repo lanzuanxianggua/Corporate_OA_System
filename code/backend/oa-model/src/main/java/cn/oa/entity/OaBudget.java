@@ -1,6 +1,7 @@
 package cn.oa.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -15,8 +16,10 @@ public class OaBudget {
 
     private Long deptId;
 
+    @JsonAlias("year")
     private Integer budgetYear;
 
+    @JsonAlias("month")
     private Integer budgetMonth;
 
     private BigDecimal amount;

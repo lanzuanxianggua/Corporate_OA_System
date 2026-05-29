@@ -34,9 +34,9 @@ INSERT INTO `sys_post` (`post_id`, `post_code`, `post_name`, `post_sort`, `statu
 -- 1.3 员工
 -- ---------------------------------------------------------------------------
 INSERT INTO `sys_employee` (`id`, `emp_code`, `emp_name`, `password`, `phone`, `email`, `avatar`, `dept_id`, `post_id`, `status`, `hire_date`, `gender`, `create_by`) VALUES
-(1, 'admin',    '管理员', '$2a$10$RJ15pv5IlbRtGG0pVZxvSe8ez2C70VzMiWUKybehtalMMkVLglz2.', '13800000001', 'admin@oa.com',    NULL, 1, 1, '0', '2020-01-01', '0', 1),
-(2, 'zhangsan', '张三',   '$2a$10$04lKV7vQ4DEhwQbsOEfJkelJ/b.l9vkqCYkNNPEZY/wF9lcaCmHcy', '13800000002', 'zhangsan@oa.com', NULL, 2, 3, '0', '2023-03-15', '0', 1),
-(3, 'lisi',     '李四',   '$2a$10$04lKV7vQ4DEhwQbsOEfJkelJ/b.l9vkqCYkNNPEZY/wF9lcaCmHcy', '13800000003', 'lisi@oa.com',     NULL, 2, 2, '0', '2022-06-01', '0', 1);
+(1, 'admin',    '管理员', '$2a$10$RJ15pv5IlbRtGG0pVZxvSe8ez2C70VzMiWUKybehtalMMkVLglz2.', '13800000001', 'admin@oa.com',    NULL, 1, 1, 1, '2020-01-01', '0', 1),
+(2, 'zhangsan', '张三',   '$2a$10$04lKV7vQ4DEhwQbsOEfJkelJ/b.l9vkqCYkNNPEZY/wF9lcaCmHcy', '13800000002', 'zhangsan@oa.com', NULL, 2, 3, 1, '2023-03-15', '0', 1),
+(3, 'lisi',     '李四',   '$2a$10$04lKV7vQ4DEhwQbsOEfJkelJ/b.l9vkqCYkNNPEZY/wF9lcaCmHcy', '13800000003', 'lisi@oa.com',     NULL, 2, 2, 1, '2022-06-01', '0', 1);
 
 -- ---------------------------------------------------------------------------
 -- 1.4 角色

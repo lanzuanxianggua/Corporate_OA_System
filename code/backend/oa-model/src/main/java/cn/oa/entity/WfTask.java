@@ -48,11 +48,8 @@ public class WfTask {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime deadline;
 
-    @TableField(exist = false)
     private Integer remindCount;
 
-    @TableField(exist = false)
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime lastRemindTime;
 
     /** Parent task ID for countersign/orsign */

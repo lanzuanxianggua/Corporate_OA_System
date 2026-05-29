@@ -1,6 +1,7 @@
 package cn.oa.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -15,8 +16,10 @@ public class OaAttendanceGroup {
 
     private String groupName;
 
+    @JsonAlias("clockInTime")
     private LocalTime workStart;
 
+    @JsonAlias("clockOutTime")
     private LocalTime workEnd;
 
     private Integer lateThreshold = 15;
