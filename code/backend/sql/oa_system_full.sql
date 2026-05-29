@@ -18,8 +18,8 @@ USE `oa_system`;
 DROP TABLE IF EXISTS `sys_employee`;
 CREATE TABLE `sys_employee` (
   `id`          BIGINT       NOT NULL AUTO_INCREMENT COMMENT '员工ID',
-  `emp_no`      VARCHAR(32)  NOT NULL                COMMENT '工号',
-  `name`        VARCHAR(64)  NOT NULL                COMMENT '姓名',
+  `emp_code`    VARCHAR(32)  NOT NULL                COMMENT '工号',
+  `emp_name`    VARCHAR(64)  NOT NULL                COMMENT '姓名',
   `password`    VARCHAR(128) NOT NULL                COMMENT '密码(BCrypt)',
   `phone`       VARCHAR(20)  DEFAULT NULL            COMMENT '手机号',
   `email`       VARCHAR(128) DEFAULT NULL            COMMENT '邮箱',
@@ -35,7 +35,7 @@ CREATE TABLE `sys_employee` (
   `update_by`   BIGINT       DEFAULT NULL            COMMENT '更新人',
   `update_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_emp_no` (`emp_no`),
+  UNIQUE KEY `uk_emp_code` (`emp_code`),
   KEY `idx_dept_id` (`dept_id`),
   KEY `idx_phone` (`phone`),
   KEY `idx_status` (`status`)

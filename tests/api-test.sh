@@ -6,7 +6,7 @@
 # ============================================================
 
 BASE_URL="http://localhost:8080"
-REDIS_CLI="${REDIS_CLI:-C:/Program Files/Redis/redis-cli.exe}"
+REDIS_CLI="${REDIS_CLI:-redis-cli}"
 PASS=0
 FAIL=0
 ERRORS=()
@@ -21,7 +21,7 @@ json_str() { echo "$1" | grep -o "\"$2\":\"[^\"]*\"" | head -1 | cut -d'"' -f4; 
 json_num() { echo "$1" | grep -o "\"$2\":[0-9-]*" | head -1 | cut -d':' -f2; }
 
 login() {
-    local username=$1
+    local username=$1 password=$2
     local cr=$(curl -s "$BASE_URL/api/auth/captcha")
     local uuid=$(json_str "$cr" "uuid")
     local cap=$("$REDIS_CLI" GET "captcha:$uuid" 2>/dev/null | tr -d '"' | tr -d '\r\n')
@@ -29,7 +29,7 @@ login() {
       echo "  [DEBUG] uuid=$uuid cap=EMPTY redis-cli failed or key not found" >&2
     fi
     local lr=$(curl -s -X POST "$BASE_URL/login" -H "Content-Type: application/json" \
-        -d "{\"username\":\"$username\",\"password\":\"123456\",\"captchaCode\":\"$cap\",\"captchaUuid\":\"$uuid\"}")
+        -d "{\"username\":\"$username\",\"password\":\"$password\",\"captchaCode\":\"$cap\",\"captchaUuid\":\"$uuid\"}")
     local token=$(json_str "$lr" "accessToken")
     if [ -z "$token" ]; then
       echo "  [DEBUG] login=$username response=$(echo "$lr" | head -c 200)" >&2
@@ -82,14 +82,14 @@ fi
 CAPTCHA_UUID=$(json_str "$resp" "uuid")
 
 # 2. POST /login (done via login helper below, counted there)
-TOKEN_USER=$(login "wujiu")
+TOKEN_USER=$(login "zhangsan" "123456")
 if [ -n "$TOKEN_USER" ]; then
-    log_pass "#2 Login USER (wujiu)"
+    log_pass "#2 Login USER (zhangsan)"
 else
     log_fail "#2 Login USER"
 fi
 
-TOKEN_ADMIN=$(login "admin")
+TOKEN_ADMIN=$(login "admin" "admin123")
 if [ -n "$TOKEN_ADMIN" ]; then
     log_pass "#3 Login ADMIN (admin)"
 else
@@ -155,7 +155,7 @@ else
 fi
 
 # 11. PUT /api/employee/password (uses @RequestParam, not JSON body)
-assert_ok "#11 Employee password reset" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/api/employee/password?empId=1&oldPwd=123456&newPwd=123456")"
+assert_ok "#11 Employee password reset" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/api/employee/password?empId=2&oldPwd=123456&newPwd=123456")"
 
 # ============================================================
 # SECTION 3: Dept (12-15)
@@ -328,7 +328,7 @@ log_section "7. Config [36-40]"
 assert_ok "#36 Config page" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/api/config/page?pageNum=1&pageSize=10")"
 
 # 37. GET /api/config/key/{key}
-assert_ok "#37 Config by key" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/api/config/key/sys.index.skinName")"
+assert_ok "#37 Config by key" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/api/config/key/sys.name")"
 
 # 38. POST /api/config (create)
 CONFIG_CREATE_RESP=$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/api/config" \
@@ -1206,8 +1206,8 @@ assert_ok "#182 Dept list (POST)" "$(curl -s -X POST -H "Authorization: Bearer $
 assert_ok "#183 Role menu list" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/role-menu" \
     -d '{"roleId":1}')"
 
-# 184. GET /roles
-assert_ok "#184 Roles (GET)" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/roles")"
+# 184. GET /api/system/roles
+assert_ok "#184 Roles (GET)" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/api/system/roles")"
 
 # 185. POST /assign-roles
 assert_ok "#185 Assign roles" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/assign-roles" \
