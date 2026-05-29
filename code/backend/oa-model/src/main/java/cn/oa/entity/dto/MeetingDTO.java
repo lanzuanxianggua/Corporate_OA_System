@@ -7,6 +7,8 @@ import lombok.Data;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 @Data
 public class MeetingDTO implements Serializable {
 
@@ -22,8 +24,10 @@ public class MeetingDTO implements Serializable {
 
     private Long organizerId;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime startTime;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime endTime;
 
     private String description;

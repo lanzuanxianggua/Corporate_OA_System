@@ -749,7 +749,7 @@ if [ -n "$DOC_ID" ]; then
     fi
 else
     # Non-existent ID - endpoint returns 404 with code=-1
-    assert_ok "#100 Document download (no doc)" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/api/document/download/1")" -1
+    assert_ok "#100 Document download (no doc)" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/api/document/download/99998")" -1
 fi
 # Non-existent document always returns 404 with code=-1
 assert_ok "#100 Document download (HTTP 404)" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/api/document/download/99999")" -1
@@ -779,7 +779,7 @@ fi
 
 # 105. POST /api/meeting/submit (create meeting before room delete)
 MEETING_RESP=$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/api/meeting/submit" \
-    -d "{\"title\":\"TestMeeting_API\",\"roomId\":${ROOM_ID:-1},\"startTime\":\"2026-10-01 10:00:00\",\"endTime\":\"2026-10-01 12:00:00\",\"participants\":\"2\",\"description\":\"auto-test\"}")
+    -d "{\"title\":\"TestMeeting_API\",\"roomId\":${ROOM_ID:-1},\"startTime\":\"2026-10-01 10:00:00\",\"endTime\":\"2026-10-01 12:00:00\",\"participants\":\"[2]\",\"description\":\"auto-test\"}")
 assert_ok "#105 Meeting submit" "$MEETING_RESP"
 MEETING_ID=$(json_num "$MEETING_RESP" "id")
 [ -z "$MEETING_ID" ] && MEETING_ID=$(json_num "$MEETING_RESP" "data")
@@ -1004,8 +1004,9 @@ fi
 log_section "30. Workflow [143-159]"
 
 # 143. POST /api/workflow/definition (create) - requires processKey + processType
+# nodeConfig is String in entity, must send as escaped JSON string, not raw array
 WF_DEF_RESP=$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/api/workflow/definition" \
-    -d '{"processType":"test_process","processKey":"test_process_api","processName":"TestProcess_API","nodeConfig":[{"nodeIndex":1,"nodeName":"Manager Approval","nodeType":"approval","assigneeType":"dept_manager","multiType":"orsign"}]}')
+    -d '{"processType":"test_process","processKey":"test_process_api_'$$'","processName":"TestProcess_API","nodeConfig":"[{\"nodeIndex\":1,\"nodeName\":\"Manager Approval\",\"nodeType\":\"approval\",\"assigneeType\":\"dept_manager\",\"multiType\":\"orsign\"}]"}')
 assert_ok "#143 Workflow definition create" "$WF_DEF_RESP"
 WF_DEF_ID=$(json_num "$WF_DEF_RESP" "id")
 [ -z "$WF_DEF_ID" ] && WF_DEF_ID=$(json_num "$WF_DEF_RESP" "data")

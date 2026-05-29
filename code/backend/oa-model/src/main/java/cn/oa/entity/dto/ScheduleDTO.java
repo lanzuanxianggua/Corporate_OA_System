@@ -6,6 +6,8 @@ import lombok.Data;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 @Data
 public class ScheduleDTO implements Serializable {
 
@@ -20,10 +22,13 @@ public class ScheduleDTO implements Serializable {
 
     private String content;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime startTime;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime endTime;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime remindTime;
 
     private Integer status;
