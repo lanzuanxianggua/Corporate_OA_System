@@ -15,9 +15,9 @@ bin/
 dist/
 *.class
 
-# Stray extracted JAR artifacts
-BOOT-INF/
-cn/
+# Stray extracted JAR artifacts (root-level only)
+/BOOT-INF/
+/cn/
 
 ######################################################################
 # Package Files
