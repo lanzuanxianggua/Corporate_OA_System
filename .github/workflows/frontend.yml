@@ -1,18 +1,21 @@
-name: CI - Frontend Build
+name: "CI - Frontend & Mobile"
 
 on:
+  workflow_dispatch:
   push:
     branches: [master]
     paths:
-      - 'code/frontend/**'
-      - '.github/workflows/frontend.yml'
+      - "code/frontend/**"
+      - "code/mobile/**"
+      - ".github/workflows/frontend.yml"
   pull_request:
     branches: [master]
     paths:
-      - 'code/frontend/**'
+      - "code/frontend/**"
+      - "code/mobile/**"
 
 jobs:
-  build:
+  frontend-build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -23,7 +26,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "20"
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -32,7 +35,12 @@ jobs:
 
       - name: Install dependencies
         working-directory: code/frontend
-        run: pnpm install
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            pnpm install --frozen-lockfile
+          else
+            pnpm install
+          fi
 
       - name: Build
         working-directory: code/frontend
@@ -43,4 +51,37 @@ jobs:
         with:
           name: frontend-dist
           path: code/frontend/dist/
+          retention-days: 5
+
+  mobile-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        working-directory: code/mobile
+        run: pnpm install
+
+      - name: Build H5
+        working-directory: code/mobile
+        run: pnpm build:h5
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-h5-dist
+          path: code/mobile/dist/build/h5/
           retention-days: 5

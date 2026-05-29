@@ -1,6 +1,7 @@
 name: API Test
 
 on:
+  workflow_dispatch:
   push:
     branches: [master]
     paths:
