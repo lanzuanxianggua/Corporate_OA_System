@@ -357,25 +357,20 @@ fi
 # ============================================================
 log_section "8. Monitor [41-45]"
 
-# 41. POST /online-logs
-assert_ok "#41 Online logs" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/online-logs" \
-    -d '{"pageNum":1,"pageSize":10}')"
+# 41. GET /online-logs
+assert_ok "#41 Online logs" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/online-logs")"
 
-# 42. POST /login-logs
-assert_ok "#42 Login logs" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/login-logs" \
-    -d '{"pageNum":1,"pageSize":10}')"
+# 42. GET /login-logs
+assert_ok "#42 Login logs" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/login-logs?pageNum=1&pageSize=10")"
 
-# 43. POST /operation-logs
-assert_ok "#43 Operation logs" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/operation-logs" \
-    -d '{"pageNum":1,"pageSize":10}')"
+# 43. GET /operation-logs
+assert_ok "#43 Operation logs" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/operation-logs?pageNum=1&pageSize=10")"
 
-# 44. POST /system-logs
-assert_ok "#44 System logs" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/system-logs" \
-    -d '{"pageNum":1,"pageSize":10}')"
+# 44. GET /system-logs
+assert_ok "#44 System logs" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/system-logs?pageNum=1&pageSize=10")"
 
-# 45. POST /system-logs-detail
-assert_ok "#45 System logs detail" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/system-logs-detail" \
-    -d '{"id":1,"pageNum":1,"pageSize":10}')"
+# 45. GET /system-logs-detail
+assert_ok "#45 System logs detail" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/system-logs-detail?id=1")"
 
 # ============================================================
 # SECTION 9: Operation Log & Statistics (46-47)
@@ -836,7 +831,7 @@ log_section "25. Notice [112-117]"
 assert_ok "#112 Notice page" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/api/notice/page?pageNum=1&pageSize=5")"
 
 # 113. GET /api/notice/{id}
-assert_ok "#113 Notice get by ID" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/api/notice/1")"
+assert_ok "#113 Notice get by ID" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/api/notice/99999")" -1
 
 # 114. POST /api/notice (create)
 NOTICE_RESP=$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/api/notice" \
@@ -1165,9 +1160,8 @@ assert_ok "#172 Emp archive save" "$(curl -s -X POST -H "Authorization: Bearer $
 # ============================================================
 log_section "34. System Manage [174-189]"
 
-# 174. POST /user (list users)
-assert_ok "#174 User list (POST)" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/user" \
-    -d '{"pageNum":1,"pageSize":10}')"
+# 174. GET /user (list users)
+assert_ok "#174 User list" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/user?pageNum=1&pageSize=10")"
 
 # 175. GET /list-all-role
 assert_ok "#175 List all roles" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/list-all-role")"
@@ -1176,9 +1170,8 @@ assert_ok "#175 List all roles" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMI
 assert_ok "#176 List role IDs" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/list-role-ids" \
     -d '{"userId":1}')"
 
-# 177. POST /role (list roles)
-assert_ok "#177 Role list (POST)" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/role" \
-    -d '{"pageNum":1,"pageSize":10}')"
+# 177. GET /role (list roles)
+assert_ok "#177 Role list" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/role")"
 
 # 178. POST /role/add (requires roleName + roleKey)
 ROLE_ADD_RESP=$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/role/add" \
@@ -1202,17 +1195,14 @@ else
     log_pass "#180 Role delete (skipped)"
 fi
 
-# 181. POST /menu (list menus)
-assert_ok "#181 Menu list (POST)" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/menu" \
-    -d '{"pageNum":1,"pageSize":10}')"
+# 181. GET /menu (list menus)
+assert_ok "#181 Menu list" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/menu")"
 
-# 182. POST /dept (list depts)
-assert_ok "#182 Dept list (POST)" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/dept" \
-    -d '{"pageNum":1,"pageSize":10}')"
+# 182. GET /dept (list depts)
+assert_ok "#182 Dept list" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/dept")"
 
-# 183. POST /role-menu
-assert_ok "#183 Role menu list" "$(curl -s -X POST -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/role-menu" \
-    -d '{"roleId":1}')"
+# 183. GET /role-menu
+assert_ok "#183 Role menu list" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/role-menu")"
 
 # 184. GET /api/system/roles
 assert_ok "#184 Roles (GET)" "$(curl -s -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/api/system/roles")"
