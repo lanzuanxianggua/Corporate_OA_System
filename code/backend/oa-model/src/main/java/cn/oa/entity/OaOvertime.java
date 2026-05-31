@@ -46,6 +46,5 @@ public class OaOvertime {
     @TableField(exist = false)
     private String empName;
 
-    @TableField(exist = false)
     private Long processInstanceId;
 }

@@ -21,5 +21,7 @@ public class WfDelegation {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime endTime;
     private String status; // 0=active, 1=cancelled
+    private String businessType;
     private LocalDateTime createTime;
+    private LocalDateTime updateTime;
 }

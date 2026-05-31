@@ -48,6 +48,5 @@ public class OaPurchase {
     @TableField(exist = false)
     private String remark;
 
-    @TableField(exist = false)
     private Long processInstanceId;
 }

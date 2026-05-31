@@ -9,6 +9,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -29,6 +30,8 @@ public class OaLeaveApply {
     private LocalDateTime endTime;
 
     private String reason;
+
+    private BigDecimal days;
 
     private Integer status = 0;
 
@@ -53,6 +56,5 @@ public class OaLeaveApply {
     @TableField(exist = false)
     private String remark;
 
-    @TableField(exist = false)
     private Long processInstanceId;
 }

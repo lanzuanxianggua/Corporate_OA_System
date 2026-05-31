@@ -11,6 +11,7 @@ import cn.oa.service.EmployeeService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +49,9 @@ public class EmployeeController {
     @Operation(summary = "获取员工详情")
     public R<SysEmployee> getById(@PathVariable Long id) {
         SysEmployee employee = employeeService.getById(id);
+        if (employee != null) {
+            employee.setPassword(null);
+        }
         return R.ok(employee);
     }
 
@@ -80,7 +84,9 @@ public class EmployeeController {
         employee.setId(dto.getId());
         employee.setEmpCode(dto.getEmpCode());
         employee.setEmpName(dto.getEmpName());
-        employee.setPassword(dto.getPassword());
+        if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
+            employee.setPassword(cn.hutool.crypto.digest.BCrypt.hashpw(dto.getPassword()));
+        }
         employee.setPhone(dto.getPhone());
         employee.setEmail(dto.getEmail());
         employee.setDeptId(dto.getDeptId());
@@ -103,11 +109,17 @@ public class EmployeeController {
     }
 
     @PutMapping("/password")
+    @RequireAdmin
     @Operation(summary = "修改密码")
     @OperationLog(module = "员工管理", operation = "修改密码")
     public R<Void> updatePassword(@RequestParam Long empId,
                                   @RequestParam String oldPwd,
-                                  @RequestParam String newPwd) {
+                                  @RequestParam String newPwd,
+                                  HttpServletRequest request) {
+        Long currentEmpId = WebUtil.getEmpId(request);
+        if (!currentEmpId.equals(empId)) {
+            return R.fail("只能修改自己的密码");
+        }
         employeeService.updatePassword(empId, oldPwd, newPwd);
         log.info("Employee password changed: empId={}", empId);
         return R.ok();

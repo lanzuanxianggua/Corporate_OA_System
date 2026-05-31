@@ -38,6 +38,5 @@ public class OaLoan {
     @TableField(exist = false)
     private String empName;
 
-    @TableField(exist = false)
     private Long processInstanceId;
 }

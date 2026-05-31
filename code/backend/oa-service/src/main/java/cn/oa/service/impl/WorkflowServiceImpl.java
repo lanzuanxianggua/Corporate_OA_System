@@ -260,8 +260,13 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
                 }
             }
             if (!authorized) {
-                // Allow admin override: log warning but don't block
-                log.warn("handleTask: user {} not authorized for task {} assigned to {}, allowing admin override", handlerId, taskId, task.getAssigneeId());
+                // Check admin role
+                boolean isAdmin = isAdminUser(handlerId);
+                if (!isAdmin) {
+                    log.warn("handleTask: user {} not authorized for task {} assigned to {}, rejecting", handlerId, taskId, task.getAssigneeId());
+                    throw new BusinessException("无权处理此任务");
+                }
+                log.info("handleTask: admin override - user {} handling task {} assigned to {}", handlerId, taskId, task.getAssigneeId());
             } else {
                 log.info("handleTask: delegation approval - user {} acting on task {} assigned to {}", handlerId, taskId, task.getAssigneeId());
             }
@@ -667,6 +672,15 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
         return resolveByRole("DEPT_MANAGER", initiatorId);
     }
 
+    private boolean isAdminUser(Long empId) {
+        List<SysEmpRole> empRoles = empRoleMapper.selectList(
+                new LambdaQueryWrapper<SysEmpRole>().eq(SysEmpRole::getEmpId, empId));
+        if (empRoles.isEmpty()) return false;
+        List<Long> roleIds = empRoles.stream().map(SysEmpRole::getRoleId).collect(Collectors.toList());
+        List<SysRole> roles = roleMapper.selectBatchIds(roleIds);
+        return roles.stream().anyMatch(r -> "ADMIN".equalsIgnoreCase(r.getRoleKey()));
+    }
+
     private Long resolveByRole(String roleKey, Long initiatorId) {
         SysRole role = roleMapper.selectOne(
                 new LambdaQueryWrapper<SysRole>().eq(SysRole::getRoleKey, roleKey).last("LIMIT 1"));
@@ -941,18 +955,9 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
             return multiTask;
         }
 
-        // 5. Last resort: any pending task for this instance (handles edge cases where
-        //    task was transferred or reassigned but the approval controller still sends original assignee)
-        LambdaQueryWrapper<WfTask> anyWrapper = new LambdaQueryWrapper<>();
-        anyWrapper.eq(WfTask::getInstanceId, instance.getId())
-                .eq(WfTask::getStatus, "0")
-                .last("LIMIT 1");
-        WfTask anyTask = taskMapper.selectOne(anyWrapper);
-        if (anyTask != null) {
-            log.warn("findPendingTask: fallback to any pending task taskId={}, requested assigneeId={} actual assigneeId={}",
-                    anyTask.getId(), assigneeId, anyTask.getAssigneeId());
-        }
-        return anyTask;
+        // 5. No matching task found for this user
+        log.debug("findPendingTask: no pending task found for businessType={}, businessId={}, assigneeId={}", businessType, businessId, assigneeId);
+        return null;
     }
 
     /**

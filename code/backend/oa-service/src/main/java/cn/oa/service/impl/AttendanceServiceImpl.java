@@ -94,19 +94,20 @@ public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAtt
 
     @Override
     public IPage<Map<String, Object>> adminPage(int pageNum, int pageSize, String empName, Integer status, LocalDate startDate, LocalDate endDate) {
-        List<SysEmployee> allEmps = employeeMapper.selectList(null);
-        Map<Long, SysEmployee> empMap = allEmps.stream()
-                .collect(Collectors.toMap(SysEmployee::getId, e -> e));
-
+        // Resolve matching empIds first — only query employees when a name filter is provided
         Set<Long> matchEmpIds = null;
+        Map<Long, SysEmployee> empMap;
         if (empName != null && !empName.isBlank()) {
-            matchEmpIds = allEmps.stream()
-                    .filter(e -> e.getEmpName().contains(empName))
-                    .map(SysEmployee::getId)
-                    .collect(Collectors.toSet());
-            if (matchEmpIds.isEmpty()) {
+            LambdaQueryWrapper<SysEmployee> empWrapper = new LambdaQueryWrapper<>();
+            empWrapper.like(SysEmployee::getEmpName, empName);
+            List<SysEmployee> matchedEmps = employeeMapper.selectList(empWrapper);
+            if (matchedEmps.isEmpty()) {
                 return new Page<>(pageNum, pageSize);
             }
+            matchEmpIds = matchedEmps.stream().map(SysEmployee::getId).collect(Collectors.toSet());
+            empMap = matchedEmps.stream().collect(Collectors.toMap(SysEmployee::getId, e -> e));
+        } else {
+            empMap = new HashMap<>();
         }
 
         LambdaQueryWrapper<OaAttendance> wrapper = new LambdaQueryWrapper<>();
@@ -125,6 +126,19 @@ public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAtt
         wrapper.orderByDesc(OaAttendance::getWorkDate);
 
         IPage<OaAttendance> page = this.page(new Page<>(pageNum, pageSize), wrapper);
+
+        // Batch-load only the employees that appear in the attendance records
+        Set<Long> neededEmpIds = page.getRecords().stream()
+                .map(OaAttendance::getEmpId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        neededEmpIds.removeAll(empMap.keySet());
+        if (!neededEmpIds.isEmpty()) {
+            List<SysEmployee> extraEmps = employeeMapper.selectBatchIds(neededEmpIds);
+            for (SysEmployee e : extraEmps) {
+                empMap.put(e.getId(), e);
+            }
+        }
 
         List<Map<String, Object>> records = page.getRecords().stream().map(att -> {
             Map<String, Object> map = new LinkedHashMap<>();

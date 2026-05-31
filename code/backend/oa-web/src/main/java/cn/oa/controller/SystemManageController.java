@@ -44,6 +44,12 @@ public class SystemManageController {
     @Autowired
     private OperationLogService operationLogService;
 
+    @Autowired
+    private SysRoleMenuMapper roleMenuMapper;
+
+    @Autowired
+    private OaLoginLogMapper loginLogMapper;
+
     @PostMapping("/user")
     @RequireAdmin
     @Operation(summary = "用户列表（分页）")
@@ -303,7 +309,11 @@ public class SystemManageController {
     @RequireAdmin
     @Operation(summary = "获取角色菜单ID列表")
     public R<List<Long>> roleMenuIds(@RequestBody @Valid IdQueryDTO dto) {
-        return R.ok(List.of(1L, 2L, 3L, 4L));
+        Long roleId = dto.getEffectiveId();
+        List<SysRoleMenu> roleMenus = roleMenuMapper.selectList(
+                new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getRoleId, roleId));
+        List<Long> menuIds = roleMenus.stream().map(SysRoleMenu::getMenuId).collect(Collectors.toList());
+        return R.ok(menuIds);
     }
 
     @GetMapping("/mine")
@@ -325,24 +335,35 @@ public class SystemManageController {
 
     @GetMapping("/mine-logs")
     @Operation(summary = "获取当前用户登录日志")
-    public R<Map<String, Object>> mineLogs(@RequestParam(required = false) Map<String, Object> params) {
-        Map<String, Object> result = new LinkedHashMap<>();
-        List<Map<String, Object>> list = new ArrayList<>();
-        for (int i = 1; i <= 5; i++) {
+    public R<Map<String, Object>> mineLogs(@RequestParam(required = false) Map<String, Object> params,
+                                           HttpServletRequest request) {
+        Long empId = WebUtil.getEmpId(request);
+        int pageNum = params != null && params.get("page") != null ? ((Number) params.get("page")).intValue() : 1;
+        int pageSize = params != null && params.get("pageSize") != null ? ((Number) params.get("pageSize")).intValue() : 10;
+
+        LambdaQueryWrapper<OaLoginLog> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(OaLoginLog::getEmpId, empId)
+                .orderByDesc(OaLoginLog::getLoginTime);
+
+        Page<OaLoginLog> page = loginLogMapper.selectPage(new Page<>(pageNum, pageSize), wrapper);
+
+        List<Map<String, Object>> list = page.getRecords().stream().map(log -> {
             Map<String, Object> logMap = new LinkedHashMap<>();
-            logMap.put("id", i);
-            logMap.put("ip", "192.168.1." + i);
-            logMap.put("address", "内网");
-            logMap.put("system", "Windows 11");
-            logMap.put("browser", "Chrome 120");
+            logMap.put("id", log.getId());
+            logMap.put("ip", log.getIp() != null ? log.getIp() : "");
+            logMap.put("address", "");
+            logMap.put("system", log.getOs() != null ? log.getOs() : "");
+            logMap.put("browser", log.getBrowser() != null ? log.getBrowser() : "");
             logMap.put("summary", "登录系统");
-            logMap.put("operatingTime", "2024-01-0" + i + " 10:00:00");
-            list.add(logMap);
-        }
+            logMap.put("operatingTime", log.getLoginTime() != null ? log.getLoginTime().toString() : "");
+            return logMap;
+        }).collect(Collectors.toList());
+
+        Map<String, Object> result = new LinkedHashMap<>();
         result.put("list", list);
-        result.put("total", list.size());
-        result.put("pageSize", 10);
-        result.put("currentPage", 1);
+        result.put("total", page.getTotal());
+        result.put("pageSize", pageSize);
+        result.put("currentPage", pageNum);
         return R.ok(result);
     }
 

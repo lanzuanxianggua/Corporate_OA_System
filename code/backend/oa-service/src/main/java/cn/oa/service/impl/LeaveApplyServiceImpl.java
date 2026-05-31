@@ -67,6 +67,7 @@ public class LeaveApplyServiceImpl extends BaseApprovalServiceImpl<OaLeaveApplyM
 
     @Override
     protected void onUpdateStatus(OaLeaveApply entity, Integer newStatus, Integer oldStatus) {
+        if (entity.getLeaveType() == null || entity.getEmpId() == null) return;
         if (entity.getStartTime() == null || entity.getEndTime() == null) return;
 
         BigDecimal days = calculateLeaveDays(entity);
@@ -117,6 +118,7 @@ public class LeaveApplyServiceImpl extends BaseApprovalServiceImpl<OaLeaveApplyM
         if (apply.getStartTime() == null || apply.getEndTime() == null) {
             throw new cn.oa.common.exception.BusinessException("请假起止时间不能为空");
         }
+        apply.setDays(calculateLeaveDays(apply));
         doSubmit(apply);
     }
 

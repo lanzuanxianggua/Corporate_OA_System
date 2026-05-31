@@ -243,27 +243,40 @@ public class ReportServiceImpl implements ReportService {
         LocalDate start = ym.atDay(1);
         LocalDate end = ym.atEndOfMonth();
 
+        // Single query: fetch all attendance records for the month
+        LambdaQueryWrapper<OaAttendance> attWrapper = new LambdaQueryWrapper<>();
+        attWrapper.between(OaAttendance::getWorkDate, start, end);
+        List<OaAttendance> allRecords = attendanceMapper.selectList(attWrapper);
+
+        // Batch-load employees for dept mapping
+        Set<Long> empIds = allRecords.stream().map(OaAttendance::getEmpId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<Long, SysEmployee> empMap = new HashMap<>();
+        if (!empIds.isEmpty()) {
+            employeeMapper.selectBatchIds(empIds).forEach(e -> empMap.put(e.getId(), e));
+        }
+
+        // Group attendance records by department
+        Map<Long, List<OaAttendance>> byDept = new HashMap<>();
+        for (OaAttendance a : allRecords) {
+            SysEmployee emp = empMap.get(a.getEmpId());
+            Long deptId = emp != null ? emp.getDeptId() : null;
+            if (deptId != null) {
+                byDept.computeIfAbsent(deptId, k -> new ArrayList<>()).add(a);
+            }
+        }
+
+        // Load dept names
         List<SysDept> depts = deptMapper.selectList(null);
+        Map<Long, String> deptNameMap = depts.stream().collect(Collectors.toMap(SysDept::getId, SysDept::getDeptName, (a, b) -> a));
+
         List<Map<String, Object>> result = new ArrayList<>();
-
-        for (SysDept dept : depts) {
-            List<SysEmployee> empList = employeeMapper.selectList(
-                    new LambdaQueryWrapper<SysEmployee>()
-                            .eq(SysEmployee::getDeptId, dept.getId())
-                            .eq(SysEmployee::getStatus, 1));
-            if (empList.isEmpty()) continue;
-
-            List<Long> empIds = empList.stream().map(SysEmployee::getId).collect(Collectors.toList());
-            LambdaQueryWrapper<OaAttendance> wrapper = new LambdaQueryWrapper<>();
-            wrapper.in(OaAttendance::getEmpId, empIds)
-                   .between(OaAttendance::getWorkDate, start, end);
-            List<OaAttendance> records = attendanceMapper.selectList(wrapper);
-
+        for (Map.Entry<Long, List<OaAttendance>> entry : byDept.entrySet()) {
+            List<OaAttendance> records = entry.getValue();
             long normal = records.stream().filter(a -> a.getStatus() != null && a.getStatus() == 0).count();
             double rate = records.isEmpty() ? 0 : Math.round((double) normal / records.size() * 10000) / 100.0;
 
             Map<String, Object> item = new LinkedHashMap<>();
-            item.put("deptName", dept.getDeptName());
+            item.put("deptName", deptNameMap.getOrDefault(entry.getKey(), ""));
             item.put("totalRecords", records.size());
             item.put("normalCount", normal);
             item.put("rate", rate);
@@ -312,24 +325,41 @@ public class ReportServiceImpl implements ReportService {
         LocalDate start = ym.atDay(1);
         LocalDate end = ym.atEndOfMonth();
 
-        List<SysEmployee> employees = employeeMapper.selectList(
-                new LambdaQueryWrapper<SysEmployee>().eq(SysEmployee::getStatus, 1));
+        // Single query: fetch all attendance records for the month
+        LambdaQueryWrapper<OaAttendance> attWrapper = new LambdaQueryWrapper<>();
+        attWrapper.between(OaAttendance::getWorkDate, start, end);
+        List<OaAttendance> allRecords = attendanceMapper.selectList(attWrapper);
+
+        // Group by empId and compute stats
+        Map<Long, Long> normalMap = new HashMap<>();
+        Map<Long, Long> totalMap = new HashMap<>();
+        for (OaAttendance a : allRecords) {
+            Long empId = a.getEmpId();
+            if (empId == null) continue;
+            totalMap.merge(empId, 1L, Long::sum);
+            if (a.getStatus() != null && a.getStatus() == 0) {
+                normalMap.merge(empId, 1L, Long::sum);
+            }
+        }
+
+        // Load employee names
+        Set<Long> empIds = totalMap.keySet();
+        Map<Long, String> nameMap = new HashMap<>();
+        if (!empIds.isEmpty()) {
+            employeeMapper.selectBatchIds(empIds).forEach(e -> nameMap.put(e.getId(), e.getEmpName()));
+        }
 
         List<Map<String, Object>> rankings = new ArrayList<>();
-        for (SysEmployee emp : employees) {
-            LambdaQueryWrapper<OaAttendance> wrapper = new LambdaQueryWrapper<>();
-            wrapper.eq(OaAttendance::getEmpId, emp.getId())
-                   .between(OaAttendance::getWorkDate, start, end);
-            List<OaAttendance> records = attendanceMapper.selectList(wrapper);
-
-            long normal = records.stream().filter(a -> a.getStatus() != null && a.getStatus() == 0).count();
-            double rate = records.isEmpty() ? 0 : Math.round((double) normal / records.size() * 10000) / 100.0;
+        for (Long empId : empIds) {
+            long normal = normalMap.getOrDefault(empId, 0L);
+            long total = totalMap.getOrDefault(empId, 0L);
+            double rate = total > 0 ? Math.round((double) normal / total * 10000) / 100.0 : 0;
 
             Map<String, Object> item = new LinkedHashMap<>();
-            item.put("empId", emp.getId());
-            item.put("empName", emp.getEmpName());
+            item.put("empId", empId);
+            item.put("empName", nameMap.getOrDefault(empId, ""));
             item.put("normalDays", normal);
-            item.put("totalDays", records.size());
+            item.put("totalDays", total);
             item.put("rate", rate);
             rankings.add(item);
         }

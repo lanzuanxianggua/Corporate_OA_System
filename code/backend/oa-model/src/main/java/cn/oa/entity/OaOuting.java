@@ -50,6 +50,5 @@ public class OaOuting {
     @TableField(exist = false)
     private String remark;
 
-    @TableField(exist = false)
     private Long processInstanceId;
 }

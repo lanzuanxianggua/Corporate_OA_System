@@ -30,7 +30,7 @@ public class SysDept {
     @TableField(exist = false)
     private String phone;
 
-    private Integer status = 1;
+    private Integer status = 0;
 
     @TableLogic
     private String delFlag;

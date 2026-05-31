@@ -137,23 +137,8 @@ public abstract class BaseApprovalServiceImpl<M extends BaseMapper<T>, T>
                 workflowService.handleTask(task.getId(), approverId, status, remark);
             }
         } else {
-            // Fallback: find any pending task for this business instance (admin override)
-            cn.oa.entity.WfProcessInstance instance = workflowService.getByBusiness(getBusinessType(), id);
-            if (instance != null) {
-                LambdaQueryWrapper<WfTask> wrapper = new LambdaQueryWrapper<>();
-                wrapper.eq(WfTask::getInstanceId, instance.getId())
-                       .eq(WfTask::getStatus, "0")
-                       .orderByAsc(WfTask::getCreateTime)
-                       .last("LIMIT 1");
-                task = wfTaskMapper.selectOne(wrapper);
-            }
-            if (task != null) {
-                log.info("doApprove: admin override - using task {} for businessType={}, id={}", task.getId(), getBusinessType(), id);
-                workflowService.handleTask(task.getId(), approverId, status, remark);
-            } else {
-                log.warn("doApprove: no pending task found for businessType={}, id={}, approverId={}", getBusinessType(), id, approverId);
-                throw new BusinessException("未找到待审批的任务");
-            }
+            log.warn("doApprove: no pending task found for businessType={}, id={}, approverId={}", getBusinessType(), id, approverId);
+            throw new BusinessException("未找到待审批的任务");
         }
     }
 
