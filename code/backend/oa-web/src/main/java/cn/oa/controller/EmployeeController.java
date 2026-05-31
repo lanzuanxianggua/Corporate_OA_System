@@ -117,7 +117,7 @@ public class EmployeeController {
                                   HttpServletRequest request) {
         Long currentEmpId = WebUtil.getEmpId(request);
         // Admin can reset any employee's password; non-admin can only change own
-        if (!currentEmpId.equals(empId)) {
+        if (!currentEmpId.equals(empId) && !currentEmpId.equals(1L)) {
             return R.fail("只能修改自己的密码");
         }
         employeeService.updatePassword(empId, oldPwd, newPwd);
