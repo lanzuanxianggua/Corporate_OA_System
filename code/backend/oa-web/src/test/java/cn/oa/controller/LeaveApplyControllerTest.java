@@ -45,7 +45,7 @@ class LeaveApplyControllerTest extends BaseControllerTest {
         OaLeaveApply apply = new OaLeaveApply();
         apply.setId(id);
         apply.setEmpId(1L);
-        apply.setLeaveType(1);
+        apply.setLeaveType("1");
         apply.setStartTime(LocalDateTime.of(2026, 5, 10, 9, 0, 0));
         apply.setEndTime(LocalDateTime.of(2026, 5, 11, 18, 0, 0));
         apply.setReason("家里有事");
@@ -113,6 +113,6 @@ class LeaveApplyControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.data.total").value(1))
-                .andExpect(jsonPath("$.data.list[0].leaveType").value(1));
+                .andExpect(jsonPath("$.data.list[0].leaveType").value("1"));
     }
 }

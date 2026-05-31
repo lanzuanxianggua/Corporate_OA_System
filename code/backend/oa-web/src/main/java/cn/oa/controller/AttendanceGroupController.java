@@ -5,6 +5,7 @@ import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaAttendanceGroup;
+import cn.oa.entity.dto.EmpIdsDTO;
 import cn.oa.service.AttendanceGroupService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,9 +14,6 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @RestController
@@ -70,19 +68,19 @@ public class AttendanceGroupController {
     @RequireAdmin
     @Operation(summary = "分配员工到考勤组")
     @cn.oa.common.annotation.OperationLog(module = "考勤组管理", operation = "分配员工到考勤组")
-    public R<Void> assignEmployees(@PathVariable Long id, @RequestBody @Valid Map<String, List<Long>> params) {
-        attendanceGroupService.assignEmployees(id, params.get("empIds"));
-        log.info("Employees assigned to attendance group: groupId={}, count={}", id, params.get("empIds") != null ? params.get("empIds").size() : 0);
+    public R<Void> assignEmployees(@PathVariable Long id, @RequestBody @Valid EmpIdsDTO dto) {
+        attendanceGroupService.assignEmployees(id, dto.getEmpIds());
+        log.info("Employees assigned to attendance group: groupId={}, count={}", id, dto.getEmpIds().size());
         return R.ok();
     }
 
-    @DeleteMapping("/{id}/employees")
+    @PostMapping("/{id}/employees/remove")
     @RequireAdmin
     @Operation(summary = "从考勤组移除员工")
     @cn.oa.common.annotation.OperationLog(module = "考勤组管理", operation = "从考勤组移除员工")
-    public R<Void> removeEmployees(@PathVariable Long id, @RequestBody @Valid Map<String, List<Long>> params) {
-        attendanceGroupService.removeEmployees(id, params.get("empIds"));
-        log.info("Employees removed from attendance group: groupId={}, count={}", id, params.get("empIds") != null ? params.get("empIds").size() : 0);
+    public R<Void> removeEmployees(@PathVariable Long id, @RequestBody @Valid EmpIdsDTO dto) {
+        attendanceGroupService.removeEmployees(id, dto.getEmpIds());
+        log.info("Employees removed from attendance group: groupId={}, count={}", id, dto.getEmpIds().size());
         return R.ok();
     }
 }

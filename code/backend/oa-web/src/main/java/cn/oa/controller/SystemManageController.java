@@ -50,19 +50,19 @@ public class SystemManageController {
     @Autowired
     private OaLoginLogMapper loginLogMapper;
 
-    @PostMapping("/user")
+    @GetMapping("/user")
     @RequireAdmin
     @Operation(summary = "用户列表（分页）")
-    public R<Map<String, Object>> userList(@RequestBody(required = false) @Valid Map<String, Object> params) {
-        int pageNum = params != null && params.get("page") != null ? ((Number) params.get("page")).intValue() : 1;
-        int pageSize = params != null && params.get("pageSize") != null ? ((Number) params.get("pageSize")).intValue() : 10;
-
+    public R<Map<String, Object>> userList(@RequestParam(defaultValue = "1") int pageNum,
+                                            @RequestParam(defaultValue = "10") int pageSize,
+                                            @RequestParam(required = false) String username,
+                                            @RequestParam(required = false) Integer status) {
         LambdaQueryWrapper<SysEmployee> wrapper = new LambdaQueryWrapper<>();
-        if (params != null && params.get("username") != null) {
-            wrapper.like(SysEmployee::getEmpCode, params.get("username").toString());
+        if (username != null) {
+            wrapper.like(SysEmployee::getEmpCode, username);
         }
-        if (params != null && params.get("status") != null) {
-            wrapper.eq(SysEmployee::getStatus, params.get("status"));
+        if (status != null) {
+            wrapper.eq(SysEmployee::getStatus, status);
         }
         wrapper.orderByDesc(SysEmployee::getCreateTime);
 
@@ -141,10 +141,10 @@ public class SystemManageController {
         return R.ok(roleIds);
     }
 
-    @PostMapping("/role")
+    @GetMapping("/role")
     @RequireAdmin
     @Operation(summary = "角色列表")
-    public R<Map<String, Object>> roleList(@RequestBody(required = false) @Valid Map<String, Object> params) {
+    public R<Map<String, Object>> roleList() {
         List<SysRole> roles = roleMapper.selectList(null);
 
         List<Map<String, Object>> list = roles.stream().map(r -> {
@@ -243,17 +243,17 @@ public class SystemManageController {
         return R.ok();
     }
 
-    @PostMapping("/menu")
+    @GetMapping("/menu")
     @RequireAdmin
     @Operation(summary = "菜单列表")
-    public R<List<Map<String, Object>>> menuList(@RequestBody(required = false) @Valid Map<String, Object> params) {
+    public R<List<Map<String, Object>>> menuList() {
         return R.ok(buildMenuTree(0L));
     }
 
-    @PostMapping("/dept")
+    @GetMapping("/dept")
     @RequireAdmin
     @Operation(summary = "部门列表")
-    public R<List<Map<String, Object>>> deptList(@RequestBody(required = false) @Valid Map<String, Object> params) {
+    public R<List<Map<String, Object>>> deptList() {
         List<SysDept> allDepts = deptMapper.selectList(
                 new LambdaQueryWrapper<SysDept>().orderByAsc(SysDept::getSort));
 
@@ -266,7 +266,7 @@ public class SystemManageController {
         return R.ok(list);
     }
 
-    @PostMapping("/role-menu")
+    @GetMapping("/role-menu")
     @RequireAdmin
     @Operation(summary = "角色菜单列表")
     public R<List<Map<String, Object>>> roleMenuList() {

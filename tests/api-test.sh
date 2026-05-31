@@ -154,8 +154,8 @@ else
     log_pass "#10 Employee delete (skipped - no test ID)"
 fi
 
-# 11. PUT /api/employee/password (uses @RequestParam, not JSON body)
-assert_ok "#11 Employee password reset" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" "$BASE_URL/api/employee/password?empId=2&oldPwd=123456&newPwd=123456")"
+# 11. PUT /api/employee/password (JSON body)
+assert_ok "#11 Employee password reset" "$(curl -s -X PUT -H "Authorization: Bearer $TOKEN_ADMIN" -H "$H" "$BASE_URL/api/employee/password" -d '{"empId":2,"oldPwd":"123456","newPwd":"123456"}')"
 
 # ============================================================
 # SECTION 3: Dept (12-15)

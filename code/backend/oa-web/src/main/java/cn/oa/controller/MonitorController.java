@@ -13,7 +13,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -35,9 +34,9 @@ public class MonitorController {
     @Autowired
     private OperationLogService operationLogService;
 
-    @PostMapping("/online-logs")
+    @GetMapping("/online-logs")
     @Operation(summary = "在线用户日志")
-    public R<Map<String, Object>> onlineLogs(@RequestBody(required = false) @Valid Map<String, Object> params) {
+    public R<Map<String, Object>> onlineLogs() {
         List<OnlineUserVO> onlineUsers = onlineUserService.getOnlineUsers();
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("list", onlineUsers);
@@ -47,12 +46,10 @@ public class MonitorController {
         return R.ok(result);
     }
 
-    @PostMapping("/login-logs")
+    @GetMapping("/login-logs")
     @Operation(summary = "登录日志")
-    public R<Map<String, Object>> loginLogs(@RequestBody(required = false) @Valid Map<String, Object> params) {
-        int pageNum = params != null && params.get("page") != null ? ((Number) params.get("page")).intValue() : 1;
-        int pageSize = params != null && params.get("pageSize") != null ? ((Number) params.get("pageSize")).intValue() : 10;
-
+    public R<Map<String, Object>> loginLogs(@RequestParam(defaultValue = "1") int pageNum,
+                                             @RequestParam(defaultValue = "10") int pageSize) {
         LambdaQueryWrapper<OaLoginLog> wrapper = new LambdaQueryWrapper<>();
         wrapper.orderByDesc(OaLoginLog::getLoginTime);
         Page<OaLoginLog> page = loginLogMapper.selectPage(new Page<>(pageNum, pageSize), wrapper);
@@ -80,13 +77,11 @@ public class MonitorController {
         return R.ok(result);
     }
 
-    @PostMapping("/operation-logs")
+    @GetMapping("/operation-logs")
     @Operation(summary = "操作日志")
-    public R<Map<String, Object>> operationLogs(@RequestBody(required = false) @Valid Map<String, Object> params) {
-        int pageNum = params != null && params.get("page") != null ? ((Number) params.get("page")).intValue() : 1;
-        int pageSize = params != null && params.get("pageSize") != null ? ((Number) params.get("pageSize")).intValue() : 10;
-
-        String module = params != null && params.get("module") != null ? params.get("module").toString() : null;
+    public R<Map<String, Object>> operationLogs(@RequestParam(defaultValue = "1") int pageNum,
+                                                 @RequestParam(defaultValue = "10") int pageSize,
+                                                 @RequestParam(required = false) String module) {
         PageResult<OaOperationLog> pageResult = operationLogService.pageList(pageNum, pageSize, module, null, null);
 
         List<Map<String, Object>> list = new ArrayList<>();
@@ -113,12 +108,10 @@ public class MonitorController {
         return R.ok(result);
     }
 
-    @PostMapping("/system-logs")
+    @GetMapping("/system-logs")
     @Operation(summary = "系统日志")
-    public R<Map<String, Object>> systemLogs(@RequestBody(required = false) @Valid Map<String, Object> params) {
-        int pageNum = params != null && params.get("page") != null ? ((Number) params.get("page")).intValue() : 1;
-        int pageSize = params != null && params.get("pageSize") != null ? ((Number) params.get("pageSize")).intValue() : 10;
-
+    public R<Map<String, Object>> systemLogs(@RequestParam(defaultValue = "1") int pageNum,
+                                              @RequestParam(defaultValue = "10") int pageSize) {
         PageResult<OaOperationLog> pageResult = operationLogService.pageList(pageNum, pageSize, null, null, null);
 
         List<Map<String, Object>> list = new ArrayList<>();
@@ -146,11 +139,11 @@ public class MonitorController {
         return R.ok(result);
     }
 
-    @PostMapping("/system-logs-detail")
+    @GetMapping("/system-logs-detail")
     @Operation(summary = "系统日志详情")
-    public R<Map<String, Object>> systemLogsDetail(@RequestBody @Valid Map<String, Object> params) {
+    public R<Map<String, Object>> systemLogsDetail(@RequestParam Long id) {
         Map<String, Object> detail = new LinkedHashMap<>();
-        detail.put("id", params.get("id"));
+        detail.put("id", id);
         detail.put("level", 1);
         detail.put("module", "系统模块");
         detail.put("url", "/api/system");
@@ -165,7 +158,7 @@ public class MonitorController {
         detail.put("requestBody", "{}");
         detail.put("responseHeaders", "Content-Type: application/json");
         detail.put("responseBody", "{\"code\":0,\"message\":\"操作成功\"}");
-        detail.put("traceId", "trace-" + params.get("id"));
+        detail.put("traceId", "trace-" + id);
         return R.ok(detail);
     }
 }

@@ -42,6 +42,9 @@ public class OaExpense {
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private String updateBy;
 
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private LocalDateTime updateTime;
+
     @TableField(exist = false)
     private String empName;
 

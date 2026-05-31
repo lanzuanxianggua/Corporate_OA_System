@@ -9,8 +9,8 @@ import java.io.Serializable;
 @Data
 public class LeaveApplyDTO implements Serializable {
 
-    @NotNull(message = "请假类型不能为空")
-    private Integer leaveType;
+    @NotBlank(message = "请假类型不能为空")
+    private String leaveType;
 
     @NotBlank(message = "开始时间不能为空")
     private String startDate;

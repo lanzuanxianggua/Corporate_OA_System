@@ -76,12 +76,12 @@ public class LeaveApplyServiceImpl extends BaseApprovalServiceImpl<OaLeaveApplyM
         int year = startDate.getYear();
 
         if (newStatus == 1 && !Integer.valueOf(1).equals(oldStatus)) {
-            leaveBalanceService.deductBalance(entity.getEmpId(), entity.getLeaveType(), year, days);
+            leaveBalanceService.deductBalance(entity.getEmpId(), Integer.valueOf(entity.getLeaveType()), year, days);
             attendanceService.markLeaveAttendance(entity.getEmpId(), startDate, endDate);
         }
 
         if ((newStatus == 2 || newStatus == 3) && Integer.valueOf(1).equals(oldStatus)) {
-            leaveBalanceService.restoreBalance(entity.getEmpId(), entity.getLeaveType(), year, days);
+            leaveBalanceService.restoreBalance(entity.getEmpId(), Integer.valueOf(entity.getLeaveType()), year, days);
             attendanceService.removeMarkedAttendance(entity.getEmpId(), startDate, endDate, 5);
         }
     }

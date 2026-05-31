@@ -21,7 +21,7 @@ public class OaLeaveApply {
 
     private Long empId;
 
-    private Integer leaveType;
+    private String leaveType;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime startTime;

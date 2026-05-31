@@ -48,7 +48,15 @@ public class TodoController {
 
     @PostMapping("/done/{id}")
     @Operation(summary = "标记待办完成")
-    public R<Void> done(@PathVariable Long id) {
+    public R<Void> done(@PathVariable Long id, HttpServletRequest request) {
+        Long currentEmpId = WebUtil.getEmpId(request);
+        OaTodo todo = todoService.getById(id);
+        if (todo == null) {
+            return R.fail("待办不存在");
+        }
+        if (!todo.getEmpId().equals(currentEmpId)) {
+            return R.fail("无权操作此待办");
+        }
         todoService.doneTodo(id);
         log.info("Todo marked done: id={}", id);
         return R.ok();
@@ -56,7 +64,15 @@ public class TodoController {
 
     @PostMapping("/ignore/{id}")
     @Operation(summary = "忽略待办")
-    public R<Void> ignore(@PathVariable Long id) {
+    public R<Void> ignore(@PathVariable Long id, HttpServletRequest request) {
+        Long currentEmpId = WebUtil.getEmpId(request);
+        OaTodo todo = todoService.getById(id);
+        if (todo == null) {
+            return R.fail("待办不存在");
+        }
+        if (!todo.getEmpId().equals(currentEmpId)) {
+            return R.fail("无权操作此待办");
+        }
         todoService.ignoreTodo(id);
         log.info("Todo ignored: id={}", id);
         return R.ok();

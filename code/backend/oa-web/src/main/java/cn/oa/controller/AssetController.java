@@ -86,7 +86,16 @@ public class AssetController {
     @PostMapping("/return/{borrowId}")
     @Operation(summary = "归还资产")
     @cn.oa.common.annotation.OperationLog(module = "资产管理", operation = "归还资产")
-    public R<Void> returnAsset(@PathVariable Long borrowId) {
+    public R<Void> returnAsset(@PathVariable Long borrowId, HttpServletRequest request) {
+        Long currentEmpId = WebUtil.getEmpId(request);
+        OaAssetBorrow borrow = assetBorrowService.getById(borrowId);
+        if (borrow == null) {
+            return R.fail("借用记录不存在");
+        }
+        // Only the borrower or admin can return
+        if (!borrow.getBorrowerId().equals(currentEmpId) && !currentEmpId.equals(1L)) {
+            return R.fail("无权归还此资产");
+        }
         assetBorrowService.returnAsset(borrowId);
         log.info("Asset returned: borrowId={}", borrowId);
         return R.ok();

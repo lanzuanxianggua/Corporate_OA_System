@@ -6,6 +6,7 @@ import cn.oa.common.result.R;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.RptAlertLog;
 import cn.oa.entity.RptAlertRule;
+import cn.oa.entity.dto.HandleAlertDTO;
 import cn.oa.service.AlertLogService;
 import cn.oa.service.AlertRuleService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -16,8 +17,6 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @Slf4j
 @RestController
@@ -72,6 +71,7 @@ public class AlertController {
     }
 
     @GetMapping("/log/page")
+    @RequireAdmin
     @Operation(summary = "分页查询预警日志")
     public R<PageResult<RptAlertLog>> logPage(@RequestParam int pageNum,
                                                 @RequestParam int pageSize,
@@ -84,10 +84,9 @@ public class AlertController {
     @PostMapping("/log/handle/{id}")
     @Operation(summary = "处理预警")
     @cn.oa.common.annotation.OperationLog(module = "预警规则", operation = "处理预警")
-    public R<Void> handleLog(@PathVariable Long id, @RequestBody @Valid Map<String, String> params, HttpServletRequest request) {
+    public R<Void> handleLog(@PathVariable Long id, @RequestBody @Valid HandleAlertDTO dto, HttpServletRequest request) {
         Long empId = WebUtil.getEmpId(request);
-        String handleRemark = params.get("handleRemark");
-        alertLogService.handle(id, String.valueOf(empId), handleRemark);
+        alertLogService.handle(id, String.valueOf(empId), dto.getHandleRemark());
         log.info("Alert log handled: id={}, handler={}", id, empId);
         return R.ok();
     }

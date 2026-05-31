@@ -6,6 +6,7 @@ import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.SysEmployee;
+import cn.oa.entity.dto.ChangePasswordDTO;
 import cn.oa.entity.dto.EmployeeDTO;
 import cn.oa.service.EmployeeService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -49,9 +50,10 @@ public class EmployeeController {
     @Operation(summary = "获取员工详情")
     public R<SysEmployee> getById(@PathVariable Long id) {
         SysEmployee employee = employeeService.getById(id);
-        if (employee != null) {
-            employee.setPassword(null);
+        if (employee == null) {
+            return R.fail("员工不存在");
         }
+        employee.setPassword(null);
         return R.ok(employee);
     }
 
@@ -111,16 +113,15 @@ public class EmployeeController {
     @PutMapping("/password")
     @Operation(summary = "修改密码")
     @OperationLog(module = "员工管理", operation = "修改密码")
-    public R<Void> updatePassword(@RequestParam Long empId,
-                                  @RequestParam String oldPwd,
-                                  @RequestParam String newPwd,
+    public R<Void> updatePassword(@RequestBody @Valid ChangePasswordDTO dto,
                                   HttpServletRequest request) {
         Long currentEmpId = WebUtil.getEmpId(request);
+        Long empId = dto.getEmpId() != null ? dto.getEmpId() : currentEmpId;
         // Admin can reset any employee's password; non-admin can only change own
         if (!currentEmpId.equals(empId) && !currentEmpId.equals(1L)) {
             return R.fail("只能修改自己的密码");
         }
-        employeeService.updatePassword(empId, oldPwd, newPwd);
+        employeeService.updatePassword(empId, dto.getOldPwd(), dto.getNewPwd());
         log.info("Employee password changed: empId={}", empId);
         return R.ok();
     }

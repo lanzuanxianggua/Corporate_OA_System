@@ -161,7 +161,7 @@ public class StatisticsServiceImpl implements StatisticsService {
         Map<Integer, String> typeNames = Map.of(0, "事假", 1, "病假", 2, "年假", 3, "婚假", 4, "产假", 5, "其他");
         leaveList.stream()
             .collect(Collectors.groupingBy(OaLeaveApply::getLeaveType, Collectors.counting()))
-            .forEach((type, count) -> byType.put(typeNames.getOrDefault(type, "其他"), count));
+            .forEach((type, count) -> byType.put(typeNames.getOrDefault(type != null && !type.isEmpty() ? Integer.valueOf(type) : null, "其他"), count));
         leave.put("byType", byType);
         result.put("leave", leave);
 

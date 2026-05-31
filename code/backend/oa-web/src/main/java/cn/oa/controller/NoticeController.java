@@ -52,6 +52,9 @@ public class NoticeController {
     @Operation(summary = "获取公告详情")
     public R<OaNotice> getById(@PathVariable Long id) {
         OaNotice notice = noticeService.getById(id);
+        if (notice == null) {
+            return R.fail("公告不存在");
+        }
         return R.ok(notice);
     }
 

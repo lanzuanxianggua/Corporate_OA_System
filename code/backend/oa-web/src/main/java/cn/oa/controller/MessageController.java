@@ -68,6 +68,13 @@ public class MessageController {
     @Operation(summary = "标记消息已读")
     public R<Void> markAsRead(@PathVariable Long id, HttpServletRequest request) {
         Long empId = WebUtil.getEmpId(request);
+        OaMessage message = messageService.getById(id);
+        if (message == null) {
+            return R.fail("消息不存在");
+        }
+        if (!message.getReceiverId().equals(empId)) {
+            return R.fail("无权操作此消息");
+        }
         messageService.markAsRead(id, empId);
         return R.ok();
     }

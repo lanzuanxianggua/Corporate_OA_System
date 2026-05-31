@@ -71,7 +71,15 @@ public class ScheduleController {
     @PutMapping
     @Operation(summary = "修改日程")
     @OperationLog(module = "日程管理", operation = "修改日程")
-    public R<Void> update(@RequestBody @Valid ScheduleDTO dto) {
+    public R<Void> update(@RequestBody @Valid ScheduleDTO dto, HttpServletRequest request) {
+        Long currentEmpId = WebUtil.getEmpId(request);
+        OaSchedule existing = scheduleService.getById(dto.getId());
+        if (existing == null) {
+            return R.fail("日程不存在");
+        }
+        if (!existing.getEmpId().equals(currentEmpId) && !currentEmpId.equals(1L)) {
+            return R.fail("无权修改此日程");
+        }
         OaSchedule schedule = new OaSchedule();
         schedule.setId(dto.getId());
         schedule.setEmpId(dto.getEmpId());
@@ -89,7 +97,15 @@ public class ScheduleController {
     @DeleteMapping("/{id}")
     @Operation(summary = "删除日程")
     @OperationLog(module = "日程管理", operation = "删除日程")
-    public R<Void> delete(@PathVariable Long id) {
+    public R<Void> delete(@PathVariable Long id, HttpServletRequest request) {
+        Long currentEmpId = WebUtil.getEmpId(request);
+        OaSchedule existing = scheduleService.getById(id);
+        if (existing == null) {
+            return R.fail("日程不存在");
+        }
+        if (!existing.getEmpId().equals(currentEmpId) && !currentEmpId.equals(1L)) {
+            return R.fail("无权删除此日程");
+        }
         scheduleService.removeById(id);
         log.info("Schedule deleted: id={}", id);
         return R.ok();

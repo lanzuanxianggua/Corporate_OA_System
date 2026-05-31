@@ -115,8 +115,9 @@ public class LeaveApplyController {
             LeaveExportVO vo = new LeaveExportVO();
             SysEmployee emp = empMap.get(leave.getEmpId());
             vo.setEmpName(emp != null ? emp.getEmpName() : "");
-            vo.setLeaveType(leave.getLeaveType() != null && leave.getLeaveType() < LEAVE_TYPE_TEXT.length
-                    ? LEAVE_TYPE_TEXT[leave.getLeaveType()] : "其他");
+            vo.setLeaveType(leave.getLeaveType() != null && Character.isDigit(leave.getLeaveType().charAt(0))
+                    && Integer.parseInt(leave.getLeaveType()) < LEAVE_TYPE_TEXT.length
+                    ? LEAVE_TYPE_TEXT[Integer.parseInt(leave.getLeaveType())] : "其他");
             vo.setStartTime(leave.getStartTime() != null ? leave.getStartTime().format(DATETIME_FMT) : "");
             vo.setEndTime(leave.getEndTime() != null ? leave.getEndTime().format(DATETIME_FMT) : "");
             vo.setDays(calculateDays(leave));
