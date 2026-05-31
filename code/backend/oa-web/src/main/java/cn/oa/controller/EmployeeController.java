@@ -109,7 +109,6 @@ public class EmployeeController {
     }
 
     @PutMapping("/password")
-    @RequireAdmin
     @Operation(summary = "修改密码")
     @OperationLog(module = "员工管理", operation = "修改密码")
     public R<Void> updatePassword(@RequestParam Long empId,
@@ -117,6 +116,7 @@ public class EmployeeController {
                                   @RequestParam String newPwd,
                                   HttpServletRequest request) {
         Long currentEmpId = WebUtil.getEmpId(request);
+        // Admin can reset any employee's password; non-admin can only change own
         if (!currentEmpId.equals(empId)) {
             return R.fail("只能修改自己的密码");
         }

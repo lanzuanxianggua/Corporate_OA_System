@@ -335,11 +335,10 @@ public class SystemManageController {
 
     @GetMapping("/mine-logs")
     @Operation(summary = "获取当前用户登录日志")
-    public R<Map<String, Object>> mineLogs(@RequestParam(required = false) Map<String, Object> params,
+    public R<Map<String, Object>> mineLogs(@RequestParam(defaultValue = "1") int pageNum,
+                                           @RequestParam(defaultValue = "10") int pageSize,
                                            HttpServletRequest request) {
         Long empId = WebUtil.getEmpId(request);
-        int pageNum = params != null && params.get("page") != null ? ((Number) params.get("page")).intValue() : 1;
-        int pageSize = params != null && params.get("pageSize") != null ? ((Number) params.get("pageSize")).intValue() : 10;
 
         LambdaQueryWrapper<OaLoginLog> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(OaLoginLog::getEmpId, empId)
