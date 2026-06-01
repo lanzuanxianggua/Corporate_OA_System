@@ -82,6 +82,7 @@ public class AlertController {
     }
 
     @PostMapping("/log/handle/{id}")
+    @RequireAdmin
     @Operation(summary = "处理预警")
     @cn.oa.common.annotation.OperationLog(module = "预警规则", operation = "处理预警")
     public R<Void> handleLog(@PathVariable Long id, @RequestBody @Valid HandleAlertDTO dto, HttpServletRequest request) {

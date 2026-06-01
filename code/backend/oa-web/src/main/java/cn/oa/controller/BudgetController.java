@@ -64,6 +64,7 @@ public class BudgetController {
     }
 
     @GetMapping("/dept/{deptId}/month")
+    @RequireAdmin
     @Operation(summary = "查询部门月度预算")
     public R<OaBudget> getByDeptMonth(@PathVariable Long deptId,
                                        @RequestParam Integer year,

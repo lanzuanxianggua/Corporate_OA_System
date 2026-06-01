@@ -39,7 +39,7 @@ jwt:
   # IMPORTANT: JWT_SECRET must be set via environment variable — no default provided.
   # Example: export JWT_SECRET=your-strong-random-secret-at-least-32-chars
   # Application will fail to start if JWT_SECRET is not set.
-  secret: "${JWT_SECRET:default-secret-key-for-development-only-please-change-in-prod}"
+  secret: "${JWT_SECRET}"
 
 logging:
   level:

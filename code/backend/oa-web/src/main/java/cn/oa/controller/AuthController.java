@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.annotation.Resource;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+
+import org.springframework.data.redis.core.RedisTemplate;
 
 import java.util.Map;
 
@@ -41,6 +44,9 @@ public class AuthController {
 
     @Autowired
     private RedisService redisService;
+
+    @Resource
+    private RedisTemplate<String, Object> redisTemplate;
 
     @GetMapping("/api/auth/captcha")
     @Operation(summary = "获取验证码")
@@ -102,6 +108,12 @@ public class AuthController {
         PasswordUtil.validatePassword(dto.getNewPassword());
         employee.setPassword(BCrypt.hashpw(dto.getNewPassword()));
         employeeService.updateById(employee);
+        // 密码修改成功后，使旧Token立即失效
+        Long currentEmpId = WebUtil.getEmpId(request);
+        if (currentEmpId != null) {
+            redisTemplate.delete("token:" + currentEmpId);
+            redisTemplate.delete("refreshToken:" + currentEmpId);
+        }
         log.info("Password changed: empId={}", empId);
         return R.ok();
     }

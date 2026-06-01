@@ -16,6 +16,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,6 +35,9 @@ public class EmployeeController {
 
     @Autowired
     private EmployeeService employeeService;
+
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
 
     @GetMapping("/page")
     @Operation(summary = "分页查询员工")
@@ -96,6 +100,15 @@ public class EmployeeController {
         employee.setStatus(dto.getStatus());
         employee.setPostId(dto.getPostId());
         employeeService.updateById(employee);
+        // If status changed to disabled (0), clean up Redis session
+        if (dto.getStatus() != null && dto.getStatus() == 0) {
+            Long disabledEmpId = dto.getId();
+            redisTemplate.delete("token:" + disabledEmpId);
+            redisTemplate.delete("refreshToken:" + disabledEmpId);
+            redisTemplate.delete("roles:" + disabledEmpId);
+            redisTemplate.delete("online:user:" + disabledEmpId);
+            log.info("Employee disabled, Redis session cleaned: empId={}", disabledEmpId);
+        }
         log.info("Employee updated: id={}", employee.getId());
         return R.ok();
     }
@@ -106,7 +119,12 @@ public class EmployeeController {
     @OperationLog(module = "员工管理", operation = "删除员工")
     public R<Void> delete(@PathVariable Long id) {
         employeeService.removeById(id);
-        log.info("Employee deleted: id={}", id);
+        // Clean up Redis session
+        redisTemplate.delete("token:" + id);
+        redisTemplate.delete("refreshToken:" + id);
+        redisTemplate.delete("roles:" + id);
+        redisTemplate.delete("online:user:" + id);
+        log.info("Employee deleted, Redis session cleaned: empId={}", id);
         return R.ok();
     }
 

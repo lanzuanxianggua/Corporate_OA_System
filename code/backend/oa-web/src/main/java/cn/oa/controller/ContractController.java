@@ -67,6 +67,7 @@ public class ContractController {
     }
 
     @GetMapping("/expiring")
+    @RequireAdmin
     @Operation(summary = "查询即将到期合同")
     public R<List<OaContract>> expiring(@RequestParam(defaultValue = "30") int days) {
         return R.ok(contractService.expiringList(days));

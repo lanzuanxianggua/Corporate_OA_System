@@ -274,6 +274,7 @@ public class SystemManageController {
     }
 
     @GetMapping("/api/system/roles")
+    @RequireAdmin
     @Operation(summary = "获取所有角色(简单列表)")
     public R<List<SysRole>> getAllRoles() {
         return R.ok(roleMapper.selectList(null));
@@ -298,6 +299,7 @@ public class SystemManageController {
     }
 
     @GetMapping("/emp-roles")
+    @RequireAdmin
     @Operation(summary = "获取员工角色ID列表")
     public R<List<Long>> getEmpRoles(@RequestParam Long empId) {
         List<SysEmpRole> list = empRoleMapper.selectList(
