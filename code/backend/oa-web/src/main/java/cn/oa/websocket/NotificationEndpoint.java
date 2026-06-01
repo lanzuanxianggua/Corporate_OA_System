@@ -6,10 +6,8 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
-import java.net.URI;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -22,22 +20,37 @@ public class NotificationEndpoint extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        Long empId = extractEmpId(session);
-        if (empId != null) {
-            WebSocketSession old = sessions.put(empId, session);
-            if (old != null && old.isOpen()) {
-                old.close(CloseStatus.NORMAL);
-            }
-            log.info("WebSocket connected: empId={}", empId);
+        Long empId = getEmpIdFromAttributes(session);
+        if (empId == null) {
+            session.close(CloseStatus.POLICY_VIOLATION);
+            return;
         }
+        WebSocketSession old = sessions.put(empId, session);
+        if (old != null && old.isOpen()) {
+            old.close(CloseStatus.NORMAL);
+        }
+        log.info("WebSocket connected: empId={}", empId);
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-        Long empId = extractEmpId(session);
+        Long empId = getEmpIdFromAttributes(session);
         if (empId != null) {
             sessions.remove(empId, session);
             log.info("WebSocket disconnected: empId={}", empId);
+        }
+    }
+
+    @Override
+    public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
+        Long empId = getEmpIdFromAttributes(session);
+        if (empId != null) {
+            sessions.remove(empId, session);
+            log.error("WebSocket transport error for empId={}: {}", empId,
+                    exception.getMessage() != null ? exception.getMessage() : exception.getClass().getSimpleName());
+        }
+        if (session.isOpen()) {
+            session.close(CloseStatus.SERVER_ERROR);
         }
     }
 
@@ -46,19 +59,12 @@ public class NotificationEndpoint extends TextWebSocketHandler {
         // client ping/pong, ignore
     }
 
-    private Long extractEmpId(WebSocketSession session) {
-        try {
-            URI uri = session.getUri();
-            if (uri == null) return null;
-            String query = uri.getQuery();
-            if (query == null) return null;
-            Map<String, String> params = UriComponentsBuilder.fromUri(uri).build().getQueryParams()
-                    .toSingleValueMap();
-            String empIdStr = params.get("empId");
-            return empIdStr != null ? Long.valueOf(empIdStr) : null;
-        } catch (Exception e) {
-            return null;
-        }
+    /**
+     * 从握手拦截器设置的 attributes 中获取已认证的 empId
+     */
+    private Long getEmpIdFromAttributes(WebSocketSession session) {
+        Object empId = session.getAttributes().get("empId");
+        return empId instanceof Long ? (Long) empId : null;
     }
 
     /**

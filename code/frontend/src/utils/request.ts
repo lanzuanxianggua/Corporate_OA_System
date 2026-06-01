@@ -1,6 +1,7 @@
 import axios from "axios";
 import { ElMessage, ElLoading } from "element-plus";
 import router from "@/router";
+import { parseJwtPayload } from "@/utils/jwt";
 
 const request = axios.create({
   baseURL: "",
@@ -8,7 +9,7 @@ const request = axios.create({
 });
 
 let isRefreshing = false;
-let pendingRequests: Array<(token: string) => void> = [];
+let pendingRequests: Array<{ resolve: (token: string) => void; reject: (reason: unknown) => void }> = [];
 
 // Global loading state
 let activeRequests = 0;
@@ -40,20 +41,10 @@ function hideLoading() {
   }
 }
 
-function parseJwtExp(token: string): number | null {
-  try {
-    const payload = token.split(".")[1];
-    const decoded = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
-    return decoded.exp ?? null;
-  } catch {
-    return null;
-  }
-}
-
 function isTokenExpiringSoon(token: string): boolean {
-  const exp = parseJwtExp(token);
-  if (!exp) return false;
-  return Date.now() / 1000 > exp - 300; // 5 minutes before expiry
+  const payload = parseJwtPayload(token);
+  if (!payload || typeof payload.exp !== "number") return false;
+  return Date.now() / 1000 > payload.exp - 300; // 5 minutes before expiry
 }
 
 function clearAuthAndRedirect() {
@@ -79,11 +70,13 @@ request.interceptors.request.use(
             if (res.data.data.refreshToken) {
               localStorage.setItem("refreshToken", res.data.data.refreshToken);
             }
-            pendingRequests.forEach(cb => cb(token!));
+            pendingRequests.forEach(({ resolve }) => resolve(token!));
             pendingRequests = [];
           }
         } catch {
-          // refresh failed - clear auth and redirect
+          // refresh failed — reject all pending requests and clear
+          pendingRequests.forEach(({ reject }) => reject(new Error("Token refresh failed")));
+          pendingRequests = [];
           hideLoading();
           clearAuthAndRedirect();
           return Promise.reject(new Error("Token refresh failed"));
@@ -91,10 +84,13 @@ request.interceptors.request.use(
           isRefreshing = false;
         }
       } else if (isRefreshing) {
-        return new Promise((resolve) => {
-          pendingRequests.push((newToken: string) => {
-            config.headers.Authorization = `Bearer ${newToken}`;
-            resolve(config);
+        return new Promise((resolve, reject) => {
+          pendingRequests.push({
+            resolve: (newToken: string) => {
+              config.headers.Authorization = `Bearer ${newToken}`;
+              resolve(config);
+            },
+            reject
           });
         });
       }

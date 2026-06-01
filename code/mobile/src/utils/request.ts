@@ -153,27 +153,65 @@ export function del<T = any>(url: string, data?: any): Promise<T> {
   return request<T>({ url, method: "DELETE", data });
 }
 
-export function upload(url: string, filePath: string, name: string = "file"): Promise<any> {
-  return new Promise((resolve, reject) => {
-    const token = getToken();
-    uni.uploadFile({
-      url: BASE_URL + url,
-      filePath,
-      name,
-      header: token ? { Authorization: `Bearer ${token}` } : {},
-      success: (res) => {
-        const data = JSON.parse(res.data);
-        if (data.code === 0) {
-          resolve(data);
-        } else if (data.code === 401) {
+export function upload<T = any>(url: string, filePath: string, name: string = "file"): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    doUpload<T>(url, filePath, name, resolve, reject);
+  });
+}
+
+function doUpload<T>(
+  url: string,
+  filePath: string,
+  name: string,
+  resolve: (value: T | PromiseLike<T>) => void,
+  reject: (reason?: any) => void
+): void {
+  const token = getToken();
+  const header: Record<string, string> = {};
+  if (token) {
+    header["Authorization"] = `Bearer ${token}`;
+  }
+  uni.uploadFile({
+    url: BASE_URL + url,
+    filePath,
+    name,
+    header,
+    success: async (res) => {
+      // HTTP 401 — try refresh once
+      if (res.statusCode === 401) {
+        if (!isRefreshing) {
+          isRefreshing = true;
+          const ok = await tryRefreshToken();
+          isRefreshing = false;
+          if (ok) {
+            onTokenRefreshed();
+            doUpload<T>(url, filePath, name, resolve, reject);
+            return;
+          }
           handleUnauthorized();
-          reject(new Error(data.message || "未授权"));
+          reject(new Error("登录已过期"));
         } else {
-          uni.showToast({ title: data.message || "上传失败", icon: "none" });
-          reject(new Error(data.message));
+          pendingRequests.push(() => {
+            doUpload<T>(url, filePath, name, resolve, reject);
+          });
         }
-      },
-      fail: reject
-    });
+        return;
+      }
+
+      const data = JSON.parse(res.data) as any;
+      if (data.code === 0) {
+        resolve(data as T);
+      } else if (data.code === 401) {
+        handleUnauthorized();
+        reject(new Error(data.message || "未授权"));
+      } else {
+        uni.showToast({ title: data.message || "上传失败", icon: "none" });
+        reject(new Error(data.message || "上传失败"));
+      }
+    },
+    fail: (err) => {
+      uni.showToast({ title: "上传失败", icon: "none" });
+      reject(err);
+    }
   });
 }

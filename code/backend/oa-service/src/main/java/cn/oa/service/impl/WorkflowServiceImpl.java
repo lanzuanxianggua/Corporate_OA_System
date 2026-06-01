@@ -3,6 +3,7 @@ package cn.oa.service.impl;
 import lombok.extern.slf4j.Slf4j;
 
 import cn.oa.common.exception.BusinessException;
+import cn.oa.common.utils.AuthUtil;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
@@ -38,6 +39,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -261,7 +263,7 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
             }
             if (!authorized) {
                 // Check admin role
-                boolean isAdmin = isAdminUser(handlerId);
+                boolean isAdmin = AuthUtil.isAdmin(handlerId);
                 if (!isAdmin) {
                     log.warn("handleTask: user {} not authorized for task {} assigned to {}, rejecting", handlerId, taskId, task.getAssigneeId());
                     throw new BusinessException("无权处理此任务");
@@ -382,11 +384,20 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
                 .orderByDesc(WfTask::getCreateTime);
         IPage<WfTask> result = taskMapper.selectPage(page, wrapper);
 
-        // fill instance info
-        for (WfTask task : result.getRecords()) {
-            WfProcessInstance inst = instanceMapper.selectById(task.getInstanceId());
-            task.setInstance(inst);
-            task.setBusinessType(inst != null ? inst.getBusinessType() : null);
+        // batch fill instance info
+        List<WfTask> records = result.getRecords();
+        if (!records.isEmpty()) {
+            Set<Long> instanceIds = records.stream()
+                    .map(WfTask::getInstanceId)
+                    .collect(Collectors.toSet());
+            List<WfProcessInstance> instances = instanceMapper.selectBatchIds(instanceIds);
+            Map<Long, WfProcessInstance> instanceMap = instances.stream()
+                    .collect(Collectors.toMap(WfProcessInstance::getId, inst -> inst));
+            for (WfTask task : records) {
+                WfProcessInstance inst = instanceMap.get(task.getInstanceId());
+                task.setInstance(inst);
+                task.setBusinessType(inst != null ? inst.getBusinessType() : null);
+            }
         }
         return result;
     }
@@ -400,10 +411,19 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
                 .orderByDesc(WfTask::getActionTime);
         IPage<WfTask> result = taskMapper.selectPage(page, wrapper);
 
-        for (WfTask task : result.getRecords()) {
-            WfProcessInstance inst = instanceMapper.selectById(task.getInstanceId());
-            task.setInstance(inst);
-            task.setBusinessType(inst != null ? inst.getBusinessType() : null);
+        List<WfTask> records = result.getRecords();
+        if (!records.isEmpty()) {
+            Set<Long> instanceIds = records.stream()
+                    .map(WfTask::getInstanceId)
+                    .collect(Collectors.toSet());
+            List<WfProcessInstance> instances = instanceMapper.selectBatchIds(instanceIds);
+            Map<Long, WfProcessInstance> instanceMap = instances.stream()
+                    .collect(Collectors.toMap(WfProcessInstance::getId, inst -> inst));
+            for (WfTask task : records) {
+                WfProcessInstance inst = instanceMap.get(task.getInstanceId());
+                task.setInstance(inst);
+                task.setBusinessType(inst != null ? inst.getBusinessType() : null);
+            }
         }
         return result;
     }
@@ -648,7 +668,8 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
                         log.debug("resolveDeptManager: using dept leader empId={} (no role check) for deptId={}", leaderEmpId, currentDeptId);
                         return leaderEmpId;
                     }
-                } catch (NumberFormatException ignored) {
+                } catch (NumberFormatException e) {
+                    log.debug("resolveDeptManager: leader '{}' is not numeric empId, trying name lookup for deptId={}", leader, currentDeptId);
                     // leader is a name string, not an empId; try to find by name
                     SysEmployee leaderByName = employeeMapper.selectOne(
                             new LambdaQueryWrapper<SysEmployee>()
@@ -670,15 +691,6 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
         // Fallback to role-based resolution
         log.debug("resolveDeptManager: falling back to role-based lookup for initiatorId={}", initiatorId);
         return resolveByRole("DEPT_MANAGER", initiatorId);
-    }
-
-    private boolean isAdminUser(Long empId) {
-        List<SysEmpRole> empRoles = empRoleMapper.selectList(
-                new LambdaQueryWrapper<SysEmpRole>().eq(SysEmpRole::getEmpId, empId));
-        if (empRoles.isEmpty()) return false;
-        List<Long> roleIds = empRoles.stream().map(SysEmpRole::getRoleId).collect(Collectors.toList());
-        List<SysRole> roles = roleMapper.selectBatchIds(roleIds);
-        return roles.stream().anyMatch(r -> "ADMIN".equalsIgnoreCase(r.getRoleKey()));
     }
 
     private Long resolveByRole(String roleKey, Long initiatorId) {
@@ -753,12 +765,12 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
 
             switch (operator) {
                 // Numeric operators
-                case "<=": if (!numCheck(rawVal, thresholdObj, (a, t) -> a <= t)) return false; break;
-                case "<":  if (!numCheck(rawVal, thresholdObj, (a, t) -> a < t)) return false; break;
-                case ">=": if (!numCheck(rawVal, thresholdObj, (a, t) -> a >= t)) return false; break;
-                case ">":  if (!numCheck(rawVal, thresholdObj, (a, t) -> a > t)) return false; break;
-                case "==": if (!numCheck(rawVal, thresholdObj, (a, t) -> a == t)) return false; break;
-                case "!=": if (!numCheck(rawVal, thresholdObj, (a, t) -> a != t)) return false; break;
+                case "<=": if (!numCheck(rawVal, thresholdObj, (a, b) -> a <= b)) return false; break;
+                case "<":  if (!numCheck(rawVal, thresholdObj, (a, b) -> a < b)) return false; break;
+                case ">=": if (!numCheck(rawVal, thresholdObj, (a, b) -> a >= b)) return false; break;
+                case ">":  if (!numCheck(rawVal, thresholdObj, (a, b) -> a > b)) return false; break;
+                case "==": if (!numCheck(rawVal, thresholdObj, (a, b) -> a == b)) return false; break;
+                case "!=": if (!numCheck(rawVal, thresholdObj, (a, b) -> a != b)) return false; break;
                 // String operators
                 case "equals": if (!String.valueOf(rawVal).equals(String.valueOf(thresholdObj))) return false; break;
                 case "not_equals": if (String.valueOf(rawVal).equals(String.valueOf(thresholdObj))) return false; break;
@@ -1094,11 +1106,20 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
         wrapper.eq(WfTask::getInstanceId, instance.getId())
                .orderByAsc(WfTask::getNodeIndex);
         List<WfTask> tasks = taskMapper.selectList(wrapper);
-        // Fill assignee names
-        for (WfTask task : tasks) {
-            if (task.getAssigneeId() != null) {
-                SysEmployee emp = employeeMapper.selectById(task.getAssigneeId());
-                if (emp != null) task.setAssigneeName(emp.getEmpName());
+        // Fill assignee names in batch
+        Set<Long> empIds = tasks.stream()
+                .filter(t -> t.getAssigneeId() != null)
+                .map(WfTask::getAssigneeId)
+                .collect(Collectors.toSet());
+        if (!empIds.isEmpty()) {
+            List<SysEmployee> employees = employeeMapper.selectBatchIds(empIds);
+            Map<Long, String> nameMap = employees.stream()
+                    .collect(Collectors.toMap(SysEmployee::getId, SysEmployee::getEmpName, (a, b) -> a));
+            for (WfTask task : tasks) {
+                if (task.getAssigneeId() != null) {
+                    String name = nameMap.get(task.getAssigneeId());
+                    if (name != null) task.setAssigneeName(name);
+                }
             }
         }
         return tasks;
@@ -1111,12 +1132,19 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
                 .eq(OaApprovalRecord::getApplyId, businessId)
                 .orderByAsc(OaApprovalRecord::getApproveTime);
         List<OaApprovalRecord> records = approvalRecordMapper.selectList(wrapper);
-        // Fill assigneeName if missing
-        for (OaApprovalRecord record : records) {
-            if (record.getAssigneeName() == null && record.getApproverId() != null) {
-                SysEmployee emp = employeeMapper.selectById(record.getApproverId());
-                if (emp != null) {
-                    record.setAssigneeName(emp.getEmpName());
+        // Fill assigneeName in batch if missing
+        Set<Long> empIds = records.stream()
+                .filter(r -> r.getAssigneeName() == null && r.getApproverId() != null)
+                .map(OaApprovalRecord::getApproverId)
+                .collect(Collectors.toSet());
+        if (!empIds.isEmpty()) {
+            List<SysEmployee> employees = employeeMapper.selectBatchIds(empIds);
+            Map<Long, String> nameMap = employees.stream()
+                    .collect(Collectors.toMap(SysEmployee::getId, SysEmployee::getEmpName, (a, b) -> a));
+            for (OaApprovalRecord record : records) {
+                if (record.getAssigneeName() == null && record.getApproverId() != null) {
+                    String name = nameMap.get(record.getApproverId());
+                    if (name != null) record.setAssigneeName(name);
                 }
             }
         }

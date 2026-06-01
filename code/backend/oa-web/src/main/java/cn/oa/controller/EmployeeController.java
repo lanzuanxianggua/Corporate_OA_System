@@ -4,6 +4,7 @@ import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.AuthUtil;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.SysEmployee;
 import cn.oa.entity.dto.ChangePasswordDTO;
@@ -118,11 +119,12 @@ public class EmployeeController {
         Long currentEmpId = WebUtil.getEmpId(request);
         Long empId = dto.getEmpId() != null ? dto.getEmpId() : currentEmpId;
         // Admin can reset any employee's password; non-admin can only change own
-        if (!currentEmpId.equals(empId) && !currentEmpId.equals(1L)) {
+        if (!currentEmpId.equals(empId) && !AuthUtil.isAdmin(currentEmpId)) {
             return R.fail("只能修改自己的密码");
         }
         employeeService.updatePassword(empId, dto.getOldPwd(), dto.getNewPwd());
         log.info("Employee password changed: empId={}", empId);
         return R.ok();
     }
+
 }

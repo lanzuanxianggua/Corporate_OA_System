@@ -2,8 +2,10 @@ package cn.oa.controller;
 
 import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
+import cn.oa.common.constant.BusinessStatus;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.AuthUtil;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaOuting;
 import cn.oa.entity.SysEmployee;
@@ -47,7 +49,6 @@ public class OutingController {
     @Autowired
     private SysEmployeeMapper employeeMapper;
 
-    private static final String[] STATUS_TEXT = {"待审批", "已通过", "已驳回", "已撤回"};
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     @PostMapping("/submit")
@@ -76,7 +77,14 @@ public class OutingController {
     public R<PageResult<OaOuting>> page(@RequestParam int pageNum,
                                          @RequestParam int pageSize,
                                          @RequestParam(required = false) Long empId,
-                                         @RequestParam(required = false) Integer status) {
+                                         @RequestParam(required = false) Integer status,
+                                         HttpServletRequest request) {
+        Long currentEmpId = WebUtil.getEmpId(request);
+        if (empId == null || !empId.equals(currentEmpId)) {
+            if (!AuthUtil.isAdmin(currentEmpId)) {
+                empId = currentEmpId;
+            }
+        }
         IPage<OaOuting> page = outingService.pageList(pageNum, pageSize, empId, status);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
@@ -107,9 +115,10 @@ public class OutingController {
             vo.setReason(r.getReason() != null ? r.getReason() : "");
             vo.setStartTime(r.getStartTime() != null ? r.getStartTime().format(FMT) : "");
             vo.setEndTime(r.getEndTime() != null ? r.getEndTime().format(FMT) : "");
-            vo.setStatusText(r.getStatus() != null && r.getStatus() < STATUS_TEXT.length ? STATUS_TEXT[r.getStatus()] : "未知");
+            vo.setStatusText(r.getStatus() != null ? BusinessStatus.getLabel(r.getStatus(), false) : "未知");
             exportList.add(vo);
         }
         ExcelExportUtil.export(response, "外出数据", OutingExportVO.class, exportList);
     }
+
 }

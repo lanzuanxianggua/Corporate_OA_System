@@ -2,8 +2,10 @@ package cn.oa.controller;
 
 import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
+import cn.oa.common.constant.BusinessStatus;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.AuthUtil;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaPurchase;
 import cn.oa.entity.SysEmployee;
@@ -46,8 +48,6 @@ public class PurchaseController {
     @Autowired
     private SysEmployeeMapper employeeMapper;
 
-    private static final String[] STATUS_TEXT = {"待审批", "已通过", "已驳回", "已撤回"};
-
     @PostMapping("/submit")
     @Operation(summary = "提交采购申请")
     @OperationLog(module = "采购管理", operation = "提交采购申请")
@@ -74,7 +74,14 @@ public class PurchaseController {
     public R<PageResult<OaPurchase>> page(@RequestParam int pageNum,
                                            @RequestParam int pageSize,
                                            @RequestParam(required = false) Long empId,
-                                           @RequestParam(required = false) Integer status) {
+                                           @RequestParam(required = false) Integer status,
+                                           HttpServletRequest request) {
+        Long currentEmpId = WebUtil.getEmpId(request);
+        if (empId == null || !empId.equals(currentEmpId)) {
+            if (!AuthUtil.isAdmin(currentEmpId)) {
+                empId = currentEmpId;
+            }
+        }
         IPage<OaPurchase> page = purchaseService.pageList(pageNum, pageSize, empId, status);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
@@ -105,9 +112,10 @@ public class PurchaseController {
             vo.setQuantity(r.getQuantity());
             vo.setAmount(r.getAmount());
             vo.setReason(r.getReason() != null ? r.getReason() : "");
-            vo.setStatusText(r.getStatus() != null && r.getStatus() < STATUS_TEXT.length ? STATUS_TEXT[r.getStatus()] : "未知");
+            vo.setStatusText(r.getStatus() != null ? BusinessStatus.getLabel(r.getStatus(), false) : "未知");
             exportList.add(vo);
         }
         ExcelExportUtil.export(response, "采购数据", PurchaseExportVO.class, exportList);
     }
+
 }

@@ -2,6 +2,7 @@ package cn.oa.controller;
 
 import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
+import cn.oa.common.constant.BusinessStatus;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
 import cn.oa.common.utils.WebUtil;
@@ -14,6 +15,7 @@ import cn.oa.utils.ExcelExportUtil;
 import cn.oa.vo.BusinessTripExportVO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
+import java.util.function.Function;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +34,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -47,7 +49,6 @@ public class BusinessTripController {
     @Autowired
     private SysEmployeeMapper employeeMapper;
 
-    private static final String[] STATUS_TEXT = {"待审批", "已通过", "已驳回", "已撤回"};
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     @PostMapping("/submit")
@@ -76,7 +77,10 @@ public class BusinessTripController {
     public R<PageResult<OaBusinessTrip>> page(@RequestParam int pageNum,
                                                @RequestParam int pageSize,
                                                @RequestParam(required = false) Long empId,
-                                               @RequestParam(required = false) Integer status) {
+                                               @RequestParam(required = false) Integer status,
+                                               HttpServletRequest request) {
+        Long currentEmpId = WebUtil.getEmpId(request);
+        empId = WebUtil.enforceOwnDataAccess(currentEmpId, empId);
         IPage<OaBusinessTrip> page = businessTripService.pageList(pageNum, pageSize, empId, status);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
@@ -112,9 +116,10 @@ public class BusinessTripController {
             } else {
                 vo.setDays("-");
             }
-            vo.setStatusText(r.getStatus() != null && r.getStatus() < STATUS_TEXT.length ? STATUS_TEXT[r.getStatus()] : "未知");
+            vo.setStatusText(r.getStatus() != null ? BusinessStatus.getLabel(r.getStatus(), false) : "未知");
             exportList.add(vo);
         }
         ExcelExportUtil.export(response, "出差数据", BusinessTripExportVO.class, exportList);
     }
-}
+
+    }

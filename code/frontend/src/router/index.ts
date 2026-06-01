@@ -1,6 +1,7 @@
 import { createRouter, createWebHashHistory } from "vue-router";
 import type { RouteRecordRaw } from "vue-router";
 import { useUserStore } from "@/store/user";
+import { isTokenExpired } from "@/utils/jwt";
 
 const Layout = () => import("@/layout/index.vue");
 
@@ -477,18 +478,7 @@ router.beforeEach((to, _from, next) => {
   }
 
   // Validate JWT expiry
-  try {
-    const payload = JSON.parse(
-      atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))
-    );
-    if (payload.exp && Date.now() / 1000 > payload.exp) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("userInfo");
-      next("/login");
-      return;
-    }
-  } catch {
+  if (isTokenExpired(token)) {
     localStorage.removeItem("token");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("userInfo");

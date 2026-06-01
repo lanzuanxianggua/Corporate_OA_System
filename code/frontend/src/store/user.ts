@@ -3,6 +3,7 @@ import { ref } from "vue";
 import { login as loginApi, logout as logoutApi } from "@/api/auth";
 import router from "@/router";
 import type { LoginVO } from "@/types/api";
+import { parseJwtPayload } from "@/utils/jwt";
 
 interface UserStoreInfo {
   id?: number;
@@ -19,15 +20,6 @@ interface UserStoreInfo {
   refreshToken?: string;
   roles?: string[];
   permissions?: string[];
-}
-
-function parseJwtPayload(token: string) {
-  try {
-    const base64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-    return JSON.parse(decodeURIComponent(atob(base64).split("").map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)).join("")));
-  } catch {
-    return null;
-  }
 }
 
 export const useUserStore = defineStore("user", () => {

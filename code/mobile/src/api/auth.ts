@@ -1,9 +1,10 @@
 import { get, post } from "@/utils/request";
+import type { ApiResponse, CaptchaResult, LoginResult, RefreshTokenResult, LoginParams } from "@/types/api";
 
-export const getCaptcha = () => get("/api/auth/captcha");
+export const getCaptcha = () => get<ApiResponse<CaptchaResult>>("/api/auth/captcha");
 
-export const login = (data: { username: string; password: string; captchaUuid: string; captchaCode: string }) =>
-  post("/login", data);
+export const login = (data: LoginParams) =>
+  post<ApiResponse<LoginResult>>("/login", data);
 
 export const refreshToken = (refreshToken: string) =>
-  post("/refresh-token", { refreshToken });
+  post<ApiResponse<RefreshTokenResult>>("/refresh-token", { refreshToken });

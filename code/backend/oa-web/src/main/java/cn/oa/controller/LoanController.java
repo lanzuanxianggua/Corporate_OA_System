@@ -1,8 +1,10 @@
 package cn.oa.controller;
 
 import cn.oa.common.annotation.RequireAdmin;
+import cn.oa.common.constant.BusinessStatus;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.AuthUtil;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaLoan;
 import cn.oa.entity.SysEmployee;
@@ -41,8 +43,6 @@ public class LoanController {
     @Autowired
     private SysEmployeeMapper employeeMapper;
 
-    private static final String[] STATUS_TEXT = {"待审批", "已通过", "已驳回", "已撤回"};
-
     @PostMapping("/submit")
     @Operation(summary = "提交借支申请")
     public R<Void> submit(@RequestBody @Valid OaLoan loan, HttpServletRequest request) {
@@ -67,7 +67,14 @@ public class LoanController {
     public R<PageResult<OaLoan>> page(@RequestParam int pageNum,
                                        @RequestParam int pageSize,
                                        @RequestParam(required = false) Long empId,
-                                       @RequestParam(required = false) Integer status) {
+                                       @RequestParam(required = false) Integer status,
+                                       HttpServletRequest request) {
+        Long currentEmpId = WebUtil.getEmpId(request);
+        if (empId == null || !empId.equals(currentEmpId)) {
+            if (!AuthUtil.isAdmin(currentEmpId)) {
+                empId = currentEmpId;
+            }
+        }
         IPage<OaLoan> page = loanService.pageList(pageNum, pageSize, empId, status);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
@@ -107,9 +114,10 @@ public class LoanController {
             vo.setLoanReason(r.getLoanReason() != null ? r.getLoanReason() : "");
             vo.setRepaymentPlan(r.getRepaymentPlan() != null ? r.getRepaymentPlan() : "");
             int st = r.getStatus() != null ? Integer.parseInt(r.getStatus()) : -1;
-            vo.setStatusText(st >= 0 && st < STATUS_TEXT.length ? STATUS_TEXT[st] : "未知");
+            vo.setStatusText(st >= 0 ? BusinessStatus.getLabel(st, false) : "未知");
             exportList.add(vo);
         }
         ExcelExportUtil.export(response, "借支数据", LoanExportVO.class, exportList);
     }
+
 }

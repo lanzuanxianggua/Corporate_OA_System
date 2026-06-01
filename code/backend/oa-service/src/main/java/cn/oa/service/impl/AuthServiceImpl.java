@@ -89,8 +89,11 @@ public class AuthServiceImpl implements AuthService {
             roleKeys.add("USER");
         }
 
-        String token = jwtUtil.generateToken(employee.getId(), employee.getEmpName());
-        redisTemplate.opsForValue().set("token:" + employee.getId(), token, 7200, TimeUnit.SECONDS);
+        String accessToken = jwtUtil.generateToken(employee.getId(), employee.getEmpName());
+        redisTemplate.opsForValue().set("token:" + employee.getId(), accessToken, 7200, TimeUnit.SECONDS);
+
+        String refreshToken = jwtUtil.generateRefreshToken(employee.getId(), employee.getEmpName());
+        redisTemplate.opsForValue().set("refreshToken:" + employee.getId(), refreshToken, 604800, TimeUnit.SECONDS);
 
         // 将角色信息存入Redis，供权限校验使用
         String rolesKey = "roles:" + employee.getId();
@@ -107,8 +110,8 @@ public class AuthServiceImpl implements AuthService {
         log.info("User login successful: username={}, empId={}", username, employee.getId());
 
         LoginVO vo = new LoginVO();
-        vo.setAccessToken(token);
-        vo.setRefreshToken(token);
+        vo.setAccessToken(accessToken);
+        vo.setRefreshToken(refreshToken);
         vo.setExpires(LocalDateTime.now().plusHours(2).format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss")));
         vo.setUsername(employee.getEmpCode());
         vo.setNickname(employee.getEmpName());
@@ -121,6 +124,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void logout(Long empId) {
         redisTemplate.delete("token:" + empId);
+        redisTemplate.delete("refreshToken:" + empId);
         redisTemplate.delete("roles:" + empId);
         onlineUserService.userLogout(empId);
         log.info("User logout: empId={}", empId);
@@ -138,20 +142,32 @@ public class AuthServiceImpl implements AuthService {
             io.jsonwebtoken.Claims claims = jwtUtil.parseToken(refreshToken);
             Long empId = claims.get("empId", Long.class);
             String empName = claims.get("empName", String.class);
+            String tokenType = claims.get("tokenType", String.class);
+
+            // Must be a refresh token
+            if (!"refresh".equals(tokenType)) {
+                throw new BusinessException("无效的 refreshToken");
+            }
 
             // Verify the refresh token matches the one stored in Redis
-            Object storedToken = redisTemplate.opsForValue().get("token:" + empId);
+            Object storedToken = redisTemplate.opsForValue().get("refreshToken:" + empId);
             if (storedToken == null || !storedToken.equals(refreshToken)) {
                 throw new BusinessException("refreshToken 已失效，请重新登录");
             }
 
-            String newToken = jwtUtil.generateToken(empId, empName);
-            redisTemplate.opsForValue().set("token:" + empId, newToken, 7200, TimeUnit.SECONDS);
+            // Generate new tokens
+            String newAccessToken = jwtUtil.generateToken(empId, empName);
+            String newRefreshToken = jwtUtil.generateRefreshToken(empId, empName);
+
+            // Update Redis
+            redisTemplate.opsForValue().set("token:" + empId, newAccessToken, 7200, TimeUnit.SECONDS);
+            redisTemplate.opsForValue().set("refreshToken:" + empId, newRefreshToken, 604800, TimeUnit.SECONDS);
             // Renew roles TTL
             redisTemplate.expire("roles:" + empId, 7200, TimeUnit.SECONDS);
+
             LoginVO vo = new LoginVO();
-            vo.setAccessToken(newToken);
-            vo.setRefreshToken(newToken);
+            vo.setAccessToken(newAccessToken);
+            vo.setRefreshToken(newRefreshToken);
             vo.setExpires(LocalDateTime.now().plusHours(2).format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss")));
             return vo;
         } catch (BusinessException e) {

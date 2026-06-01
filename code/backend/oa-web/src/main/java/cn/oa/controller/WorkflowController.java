@@ -192,12 +192,17 @@ public class WorkflowController {
 
     @PostMapping("/cc/read/{id}")
     @Operation(summary = "标记抄送已读")
-    public R<Void> readCc(@PathVariable Long id) {
+    public R<Void> readCc(@PathVariable Long id, HttpServletRequest request) {
+        Long currentEmpId = WebUtil.getEmpId(request);
         WfCcRecord record = ccRecordMapper.selectById(id);
-        if (record != null) {
-            record.setStatus("1");
-            ccRecordMapper.updateById(record);
+        if (record == null) {
+            return R.fail("抄送记录不存在");
         }
+        if (!record.getCcEmpId().equals(currentEmpId)) {
+            return R.fail("无权操作此抄送记录");
+        }
+        record.setStatus("1");
+        ccRecordMapper.updateById(record);
         return R.ok();
     }
 

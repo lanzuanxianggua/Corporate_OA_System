@@ -1,8 +1,10 @@
 package cn.oa.controller;
 
 import cn.oa.common.annotation.RequireAdmin;
+import cn.oa.common.constant.BusinessStatus;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.AuthUtil;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaOvertime;
 import cn.oa.entity.SysEmployee;
@@ -41,7 +43,6 @@ public class OvertimeController {
     @Autowired
     private SysEmployeeMapper employeeMapper;
 
-    private static final String[] STATUS_TEXT = {"待审批", "已通过", "已驳回", "已撤回"};
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     @PostMapping("/submit")
@@ -68,7 +69,14 @@ public class OvertimeController {
     public R<PageResult<OaOvertime>> page(@RequestParam int pageNum,
                                            @RequestParam int pageSize,
                                            @RequestParam(required = false) Long empId,
-                                           @RequestParam(required = false) Integer status) {
+                                           @RequestParam(required = false) Integer status,
+                                           HttpServletRequest request) {
+        Long currentEmpId = WebUtil.getEmpId(request);
+        if (empId == null || !empId.equals(currentEmpId)) {
+            if (!AuthUtil.isAdmin(currentEmpId)) {
+                empId = currentEmpId;
+            }
+        }
         IPage<OaOvertime> page = overtimeService.pageList(pageNum, pageSize, empId, status);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
@@ -101,9 +109,10 @@ public class OvertimeController {
             vo.setHours(r.getHours());
             vo.setReason(r.getReason() != null ? r.getReason() : "");
             int st = r.getStatus() != null ? Integer.parseInt(r.getStatus()) : -1;
-            vo.setStatusText(st >= 0 && st < STATUS_TEXT.length ? STATUS_TEXT[st] : "未知");
+            vo.setStatusText(st >= 0 ? BusinessStatus.getLabel(st, false) : "未知");
             exportList.add(vo);
         }
         ExcelExportUtil.export(response, "加班数据", OvertimeExportVO.class, exportList);
     }
+
 }

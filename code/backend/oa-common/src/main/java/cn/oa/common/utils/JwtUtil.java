@@ -19,6 +19,9 @@ public class JwtUtil {
     /** Token 有效期（秒） */
     private static final long EXPIRATION = 7200L;
 
+    /** Refresh Token 有效期（秒）：7天 */
+    private static final long REFRESH_EXPIRATION = 604800L;
+
     private final SecretKey signingKey;
 
     public JwtUtil(@Value("${jwt.secret:default-secret-key-for-development-only-!!}") String secret) {
@@ -35,6 +38,23 @@ public class JwtUtil {
         return Jwts.builder()
                 .claim("empId", empId)
                 .claim("empName", empName)
+                .issuedAt(now)
+                .expiration(expiration)
+                .signWith(signingKey, Jwts.SIG.HS256)
+                .compact();
+    }
+
+    /**
+     * 生成 Refresh Token（7天有效期）
+     */
+    public String generateRefreshToken(Long empId, String empName) {
+        Date now = new Date();
+        Date expiration = new Date(now.getTime() + REFRESH_EXPIRATION * 1000);
+
+        return Jwts.builder()
+                .claim("empId", empId)
+                .claim("empName", empName)
+                .claim("tokenType", "refresh")
                 .issuedAt(now)
                 .expiration(expiration)
                 .signWith(signingKey, Jwts.SIG.HS256)

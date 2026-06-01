@@ -2,8 +2,11 @@ package cn.oa.controller;
 
 import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
+import cn.oa.common.constant.BusinessStatus;
+import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.AuthUtil;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.dto.ApproveDTO;
 import cn.oa.utils.ExcelExportUtil;
@@ -44,7 +47,6 @@ import java.util.stream.Collectors;
 public class LeaveApplyController {
 
     private static final String[] LEAVE_TYPE_TEXT = {"", "年假", "事假", "病假", "婚假", "产假", "丧假"};
-    private static final String[] STATUS_TEXT = {"待审批", "已通过", "已拒绝", "", "已撤回"};
     private static final DateTimeFormatter DATETIME_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     @Autowired
@@ -79,7 +81,14 @@ public class LeaveApplyController {
     public R<PageResult<OaLeaveApply>> page(@RequestParam int pageNum,
                                             @RequestParam int pageSize,
                                             @RequestParam(required = false) Long empId,
-                                            @RequestParam(required = false) Integer status) {
+                                            @RequestParam(required = false) Integer status,
+                                            HttpServletRequest request) {
+        Long currentEmpId = WebUtil.getEmpId(request);
+        if (empId == null || !empId.equals(currentEmpId)) {
+            if (!AuthUtil.isAdmin(currentEmpId)) {
+                empId = currentEmpId;
+            }
+        }
         IPage<OaLeaveApply> page = leaveApplyService.pageList(pageNum, pageSize, empId, status);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
@@ -122,8 +131,7 @@ public class LeaveApplyController {
             vo.setEndTime(leave.getEndTime() != null ? leave.getEndTime().format(DATETIME_FMT) : "");
             vo.setDays(calculateDays(leave));
             vo.setReason(leave.getReason() != null ? leave.getReason() : "");
-            vo.setStatusText(leave.getStatus() != null && leave.getStatus() < STATUS_TEXT.length
-                    ? STATUS_TEXT[leave.getStatus()] : "未知");
+            vo.setStatusText(leave.getStatus() != null ? BusinessStatus.getLabel(leave.getStatus(), true) : "未知");
             exportList.add(vo);
         }
 
@@ -135,4 +143,5 @@ public class LeaveApplyController {
         long days = java.time.Duration.between(leave.getStartTime(), leave.getEndTime()).toDays() + 1;
         return BigDecimal.valueOf(Math.max(days, 0));
     }
+
 }

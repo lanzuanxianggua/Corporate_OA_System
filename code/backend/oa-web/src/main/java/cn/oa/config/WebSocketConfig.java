@@ -1,16 +1,25 @@
 package cn.oa.config;
 
+import cn.oa.common.service.RedisService;
+import cn.oa.common.utils.JwtUtil;
 import cn.oa.websocket.NotificationEndpoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
-import org.springframework.web.socket.server.support.HttpSessionHandshakeInterceptor;
 
 @Configuration
 @EnableWebSocket
 public class WebSocketConfig implements WebSocketConfigurer {
+
+    private final JwtUtil jwtUtil;
+    private final RedisService redisService;
+
+    public WebSocketConfig(JwtUtil jwtUtil, RedisService redisService) {
+        this.jwtUtil = jwtUtil;
+        this.redisService = redisService;
+    }
 
     @Bean
     public NotificationEndpoint notificationEndpoint() {
@@ -25,6 +34,6 @@ public class WebSocketConfig implements WebSocketConfigurer {
                         "http://localhost:5173",
                         "http://localhost:3000"
                 )
-                .addInterceptors(new HttpSessionHandshakeInterceptor());
+                .addInterceptors(new WebSocketAuthInterceptor(jwtUtil, redisService));
     }
 }

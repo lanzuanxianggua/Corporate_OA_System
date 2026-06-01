@@ -2,8 +2,10 @@ package cn.oa.controller;
 
 import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
+import cn.oa.common.constant.BusinessStatus;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.AuthUtil;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.dto.ApproveDTO;
 import cn.oa.utils.ExcelExportUtil;
@@ -41,9 +43,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ExpenseController {
 
-    private static final String[] STATUS_TEXT = {"待审批", "已通过", "已拒绝", "", "已撤回"};
-
-    @Autowired
+@Autowired
     private ExpenseService expenseService;
 
     @Autowired
@@ -75,7 +75,14 @@ public class ExpenseController {
     public R<PageResult<OaExpense>> page(@RequestParam int pageNum,
                                           @RequestParam int pageSize,
                                           @RequestParam(required = false) Long empId,
-                                          @RequestParam(required = false) Integer status) {
+                                          @RequestParam(required = false) Integer status,
+                                          HttpServletRequest request) {
+        Long currentEmpId = WebUtil.getEmpId(request);
+        if (empId == null || !empId.equals(currentEmpId)) {
+            if (!AuthUtil.isAdmin(currentEmpId)) {
+                empId = currentEmpId;
+            }
+        }
         IPage<OaExpense> page = expenseService.pageList(pageNum, pageSize, empId, status);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
@@ -115,11 +122,11 @@ public class ExpenseController {
             vo.setCategory(expense.getCategory() != null ? expense.getCategory() : "");
             vo.setAmount(expense.getAmount());
             vo.setDescription(expense.getDescription() != null ? expense.getDescription() : "");
-            vo.setStatusText(expense.getStatus() != null && expense.getStatus() < STATUS_TEXT.length
-                    ? STATUS_TEXT[expense.getStatus()] : "未知");
+            vo.setStatusText(expense.getStatus() != null ? BusinessStatus.getLabel(expense.getStatus(), false) : "未知");
             exportList.add(vo);
         }
 
         ExcelExportUtil.export(response, "经费数据", ExpenseExportVO.class, exportList);
     }
+
 }
