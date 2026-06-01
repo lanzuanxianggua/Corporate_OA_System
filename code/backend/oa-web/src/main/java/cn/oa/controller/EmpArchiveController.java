@@ -23,12 +23,14 @@ public class EmpArchiveController {
     private EmpArchiveService empArchiveService;
 
     @GetMapping("/{empId}")
+    @RequireAdmin
     @Operation(summary = "根据员工ID查询档案(含员工信息)")
     public R<OaEmpArchive> getByEmpId(@PathVariable Long empId) {
         return R.ok(empArchiveService.getByEmpIdWithInfo(empId));
     }
 
     @PostMapping
+    @RequireAdmin
     @Operation(summary = "创建/更新员工档案")
     @cn.oa.common.annotation.OperationLog(module = "员工档案", operation = "创建/更新员工档案")
     public R<Void> save(@RequestBody @Valid OaEmpArchive archive) {

@@ -4,6 +4,7 @@ import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.AuthUtil;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaSchedule;
 import cn.oa.entity.dto.ScheduleDTO;
@@ -77,7 +78,7 @@ public class ScheduleController {
         if (existing == null) {
             return R.fail("日程不存在");
         }
-        if (!existing.getEmpId().equals(currentEmpId) && !currentEmpId.equals(1L)) {
+        if (!existing.getEmpId().equals(currentEmpId) && !AuthUtil.isAdmin(currentEmpId)) {
             return R.fail("无权修改此日程");
         }
         OaSchedule schedule = new OaSchedule();
@@ -103,7 +104,7 @@ public class ScheduleController {
         if (existing == null) {
             return R.fail("日程不存在");
         }
-        if (!existing.getEmpId().equals(currentEmpId) && !currentEmpId.equals(1L)) {
+        if (!existing.getEmpId().equals(currentEmpId) && !AuthUtil.isAdmin(currentEmpId)) {
             return R.fail("无权删除此日程");
         }
         scheduleService.removeById(id);

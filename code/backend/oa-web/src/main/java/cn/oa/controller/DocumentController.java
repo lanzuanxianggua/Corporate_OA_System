@@ -76,6 +76,7 @@ public class DocumentController {
     }
 
     @GetMapping("/download/{id}")
+    @RequireAdmin
     @Operation(summary = "下载文档")
     public ResponseEntity<?> download(@PathVariable Long id) {
         try {

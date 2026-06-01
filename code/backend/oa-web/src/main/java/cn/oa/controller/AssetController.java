@@ -3,6 +3,7 @@ package cn.oa.controller;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.AuthUtil;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaAsset;
 import cn.oa.entity.OaAssetBorrow;
@@ -93,7 +94,7 @@ public class AssetController {
             return R.fail("借用记录不存在");
         }
         // Only the borrower or admin can return
-        if (!borrow.getBorrowerId().equals(currentEmpId) && !currentEmpId.equals(1L)) {
+        if (!borrow.getBorrowerId().equals(currentEmpId) && !AuthUtil.isAdmin(currentEmpId)) {
             return R.fail("无权归还此资产");
         }
         assetBorrowService.returnAsset(borrowId);
@@ -107,7 +108,15 @@ public class AssetController {
             @RequestParam int pageNum,
             @RequestParam int pageSize,
             @RequestParam(required = false) Long borrowerId,
-            @RequestParam(required = false) String status) {
+            @RequestParam(required = false) String status,
+            HttpServletRequest request) {
+        Long currentEmpId = WebUtil.getEmpId(request);
+        // Non-admin can only see their own borrow records
+        if (borrowerId == null || !borrowerId.equals(currentEmpId)) {
+            if (!AuthUtil.isAdmin(currentEmpId)) {
+                borrowerId = currentEmpId;
+            }
+        }
         IPage<OaAssetBorrow> page = assetBorrowService.pageList(pageNum, pageSize, borrowerId, status);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }

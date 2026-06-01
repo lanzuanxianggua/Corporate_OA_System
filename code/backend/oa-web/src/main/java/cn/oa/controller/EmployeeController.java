@@ -37,6 +37,7 @@ public class EmployeeController {
     private EmployeeService employeeService;
 
     @GetMapping("/page")
+    @RequireAdmin
     @Operation(summary = "分页查询员工")
     public R<PageResult<SysEmployee>> page(@RequestParam int pageNum,
                                            @RequestParam int pageSize,
@@ -48,6 +49,7 @@ public class EmployeeController {
     }
 
     @GetMapping("/{id}")
+    @RequireAdmin
     @Operation(summary = "获取员工详情")
     public R<SysEmployee> getById(@PathVariable Long id) {
         SysEmployee employee = employeeService.getById(id);

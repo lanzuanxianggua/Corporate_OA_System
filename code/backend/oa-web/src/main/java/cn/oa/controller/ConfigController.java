@@ -23,6 +23,7 @@ public class ConfigController {
     private ConfigService configService;
 
     @GetMapping("/page")
+    @RequireAdmin
     @Operation(summary = "参数分页列表")
     public R<PageResult<SysConfig>> page(@RequestParam int pageNum,
                                          @RequestParam int pageSize,
@@ -33,6 +34,7 @@ public class ConfigController {
     }
 
     @GetMapping("/key/{key}")
+    @RequireAdmin
     @Operation(summary = "根据key获取参数")
     public R<SysConfig> getByKey(@PathVariable String key) {
         return R.ok(configService.getByKey(key));
