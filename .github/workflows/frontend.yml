@@ -16,6 +16,7 @@ on:
 
 jobs:
   frontend-build:
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -33,6 +34,14 @@ jobs:
         with:
           version: 9
 
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-frontend-${{ hashFiles('code/frontend/pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-frontend-
+
       - name: Install dependencies
         working-directory: code/frontend
         run: |
@@ -41,6 +50,10 @@ jobs:
           else
             pnpm install
           fi
+
+      - name: TypeScript type check
+        working-directory: code/frontend
+        run: pnpm typecheck || echo "Type check warnings found (non-blocking)"
 
       - name: Build
         working-directory: code/frontend
@@ -54,6 +67,7 @@ jobs:
           retention-days: 5
 
   mobile-build:
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -70,6 +84,14 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 9
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-mobile-${{ hashFiles('code/mobile/pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-mobile-
 
       - name: Install dependencies
         working-directory: code/mobile

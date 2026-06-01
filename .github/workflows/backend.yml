@@ -14,9 +14,34 @@ on:
 
 jobs:
   build:
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     permissions:
       contents: read
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test_password
+          MYSQL_DATABASE: oa_system_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
       - uses: actions/checkout@v4
@@ -28,9 +53,22 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Build with Maven
+      - name: Initialize database
+        run: |
+          sed 's/oa_system/oa_system_test/g' code/backend/sql/oa_system_full.sql | mysql -h 127.0.0.1 -u root -ptest_password
+          sed 's/oa_system/oa_system_test/g; s/CREATE DATABASE[^;]*;//g' code/backend/sql/seed_data.sql | mysql --force -h 127.0.0.1 -u root -ptest_password oa_system_test
+
+      - name: Build and test with Maven
         working-directory: code/backend
-        run: mvn clean package -Dmaven.test.skip=true -B -V
+        run: mvn clean verify -B -V -Dspring.profiles.active=ci
+
+      - name: Upload JaCoCo coverage report
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: code/backend/**/target/site/jacoco/
+          retention-days: 14
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
