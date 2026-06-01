@@ -14,7 +14,6 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
@@ -71,10 +70,6 @@ public class ExpenseServiceImpl extends BaseApprovalServiceImpl<OaExpenseMapper,
 
         if (newStatus == 1 && !Integer.valueOf(1).equals(oldStatus)) {
             if (budget != null) {
-                BigDecimal remaining = budget.getAmount().subtract(budget.getUsedAmount());
-                if (entity.getAmount().compareTo(remaining) > 0) {
-                    throw new BusinessException("经费超出部门预算余额，剩余预算：" + remaining);
-                }
                 budgetService.updateUsedAmount(budget.getId(), entity.getAmount());
             }
         }

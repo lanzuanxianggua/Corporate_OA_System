@@ -310,6 +310,10 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
         record.setApplyId(instance.getBusinessId());
         record.setBusinessType(instance.getBusinessType());
         record.setApproverId(handlerId);
+        // delegation scenario: record original task assignee as delegatorId
+        if (!handlerId.equals(task.getAssigneeId())) {
+            record.setDelegatorId(task.getAssigneeId());
+        }
         record.setApproveStatus(status);
         record.setRemark(remark);
         record.setApproveTime(LocalDateTime.now());
@@ -787,8 +791,8 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
                 case "<":  if (!numCheck(rawVal, thresholdObj, (a, t) -> a < t)) return false; break;
                 case ">=": if (!numCheck(rawVal, thresholdObj, (a, t) -> a >= t)) return false; break;
                 case ">":  if (!numCheck(rawVal, thresholdObj, (a, t) -> a > t)) return false; break;
-                case "==": if (!numCheck(rawVal, thresholdObj, (a, t) -> a == t)) return false; break;
-                case "!=": if (!numCheck(rawVal, thresholdObj, (a, t) -> a != t)) return false; break;
+                case "==": if (!numCheck(rawVal, thresholdObj, (a, t) -> Math.abs(a - t) < 1e-9)) return false; break;
+                case "!=": if (!numCheck(rawVal, thresholdObj, (a, t) -> Math.abs(a - t) >= 1e-9)) return false; break;
                 // String operators
                 case "equals": if (!String.valueOf(rawVal).equals(String.valueOf(thresholdObj))) return false; break;
                 case "not_equals": if (String.valueOf(rawVal).equals(String.valueOf(thresholdObj))) return false; break;

@@ -1056,3 +1056,26 @@ CREATE TABLE `rpt_alert_log` (
   KEY `idx_rule_id` (`rule_id`),
   KEY `idx_handle_status` (`handle_status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='告警日志表';
+
+-- ============================================================================
+-- 六、索引优化 (Performance Indexes)
+-- ============================================================================
+
+-- oa_leave_apply: 按员工+状态查询审批列表，按日期范围查询
+ALTER TABLE `oa_leave_apply` ADD INDEX `idx_leave_emp_status` (`emp_id`, `status`);
+ALTER TABLE `oa_leave_apply` ADD INDEX `idx_leave_date_range` (`start_time`, `end_time`);
+
+-- oa_business_trip: 按员工+状态查询出差审批列表
+ALTER TABLE `oa_business_trip` ADD INDEX `idx_trip_emp_status` (`emp_id`, `status`);
+
+-- oa_expense: 按员工+状态查询报销审批列表
+ALTER TABLE `oa_expense` ADD INDEX `idx_expense_emp_status` (`emp_id`, `status`);
+
+-- oa_purchase: 按员工+状态查询采购审批列表
+ALTER TABLE `oa_purchase` ADD INDEX `idx_purchase_emp_status` (`emp_id`, `status`);
+
+-- oa_overtime: 按员工+状态查询加班审批列表
+ALTER TABLE `oa_overtime` ADD INDEX `idx_overtime_emp_status` (`emp_id`, `status`);
+
+-- oa_loan: 按员工+状态查询借款审批列表
+ALTER TABLE `oa_loan` ADD INDEX `idx_loan_emp_status` (`emp_id`, `status`);

@@ -3,7 +3,6 @@ package cn.oa.service.impl;
 import cn.oa.common.exception.BusinessException;
 import cn.oa.entity.OaApprovalRecord;
 import cn.oa.entity.SysEmployee;
-import cn.oa.entity.WfDelegation;
 import cn.oa.entity.WfTask;
 import cn.oa.mapper.OaApprovalRecordMapper;
 import cn.oa.mapper.SysEmployeeMapper;
@@ -114,9 +113,7 @@ public abstract class BaseApprovalServiceImpl<M extends BaseMapper<T>, T>
 
     /**
      * Common approve logic: find pending task for this business, handle it.
-     * Enhanced to support delegation: if the current user is a delegator whose
-     * tasks were delegated, or a delegate acting on behalf of a delegator,
-     * the task lookup will still succeed.
+     * Delegation authorization is handled internally by WorkflowService.handleTask.
      */
     @Transactional
     public void doApprove(Long id, Long approverId, Integer status, String remark) {
@@ -124,44 +121,11 @@ public abstract class BaseApprovalServiceImpl<M extends BaseMapper<T>, T>
 
         WfTask task = workflowService.findPendingTask(getBusinessType(), id, approverId);
         if (task != null) {
-            Long taskAssigneeId = task.getAssigneeId();
-            if (!taskAssigneeId.equals(approverId)) {
-                boolean authorized = isAuthorizedForTask(approverId, taskAssigneeId);
-                if (!authorized) {
-                    log.warn("doApprove: user {} not authorized for task {} assigned to {}", approverId, task.getId(), taskAssigneeId);
-                    throw new BusinessException("无权处理此任务");
-                }
-                log.info("doApprove: delegation approval - user {} acting on task {} assigned to {}", approverId, task.getId(), taskAssigneeId);
-                workflowService.handleTask(task.getId(), taskAssigneeId, status, remark);
-            } else {
-                workflowService.handleTask(task.getId(), approverId, status, remark);
-            }
+            workflowService.handleTask(task.getId(), approverId, status, remark);
         } else {
             log.warn("doApprove: no pending task found for businessType={}, id={}, approverId={}", getBusinessType(), id, approverId);
             throw new BusinessException("未找到待审批的任务");
         }
-    }
-
-    /**
-     * Check if the current user is authorized to approve a task that is assigned
-     * to another person. This covers delegation scenarios:
-     * 1. The current user delegated their approval to the task assignee (delegator scenario)
-     * 2. The current user is a delegate for the task assignee (delegate scenario)
-     */
-    private boolean isAuthorizedForTask(Long currentUserId, Long taskAssigneeId) {
-        // Case 1: Current user is a delegator, task is assigned to their delegate
-        Long delegateId = delegationService.resolveDelegate(currentUserId);
-        if (delegateId != null && delegateId.equals(taskAssigneeId)) {
-            return true;
-        }
-
-        // Case 2: Current user is a delegate, task is assigned to the delegator
-        WfDelegation reverseDelegation = delegationService.findActiveDelegationForDelegate(currentUserId);
-        if (reverseDelegation != null && reverseDelegation.getDelegatorId().equals(taskAssigneeId)) {
-            return true;
-        }
-
-        return false;
     }
 
     // ====== updateStatus ======

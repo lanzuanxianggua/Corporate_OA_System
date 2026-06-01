@@ -41,11 +41,30 @@ public class BudgetServiceImpl extends ServiceImpl<OaBudgetMapper, OaBudget> imp
     @Override
     @Transactional
     public void updateUsedAmount(Long budgetId, BigDecimal amount) {
-        boolean updated = lambdaUpdate()
-                .setSql("used_amount = used_amount + " + amount)
-                .eq(OaBudget::getId, budgetId)
-                .update();
+        boolean updated;
+        if (amount.compareTo(BigDecimal.ZERO) > 0) {
+            // 原子扣减：扣减 + 余额校验一步完成，避免 TOCTOU 问题
+            updated = lambdaUpdate()
+                    .setSql("used_amount = used_amount + " + amount)
+                    .eq(OaBudget::getId, budgetId)
+                    .apply("(amount - used_amount) >= {0}", amount)
+                    .update();
+        } else {
+            updated = lambdaUpdate()
+                    .setSql("used_amount = used_amount + " + amount)
+                    .eq(OaBudget::getId, budgetId)
+                    .update();
+        }
         if (!updated) {
+            if (amount.compareTo(BigDecimal.ZERO) > 0) {
+                // 可能是预算不存在或预算不足，重新查询以获得准确原因
+                OaBudget budget = this.getById(budgetId);
+                if (budget == null) {
+                    throw new BusinessException("预算不存在");
+                }
+                BigDecimal remaining = budget.getAmount().subtract(budget.getUsedAmount());
+                throw new BusinessException("超出预算余额，剩余预算：" + remaining);
+            }
             throw new BusinessException("预算不存在或已被删除");
         }
     }

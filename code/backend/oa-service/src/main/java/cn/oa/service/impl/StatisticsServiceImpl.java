@@ -1,5 +1,6 @@
 package cn.oa.service.impl;
 
+import cn.oa.common.service.RedisService;
 import cn.oa.entity.*;
 import cn.oa.mapper.*;
 import cn.oa.service.StatisticsService;
@@ -11,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -29,6 +31,8 @@ public class StatisticsServiceImpl implements StatisticsService {
     private OaBusinessTripMapper businessTripMapper;
     @Autowired
     private OaApprovalRecordMapper approvalRecordMapper;
+    @Autowired
+    private RedisService redisService;
 
     /** 计算一个月内的工作日数 (周一至周五) */
     private int countWorkdays(LocalDate start, LocalDate end) {
@@ -44,6 +48,27 @@ public class StatisticsServiceImpl implements StatisticsService {
 
     @Override
     public Map<String, Object> getDashboardStats(String period, Integer year) {
+        // 尝试从缓存获取
+        String cacheKey = "cache:stats:dashboard:" + (period == null ? "today" : period)
+                + ":" + (year != null ? year : LocalDate.now().getYear());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> cached = redisService.getJson(cacheKey, Map.class);
+        if (cached != null) {
+            log.debug("仪表盘数据命中缓存: {}", cacheKey);
+            return cached;
+        }
+
+        Map<String, Object> result = doGetDashboardStats(period, year);
+
+        // 缓存5分钟，避免频繁查询
+        redisService.set(cacheKey, result, 5, TimeUnit.MINUTES);
+        return result;
+    }
+
+    /**
+     * 实际计算仪表盘数据（无缓存）
+     */
+    private Map<String, Object> doGetDashboardStats(String period, Integer year) {
         Map<String, Object> result = new LinkedHashMap<>();
 
         // 1. 员工总数
@@ -248,21 +273,27 @@ public class StatisticsServiceImpl implements StatisticsService {
     }
 
     private List<Map<String, Object>> buildLateRanking(LocalDate startDate, LocalDate endDate) {
-        List<OaAttendance> lateRecords = attendanceMapper.selectList(
-            new LambdaQueryWrapper<OaAttendance>()
-                .between(OaAttendance::getWorkDate, startDate, endDate)
-                .eq(OaAttendance::getStatus, 1));
+        // 使用 GROUP BY 一次查询所有员工的迟到次数
+        List<Map<String, Object>> lateStats = attendanceMapper.selectLateCountGroupByEmp(startDate, endDate);
 
-        Map<Long, Long> lateCountMap = lateRecords.stream()
-            .collect(Collectors.groupingBy(OaAttendance::getEmpId, Collectors.counting()));
+        if (lateStats.isEmpty()) return Collections.emptyList();
+
+        // 批量查询员工信息
+        Set<Long> empIds = lateStats.stream()
+                .map(row -> ((Number) row.get("emp_id")).longValue())
+                .collect(Collectors.toSet());
+        List<SysEmployee> employees = employeeMapper.selectBatchIds(empIds);
+        Map<Long, String> empNameMap = employees.stream()
+                .collect(Collectors.toMap(SysEmployee::getId, SysEmployee::getEmpName));
 
         List<Map<String, Object>> ranking = new ArrayList<>();
-        for (Map.Entry<Long, Long> entry : lateCountMap.entrySet()) {
-            SysEmployee emp = employeeMapper.selectById(entry.getKey());
-            if (emp != null) {
+        for (Map<String, Object> row : lateStats) {
+            Long empId = ((Number) row.get("emp_id")).longValue();
+            String empName = empNameMap.get(empId);
+            if (empName != null) {
                 Map<String, Object> item = new LinkedHashMap<>();
-                item.put("empName", emp.getEmpName());
-                item.put("lateCount", entry.getValue());
+                item.put("empName", empName);
+                item.put("lateCount", ((Number) row.get("late_count")).longValue());
                 ranking.add(item);
             }
         }
@@ -271,26 +302,31 @@ public class StatisticsServiceImpl implements StatisticsService {
     }
 
     private List<Map<String, Object>> buildAttendanceRanking(LocalDate startDate, LocalDate endDate) {
-        List<SysEmployee> activeEmployees = employeeMapper.selectList(
-            new LambdaQueryWrapper<SysEmployee>().eq(SysEmployee::getStatus, 1));
+        // 使用 GROUP BY 一次查询所有员工的出勤统计
+        List<Map<String, Object>> attendanceStats = attendanceMapper.selectAttendanceStatsGroupByEmp(startDate, endDate);
+
+        if (attendanceStats.isEmpty()) return Collections.emptyList();
+
+        // 批量查询员工信息
+        Set<Long> empIds = attendanceStats.stream()
+                .map(row -> ((Number) row.get("emp_id")).longValue())
+                .collect(Collectors.toSet());
+        List<SysEmployee> employees = employeeMapper.selectBatchIds(empIds);
+        Map<Long, String> empNameMap = employees.stream()
+                .collect(Collectors.toMap(SysEmployee::getId, SysEmployee::getEmpName));
 
         List<Map<String, Object>> ranking = new ArrayList<>();
-        for (SysEmployee emp : activeEmployees) {
-            Long totalDays = attendanceMapper.selectCount(
-                new LambdaQueryWrapper<OaAttendance>()
-                    .between(OaAttendance::getWorkDate, startDate, endDate)
-                    .eq(OaAttendance::getEmpId, emp.getId()));
-            if (totalDays == 0) continue;
+        for (Map<String, Object> row : attendanceStats) {
+            Long empId = ((Number) row.get("emp_id")).longValue();
+            String empName = empNameMap.get(empId);
+            if (empName == null) continue;
 
-            Long normalDays = attendanceMapper.selectCount(
-                new LambdaQueryWrapper<OaAttendance>()
-                    .between(OaAttendance::getWorkDate, startDate, endDate)
-                    .eq(OaAttendance::getEmpId, emp.getId())
-                    .eq(OaAttendance::getStatus, 0));
-
+            long totalDays = ((Number) row.get("total")).longValue();
+            long normalDays = ((Number) row.get("normal")).longValue();
             double rate = Math.round(normalDays * 1000.0 / totalDays) / 10.0;
+
             Map<String, Object> item = new LinkedHashMap<>();
-            item.put("empName", emp.getEmpName());
+            item.put("empName", empName);
             item.put("rate", rate);
             item.put("normalDays", normalDays);
             item.put("totalDays", totalDays);

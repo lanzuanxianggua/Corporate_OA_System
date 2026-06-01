@@ -31,6 +31,9 @@ public class OaApprovalRecord {
 
     private String nodeName;
 
+    /** 委托人ID（委托审批时记录原审批人，非委托场景为 NULL） */
+    private Long delegatorId;
+
     /** 审批人姓名（非数据库字段，查询时填充） */
     @TableField(exist = false)
     private String assigneeName;

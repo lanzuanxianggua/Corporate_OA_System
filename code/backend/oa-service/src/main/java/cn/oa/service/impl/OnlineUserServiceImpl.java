@@ -9,7 +9,9 @@ import cn.oa.mapper.SysEmployeeMapper;
 import cn.oa.service.OnlineUserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -65,8 +67,13 @@ public class OnlineUserServiceImpl implements OnlineUserService {
 
     @Override
     public List<OnlineUserVO> getOnlineUsers() {
-        Set<String> keys = redisTemplate.keys(ONLINE_KEY_PREFIX + "*");
-        if (keys == null || keys.isEmpty()) return Collections.emptyList();
+        ScanOptions scanOptions = ScanOptions.scanOptions().match(ONLINE_KEY_PREFIX + "*").count(100).build();
+        Cursor<String> cursor = redisTemplate.scan(scanOptions);
+        List<String> keys = new ArrayList<>();
+        while (cursor.hasNext()) {
+            keys.add(cursor.next());
+        }
+        if (keys.isEmpty()) return Collections.emptyList();
 
         List<OnlineUserVO> result = new ArrayList<>();
         for (String key : keys) {

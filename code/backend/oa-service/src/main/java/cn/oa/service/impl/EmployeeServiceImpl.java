@@ -58,6 +58,36 @@ public class EmployeeServiceImpl extends ServiceImpl<SysEmployeeMapper, SysEmplo
 
     @Override
     public void addEmployee(SysEmployee employee) {
+        // 校验员工编号是否已存在
+        if (StringUtils.hasText(employee.getEmpCode())) {
+            Long empCodeCount = this.lambdaQuery()
+                    .eq(SysEmployee::getEmpCode, employee.getEmpCode())
+                    .eq(SysEmployee::getDelFlag, "0")
+                    .count();
+            if (empCodeCount > 0) {
+                throw new BusinessException("员工编号已存在: " + employee.getEmpCode());
+            }
+        }
+        // 校验手机号是否已存在
+        if (StringUtils.hasText(employee.getPhone())) {
+            Long phoneCount = this.lambdaQuery()
+                    .eq(SysEmployee::getPhone, employee.getPhone())
+                    .eq(SysEmployee::getDelFlag, "0")
+                    .count();
+            if (phoneCount > 0) {
+                throw new BusinessException("手机号已存在: " + employee.getPhone());
+            }
+        }
+        // 校验邮箱是否已存在
+        if (StringUtils.hasText(employee.getEmail())) {
+            Long emailCount = this.lambdaQuery()
+                    .eq(SysEmployee::getEmail, employee.getEmail())
+                    .eq(SysEmployee::getDelFlag, "0")
+                    .count();
+            if (emailCount > 0) {
+                throw new BusinessException("邮箱已存在: " + employee.getEmail());
+            }
+        }
         if (StringUtils.hasText(employee.getPassword())) {
             employee.setPassword(BCrypt.hashpw(employee.getPassword()));
         } else {

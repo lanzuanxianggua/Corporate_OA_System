@@ -61,16 +61,29 @@ public class NotificationEndpoint extends TextWebSocketHandler {
         }
     }
 
+    @Override
+    public void handleTransportError(WebSocketSession session, Throwable exception) {
+        Long empId = extractEmpId(session);
+        if (empId != null) {
+            synchronized (sessions) {
+                sessions.remove(empId);
+            }
+            log.warn("WebSocket transport error for empId={}: {}", empId, exception.getMessage());
+        }
+    }
+
     /**
      * Send a notification to a specific user.
      */
     public static void sendToUser(Long empId, String message) {
-        WebSocketSession session = sessions.get(empId);
-        if (session != null && session.isOpen()) {
-            try {
-                session.sendMessage(new TextMessage(message));
-            } catch (IOException e) {
-                log.warn("Failed to send WebSocket message to empId={}: {}", empId, e.getMessage());
+        synchronized (sessions) {
+            WebSocketSession session = sessions.get(empId);
+            if (session != null && session.isOpen()) {
+                try {
+                    session.sendMessage(new TextMessage(message));
+                } catch (IOException e) {
+                    log.warn("Failed to send WebSocket message to empId={}: {}", empId, e.getMessage());
+                }
             }
         }
     }
