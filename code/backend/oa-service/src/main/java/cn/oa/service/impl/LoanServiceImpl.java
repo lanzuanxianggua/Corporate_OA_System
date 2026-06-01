@@ -122,11 +122,31 @@ public class LoanServiceImpl extends BaseApprovalServiceImpl<OaLoanMapper, OaLoa
         if (loan == null) {
             throw new BusinessException("借支记录不存在");
         }
+        // 超还校验：还款金额不能超过剩余未还金额
+        BigDecimal repaid = loan.getRepaidAmount() != null ? loan.getRepaidAmount() : BigDecimal.ZERO;
+        BigDecimal remaining = loan.getLoanAmount().subtract(repaid);
+        if (amount.compareTo(remaining) > 0) {
+            throw new BusinessException("还款金额超过剩余未还金额（剩余未还：" + remaining + "）");
+        }
+
+        // 插入还款记录
         OaLoanRepayment repayment = new OaLoanRepayment();
         repayment.setLoanId(loanId);
         repayment.setAmount(amount);
         repayment.setRepayTime(LocalDateTime.now());
         repayment.setRemark(remark);
         repaymentMapper.insert(repayment);
+
+        // 原子更新 repaid_amount 和 status，避免并发读-改-写竞态
+        BigDecimal newRepaid = repaid.add(amount);
+        String newStatus = newRepaid.compareTo(loan.getLoanAmount()) >= 0 ? "4" : "3";
+        boolean updated = lambdaUpdate()
+                .setSql("repaid_amount = repaid_amount + " + amount)
+                .set(OaLoan::getStatus, newStatus)
+                .eq(OaLoan::getId, loanId)
+                .update();
+        if (!updated) {
+            throw new BusinessException("借支记录已被删除");
+        }
     }
 }

@@ -1,0 +1,100 @@
+        if (!"0".equals(task.getStatus())) {
+            throw new BusinessException("任务已处理");
+        }
+
+        task.setStatus(String.valueOf(status));
+        task.setActionTime(LocalDateTime.now());
+        task.setRemark(remark);
+        taskMapper.updateById(task);
+
+        WfProcessInstance instance = instanceMapper.selectById(task.getInstanceId());
+        if (instance == null) {
+            throw new BusinessException("流程实例不存在");
+        }
+
+        // Fetch approver name for audit record
+        SysEmployee approver = employeeMapper.selectById(handlerId);
+        String approverName = approver != null ? approver.getEmpName() : null;
+
+        // Insert audit record with taskId, nodeName, assigneeName
+        OaApprovalRecord record = new OaApprovalRecord();
+        record.setApplyId(instance.getBusinessId());
+        record.setBusinessType(instance.getBusinessType());
+        record.setApproverId(handlerId);
+        record.setApproveStatus(status);
+        record.setRemark(remark);
+        record.setApproveTime(LocalDateTime.now());
+        record.setTaskId(taskId);
+        record.setNodeName(task.getNodeName());
+        record.setAssigneeName(approverName);
+        approvalRecordMapper.insert(record);
+
+        // Handle multi-person approval (countersign/orsign)
+        boolean isMultiTask = task.getParentTaskId() != null || task.getMultiType() != null;
+        if (isMultiTask && status == 1) {
+            String multiType = task.getMultiType();
+            if ("countersign".equals(multiType)) {
+                // Countersign: check if all siblings approved
+                Long parentId = task.getParentTaskId() != null ? task.getParentTaskId() : taskId;
+                LambdaQueryWrapper<WfTask> siblingWrapper = new LambdaQueryWrapper<>();
+                siblingWrapper.eq(WfTask::getParentTaskId, parentId)
+                        .eq(WfTask::getStatus, "0");
+                Long pendingCount = taskMapper.selectCount(siblingWrapper);
+
+                if (pendingCount > 0) {
+                    // Still waiting for other approvers, don't advance
+                    return;
+                }
+
+                // All approved — cancel parent task if this was a child
+                if (task.getParentTaskId() != null) {
+                    WfTask parentTask = taskMapper.selectById(task.getParentTaskId());
+                    if (parentTask != null && "0".equals(parentTask.getStatus())) {
+                        parentTask.setStatus("1");
+                        parentTask.setActionTime(LocalDateTime.now());
+                        taskMapper.updateById(parentTask);
+                    }
+                }
+                // Fall through to advance to next node
+            } else if ("orsign".equals(multiType)) {
+                // Orsign: first approval wins — cancel all other pending siblings
+                Long parentId = task.getParentTaskId() != null ? task.getParentTaskId() : taskId;
+                LambdaQueryWrapper<WfTask> siblingWrapper = new LambdaQueryWrapper<>();
+                siblingWrapper.eq(WfTask::getParentTaskId, parentId)
+                        .eq(WfTask::getStatus, "0");
+                List<WfTask> pendingSiblings = taskMapper.selectList(siblingWrapper);
+                for (WfTask sibling : pendingSiblings) {
+                    sibling.setStatus("4"); // canceled
+                    sibling.setActionTime(LocalDateTime.now());
+                    sibling.setRemark("或签已由其他审批人处理");
+                    taskMapper.updateById(sibling);
+                }
+
+                // Cancel parent task
+                if (task.getParentTaskId() != null) {
+                    WfTask parentTask = taskMapper.selectById(task.getParentTaskId());
+                    if (parentTask != null && "0".equals(parentTask.getStatus())) {
+                        parentTask.setStatus("1");
+                        parentTask.setActionTime(LocalDateTime.now());
+                        taskMapper.updateById(parentTask);
+                    }
+                }
+                // Fall through to advance to next node
+            }
+        }
+
+        WfProcessDefinition definition = this.getById(instance.getProcessId());
+        JSONArray nodes = JSONUtil.parseArray(definition.getNodeConfig());
+
+        if (status == 2) {
+            // rejected
+            handleRejection(task, instance, isMultiTask);
+        } else if (status == 1) {
+            // approved, check if more applicable nodes
+            Map<String, Object> ctx = null;
+            if (instance.getConditionContext() != null && !instance.getConditionContext().isEmpty()) {
+                ctx = JSONUtil.parseObj(instance.getConditionContext()).toBean(Map.class);
+            }
+            advanceToNextNode(task, instance, nodes, ctx, remark);
+        }
+    }

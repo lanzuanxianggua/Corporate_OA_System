@@ -42,6 +42,20 @@ public class MeetingServiceImpl extends ServiceImpl<OaMeetingMapper, OaMeeting> 
     public void submit(OaMeeting meeting) {
         meeting.setStatus("0");
         meeting.setCreateTime(LocalDateTime.now());
+
+        // check for time conflicts with the same room
+        if (meeting.getRoomId() != null && meeting.getStartTime() != null && meeting.getEndTime() != null) {
+            LambdaQueryWrapper<OaMeeting> conflictQuery = new LambdaQueryWrapper<OaMeeting>()
+                    .eq(OaMeeting::getRoomId, meeting.getRoomId())
+                    .ne(OaMeeting::getStatus, "3") // exclude canceled meetings
+                    .lt(OaMeeting::getStartTime, meeting.getEndTime())
+                    .gt(OaMeeting::getEndTime, meeting.getStartTime());
+            long conflictCount = this.count(conflictQuery);
+            if (conflictCount > 0) {
+                throw new BusinessException("该会议室在指定时间段已被预定");
+            }
+        }
+
         this.save(meeting);
 
         // create todo for all participants

@@ -57,19 +57,27 @@ public class LeaveBalanceServiceImpl extends ServiceImpl<OaLeaveBalanceMapper, O
     @Override
     @Transactional
     public void deductBalance(Long empId, Integer leaveType, Integer year, BigDecimal days) {
-        OaLeaveBalance balance = this.getOne(new LambdaQueryWrapper<OaLeaveBalance>()
+        // 原子更新：使用 setSql 避免并发读-改-写竞态
+        boolean updated = this.lambdaUpdate()
+                .setSql("used_days = used_days + " + days)
+                .setSql("remaining_days = remaining_days - " + days)
                 .eq(OaLeaveBalance::getEmpId, empId)
                 .eq(OaLeaveBalance::getLeaveType, leaveType)
-                .eq(OaLeaveBalance::getYear, year));
-        if (balance == null) {
-            throw new BusinessException("假期余额不存在");
+                .eq(OaLeaveBalance::getYear, year)
+                .ge(OaLeaveBalance::getRemainingDays, days) // 数据库层校验余额充足
+                .update();
+        if (!updated) {
+            // 区分是记录不存在还是余额不足
+            boolean exists = this.exists(new LambdaQueryWrapper<OaLeaveBalance>()
+                    .eq(OaLeaveBalance::getEmpId, empId)
+                    .eq(OaLeaveBalance::getLeaveType, leaveType)
+                    .eq(OaLeaveBalance::getYear, year));
+            if (!exists) {
+                throw new BusinessException("假期余额不存在");
+            } else {
+                throw new BusinessException("假期余额不足");
+            }
         }
-        if (balance.getRemainingDays().compareTo(days) < 0) {
-            throw new BusinessException("假期余额不足");
-        }
-        balance.setUsedDays(balance.getUsedDays().add(days));
-        balance.setRemainingDays(balance.getRemainingDays().subtract(days));
-        this.updateById(balance);
     }
 
     @Override

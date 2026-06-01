@@ -75,7 +75,7 @@ public class OvertimeServiceImpl extends BaseApprovalServiceImpl<OaOvertimeMappe
         }
 
         if ((newStatus == 2 || newStatus == 3) && "1".equals(oldStr)) {
-            leaveBalanceService.deductBalance(entity.getEmpId(), 5, year, days);
+            leaveBalanceService.addCompensatoryBalance(entity.getEmpId(), year, days.negate());
         }
     }
 

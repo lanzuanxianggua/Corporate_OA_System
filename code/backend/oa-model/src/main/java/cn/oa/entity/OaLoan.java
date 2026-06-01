@@ -17,6 +17,9 @@ public class OaLoan {
 
     private BigDecimal loanAmount;
 
+    /** 已还金额（原子更新，避免并发覆盖） */
+    private BigDecimal repaidAmount;
+
     private String loanReason;
 
     private String repaymentPlan;

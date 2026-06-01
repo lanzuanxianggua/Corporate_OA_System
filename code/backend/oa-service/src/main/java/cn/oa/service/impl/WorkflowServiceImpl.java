@@ -35,11 +35,13 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -82,6 +84,9 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
 
     @Autowired
     private DeptService deptService;
+
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
     @Override
     @Transactional
@@ -272,19 +277,29 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
             }
         }
 
-        if (!"0".equals(task.getStatus())) {
-            throw new BusinessException("任务已处理");
-        }
+        // === Acquire distributed lock to prevent TOCTOU race on countersign/orsign ===
+        String lockKey = "lock:workflow:task:" + (task.getParentTaskId() != null ? task.getParentTaskId() : taskId);
+        String lockValue = UUID.randomUUID().toString();
+        try {
+            Boolean acquired = stringRedisTemplate.opsForValue()
+                    .setIfAbsent(lockKey, lockValue, 10, TimeUnit.SECONDS);
+            if (!Boolean.TRUE.equals(acquired)) {
+                throw new BusinessException("系统繁忙，请稍后重试");
+            }
 
-        task.setStatus(String.valueOf(status));
-        task.setActionTime(LocalDateTime.now());
-        task.setRemark(remark);
-        taskMapper.updateById(task);
+            if (!"0".equals(task.getStatus())) {
+                throw new BusinessException("任务已处理");
+            }
 
-        WfProcessInstance instance = instanceMapper.selectById(task.getInstanceId());
-        if (instance == null) {
-            throw new BusinessException("流程实例不存在");
-        }
+            task.setStatus(String.valueOf(status));
+            task.setActionTime(LocalDateTime.now());
+            task.setRemark(remark);
+            taskMapper.updateById(task);
+
+            WfProcessInstance instance = instanceMapper.selectById(task.getInstanceId());
+            if (instance == null) {
+                throw new BusinessException("流程实例不存在");
+            }
 
         // Fetch approver name for audit record
         SysEmployee approver = employeeMapper.selectById(handlerId);
@@ -370,6 +385,12 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
                 ctx = JSONUtil.parseObj(instance.getConditionContext()).toBean(Map.class);
             }
             advanceToNextNode(task, instance, nodes, ctx, remark);
+        }
+        } finally {
+            String currentVal = stringRedisTemplate.opsForValue().get(lockKey);
+            if (lockValue.equals(currentVal)) {
+                stringRedisTemplate.delete(lockKey);
+            }
         }
     }
 
@@ -536,6 +557,15 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
                 // CC, todo, notification for each assignee
                 createCcAndTodoForTask(node, instance, childTask, assigneeId);
             }
+
+            // [P1.5] Mark parent task as inactive to prevent parent/child dual activation
+            // The parent task exists only as a logical grouping placeholder; children do the real work.
+            WfTask parentTaskUpdate = new WfTask();
+            parentTaskUpdate.setId(parentTaskId);
+            parentTaskUpdate.setAssigneeId(null);
+            parentTaskUpdate.setStatus("1");
+            parentTaskUpdate.setActionTime(LocalDateTime.now());
+            taskMapper.updateById(parentTaskUpdate);
         } else {
             // Single approver
             WfTask task = new WfTask();

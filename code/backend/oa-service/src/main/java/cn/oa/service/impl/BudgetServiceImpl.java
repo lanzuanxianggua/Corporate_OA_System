@@ -41,11 +41,12 @@ public class BudgetServiceImpl extends ServiceImpl<OaBudgetMapper, OaBudget> imp
     @Override
     @Transactional
     public void updateUsedAmount(Long budgetId, BigDecimal amount) {
-        OaBudget budget = this.getById(budgetId);
-        if (budget == null) {
-            throw new BusinessException("预算不存在");
+        boolean updated = lambdaUpdate()
+                .setSql("used_amount = used_amount + " + amount)
+                .eq(OaBudget::getId, budgetId)
+                .update();
+        if (!updated) {
+            throw new BusinessException("预算不存在或已被删除");
         }
-        budget.setUsedAmount(budget.getUsedAmount().add(amount));
-        this.updateById(budget);
     }
 }

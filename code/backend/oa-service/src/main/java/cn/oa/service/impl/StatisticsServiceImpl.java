@@ -78,15 +78,15 @@ public class StatisticsServiceImpl implements StatisticsService {
         // 本月请假人数（去重）
         Long leaveCountThisMonth = leaveApplyMapper.selectCount(
             new LambdaQueryWrapper<OaLeaveApply>()
-                .ge(OaLeaveApply::getStartTime, monthStart.atTime(0, 0, 0))
-                .le(OaLeaveApply::getEndTime, monthEnd.atTime(23, 59, 59)));
+                .lt(OaLeaveApply::getStartTime, monthEnd.plusDays(1).atStartOfDay())
+                .gt(OaLeaveApply::getEndTime, monthStart.atStartOfDay()));
         result.put("leaveCountThisMonth", leaveCountThisMonth);
 
         // 本月出差人数（去重）
         Long businessTripCountThisMonth = businessTripMapper.selectCount(
             new LambdaQueryWrapper<OaBusinessTrip>()
-                .ge(OaBusinessTrip::getStartTime, monthStart.atTime(0, 0, 0))
-                .le(OaBusinessTrip::getEndTime, monthEnd.atTime(23, 59, 59)));
+                .lt(OaBusinessTrip::getStartTime, monthEnd.plusDays(1).atStartOfDay())
+                .gt(OaBusinessTrip::getEndTime, monthStart.atStartOfDay()));
         result.put("businessTripCountThisMonth", businessTripCountThisMonth);
 
         // 待审批数量
@@ -136,7 +136,7 @@ public class StatisticsServiceImpl implements StatisticsService {
                 .ge(OaLeaveApply::getEndTime, startDate.atTime(0, 0, 0)));
 
         // 缺勤总人次 = 范围天数 × 员工总数 - 打卡总人次 - 请假人次
-        long rangeDays = startDate.until(endDate).getDays() + 1;
+        long rangeDays = countWorkdays(startDate, endDate);
         long totalRequired = employeeTotal * rangeDays;
         long absent = Math.max(0, totalRequired - clockedIn - onLeave);
         attendance.put("absent", absent);

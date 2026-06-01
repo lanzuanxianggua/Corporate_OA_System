@@ -3,6 +3,7 @@ package cn.oa.common.interceptor;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.annotation.RequirePermission;
 import cn.oa.common.annotation.RequireRole;
+import cn.oa.common.resolver.RoleResolver;
 import cn.oa.common.utils.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,6 +27,9 @@ public class AuthInterceptor implements HandlerInterceptor {
 
     @Autowired
     private JwtUtil jwtUtil;
+
+    @Autowired(required = false)
+    private RoleResolver roleResolver;
 
     private static final String ONLINE_KEY_PREFIX = "online:user:";
     private static final long ONLINE_TTL_MINUTES = 30;
@@ -93,9 +97,7 @@ public class AuthInterceptor implements HandlerInterceptor {
             RequireAdmin methodAnnotation = handlerMethod.getMethodAnnotation(RequireAdmin.class);
             RequireAdmin classAnnotation = handlerMethod.getBeanType().getAnnotation(RequireAdmin.class);
             if (methodAnnotation != null || classAnnotation != null) {
-                String rolesKey = "roles:" + empId;
-                @SuppressWarnings("unchecked")
-                List<String> roles = (List<String>) redisTemplate.opsForValue().get(rolesKey);
+                List<String> roles = getRoles(empId);
                 if (roles == null || roles.stream().noneMatch(r -> "ADMIN".equalsIgnoreCase(r))) {
                     log.warn("用户 {} (empId={}) 尝试访问管理员接口被拒绝", empName, empId);
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
@@ -110,9 +112,7 @@ public class AuthInterceptor implements HandlerInterceptor {
             RequireRole classRole = handlerMethod.getBeanType().getAnnotation(RequireRole.class);
             RequireRole requireRole = methodRole != null ? methodRole : classRole;
             if (requireRole != null && requireRole.value().length > 0) {
-                String rolesKey = "roles:" + empId;
-                @SuppressWarnings("unchecked")
-                List<String> roles = (List<String>) redisTemplate.opsForValue().get(rolesKey);
+                List<String> roles = getRoles(empId);
                 boolean isAdmin = roles != null && roles.stream().anyMatch(r -> "ADMIN".equalsIgnoreCase(r));
                 if (isAdmin) {
                     // ADMIN bypasses all role checks
@@ -136,9 +136,7 @@ public class AuthInterceptor implements HandlerInterceptor {
             // 细粒度权限校验
             RequirePermission requirePermission = handlerMethod.getMethodAnnotation(RequirePermission.class);
             if (requirePermission != null && !requirePermission.value().isEmpty()) {
-                String rolesKey = "roles:" + empId;
-                @SuppressWarnings("unchecked")
-                List<String> roles = (List<String>) redisTemplate.opsForValue().get(rolesKey);
+                List<String> roles = getRoles(empId);
                 if (roles == null || roles.stream().noneMatch(r ->
                         hasPermission(r, requirePermission.value()))) {
                     log.warn("用户 {} (empId={}) 缺少权限: {}", empName, empId, requirePermission.value());
@@ -165,5 +163,21 @@ public class AuthInterceptor implements HandlerInterceptor {
         if (perms.contains(permission)) return true;
         if ("ADMIN".equalsIgnoreCase(role)) return true;
         return false;
+    }
+
+    /**
+     * Get roles for the given employee from Redis with database fallback.
+     * If Redis cache misses and a RoleResolver is available, queries the database
+     * and backfills the cache.
+     */
+    @SuppressWarnings("unchecked")
+    private List<String> getRoles(Long empId) {
+        String rolesKey = "roles:" + empId;
+        List<String> roles = (List<String>) redisTemplate.opsForValue().get(rolesKey);
+        if (roles == null && roleResolver != null) {
+            log.debug("Role cache miss for empId={}, falling back to database", empId);
+            roles = roleResolver.resolveRoles(empId);
+        }
+        return roles;
     }
 }

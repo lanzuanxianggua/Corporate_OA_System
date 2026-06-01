@@ -28,6 +28,9 @@ public class OaBudget {
 
     private String status = "0";
 
+    @Version
+    private Integer version;
+
     @TableField(fill = FieldFill.INSERT)
     private String createBy;
 

@@ -54,11 +54,17 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginVO login(String username, String password) {
+        // Login without HttpServletRequest is not supported; delegate with null request,
+        // letting the null guard in the 3-arg overload produce a clear error.
         return login(username, password, null);
     }
 
     @Override
     public LoginVO login(String username, String password, HttpServletRequest request) {
+        // P1.9: Null request protection
+        if (request == null) {
+            throw new BusinessException("请求异常");
+        }
         LambdaQueryWrapper<SysEmployee> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SysEmployee::getEmpCode, username);
         SysEmployee employee = employeeMapper.selectOne(wrapper);
@@ -69,6 +75,12 @@ public class AuthServiceImpl implements AuthService {
         if (!BCrypt.checkpw(password, employee.getPassword())) {
             recordLoginLog(employee.getId(), username, request, 0, "密码错误");
             throw new BusinessException("密码错误");
+        }
+
+        // P1.8: Check if employee is logically deleted
+        if ("1".equals(employee.getDelFlag())) {
+            recordLoginLog(employee.getId(), username, request, 0, "该账号已被禁用");
+            throw new BusinessException("该账号已被禁用");
         }
 
         LambdaQueryWrapper<SysEmpRole> empRoleWrapper = new LambdaQueryWrapper<>();
