@@ -10,6 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -34,6 +35,9 @@ class EmployeeControllerTest extends BaseControllerTest {
 
     @MockitoBean
     private EmployeeService employeeService;
+
+    @MockitoBean
+    private RedisTemplate<String, Object> redisTemplate;
 
     private SysEmployee buildEmp(Long id, String code, String name) {
         SysEmployee emp = new SysEmployee();
@@ -129,7 +133,8 @@ class EmployeeControllerTest extends BaseControllerTest {
 
         mockMvc.perform(put("/api/employee")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(buildEmpDTO(1L, "admin", "管理员-修改"))))
+                        .content(objectMapper.writeValueAsString(buildEmpDTO(1L, "admin", "管理员-修改")))
+                        .requestAttr("empId", 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0));
 
@@ -141,7 +146,8 @@ class EmployeeControllerTest extends BaseControllerTest {
     void deleteEmployee() throws Exception {
         when(employeeService.removeById(1L)).thenReturn(true);
 
-        mockMvc.perform(delete("/api/employee/1"))
+        mockMvc.perform(delete("/api/employee/1")
+                        .requestAttr("empId", 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0));
 
@@ -154,9 +160,9 @@ class EmployeeControllerTest extends BaseControllerTest {
         doNothing().when(employeeService).updatePassword(1L, "old123", "new456");
 
         mockMvc.perform(put("/api/employee/password")
-                        .param("empId", "1")
-                        .param("oldPwd", "old123")
-                        .param("newPwd", "new456"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"empId\":1,\"oldPwd\":\"old123\",\"newPwd\":\"new456\"}")
+                        .requestAttr("empId", 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0));
 

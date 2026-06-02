@@ -128,7 +128,7 @@ class AttendanceGroupControllerTest extends BaseControllerTest {
 
         Map<String, List<Long>> params = Map.of("empIds", List.of(10L));
 
-        mockMvc.perform(delete("/api/attendance-group/1/employees")
+        mockMvc.perform(post("/api/attendance-group/1/employees/remove")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(params)))
                 .andExpect(status().isOk())

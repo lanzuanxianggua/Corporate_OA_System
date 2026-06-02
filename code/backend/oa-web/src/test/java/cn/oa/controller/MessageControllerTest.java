@@ -1,5 +1,6 @@
 package cn.oa.controller;
 
+import cn.oa.entity.OaMessage;
 import cn.oa.mapper.SysEmployeeMapper;
 import cn.oa.service.MessageService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -73,6 +74,10 @@ class MessageControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("标记消息已读")
     void markAsRead() throws Exception {
+        OaMessage message = new OaMessage();
+        message.setId(1L);
+        message.setReceiverId(1L);
+        when(messageService.getById(1L)).thenReturn(message);
         doNothing().when(messageService).markAsRead(1L, 1L);
 
         mockMvc.perform(post("/api/message/1/read")

@@ -147,9 +147,12 @@ class AssetControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("归还资产")
     void returnAsset() throws Exception {
+        OaAssetBorrow borrow = buildBorrow(1L, 1L);
+        when(assetBorrowService.getById(1L)).thenReturn(borrow);
         doNothing().when(assetBorrowService).returnAsset(anyLong());
 
-        mockMvc.perform(post("/api/asset/return/1"))
+        mockMvc.perform(post("/api/asset/return/1")
+                        .requestAttr("empId", 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0));
 

@@ -43,5 +43,13 @@ jobs:
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
+        id: codeql-analyze
         with:
           category: "/language:java-kotlin"
+        continue-on-error: true
+
+      - name: Check CodeQL result
+        if: steps.codeql-analyze.outcome == 'failure'
+        run: |
+          echo "::warning::CodeQL analysis failed. This may be due to Default Setup being enabled in repo settings."
+          echo "If so, disable Default Setup at: Settings → Code security → Code scanning → Default setup"

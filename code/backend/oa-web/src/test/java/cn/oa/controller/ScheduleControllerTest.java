@@ -120,11 +120,14 @@ class ScheduleControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("修改日程")
     void updateSchedule() throws Exception {
+        OaSchedule existing = buildSchedule(1L, "原日程");
+        when(scheduleService.getById(1L)).thenReturn(existing);
         when(scheduleService.updateById(any(OaSchedule.class))).thenReturn(true);
 
         mockMvc.perform(put("/api/schedule")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(buildScheduleDTO(1L, "修改后"))))
+                        .content(objectMapper.writeValueAsString(buildScheduleDTO(1L, "修改后")))
+                        .requestAttr("empId", 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0));
 
@@ -134,9 +137,12 @@ class ScheduleControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("删除日程")
     void deleteSchedule() throws Exception {
+        OaSchedule existing = buildSchedule(1L, "待删除日程");
+        when(scheduleService.getById(1L)).thenReturn(existing);
         when(scheduleService.removeById(1L)).thenReturn(true);
 
-        mockMvc.perform(delete("/api/schedule/1"))
+        mockMvc.perform(delete("/api/schedule/1")
+                        .requestAttr("empId", 1L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0));
 
