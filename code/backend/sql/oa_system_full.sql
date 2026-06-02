@@ -698,6 +698,7 @@ CREATE TABLE `oa_loan` (
   `id`                  BIGINT          NOT NULL AUTO_INCREMENT COMMENT '借款ID',
   `emp_id`              BIGINT          NOT NULL                COMMENT '员工ID',
   `loan_amount`         DECIMAL(12,2)   NOT NULL DEFAULT 0      COMMENT '借款金额',
+  `repaid_amount`       DECIMAL(12,2)   NOT NULL DEFAULT 0      COMMENT '已还金额',
   `loan_reason`         VARCHAR(500)    DEFAULT NULL            COMMENT '借款原因',
   `repayment_plan`      VARCHAR(500)    DEFAULT NULL            COMMENT '还款计划',
   `status`              CHAR(1)         NOT NULL DEFAULT '0'    COMMENT '状态(0待审批 1已通过 2已驳回 3已撤回 4已还清)',
