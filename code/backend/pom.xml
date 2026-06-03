@@ -11,10 +11,21 @@
     <name>Corporate OA System</name>
 
     <modules>
+        <module>oa-platform</module>
         <module>oa-common</module>
         <module>oa-model</module>
         <module>oa-mapper</module>
         <module>oa-service</module>
+        <module>oa-workflow</module>
+        <module>oa-document</module>
+        <module>oa-knowledge</module>
+        <module>oa-meeting</module>
+        <module>oa-task</module>
+        <module>oa-hr</module>
+        <module>oa-admin</module>
+        <module>oa-finance</module>
+        <module>oa-message</module>
+        <module>oa-integration</module>
         <module>oa-web</module>
     </modules>
 
@@ -28,6 +39,8 @@
         <hutool.version>5.8.35</hutool.version>
         <knife4j.version>4.5.0</knife4j.version>
         <easyexcel.version>4.0.3</easyexcel.version>
+        <redisson.version>3.37.0</redisson.version>
+        <elasticsearch.version>8.15.0</elasticsearch.version>
         <jacoco.version>0.8.12</jacoco.version>
     </properties>
 
@@ -42,13 +55,12 @@
                 <scope>import</scope>
             </dependency>
 
-            <!-- MyBatis-Plus (compatible with Spring Boot 3) -->
+            <!-- MyBatis-Plus -->
             <dependency>
                 <groupId>com.baomidou</groupId>
                 <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
                 <version>${mybatis-plus.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>com.baomidou</groupId>
                 <artifactId>mybatis-plus-jsqlparser</artifactId>
@@ -102,7 +114,83 @@
                 <version>${easyexcel.version}</version>
             </dependency>
 
+            <!-- Redisson -->
+            <dependency>
+                <groupId>org.redisson</groupId>
+                <artifactId>redisson-spring-boot-starter</artifactId>
+                <version>${redisson.version}</version>
+            </dependency>
+
+            <!-- Elasticsearch -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
+                <version>${spring-boot.version}</version>
+            </dependency>
+
+            <!-- Mail -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-mail</artifactId>
+                <version>${spring-boot.version}</version>
+            </dependency>
+
             <!-- 子模块依赖 -->
+            <dependency>
+                <groupId>cn.oa</groupId>
+                <artifactId>oa-platform-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.oa</groupId>
+                <artifactId>oa-platform-security</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.oa</groupId>
+                <artifactId>oa-workflow-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.oa</groupId>
+                <artifactId>oa-workflow-model</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.oa</groupId>
+                <artifactId>oa-workflow-mapper</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.oa</groupId>
+                <artifactId>oa-workflow-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.oa</groupId>
+                <artifactId>oa-document</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.oa</groupId>
+                <artifactId>oa-knowledge</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.oa</groupId>
+                <artifactId>oa-meeting</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.oa</groupId>
+                <artifactId>oa-task</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.oa</groupId>
+                <artifactId>oa-hr</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>cn.oa</groupId>
                 <artifactId>oa-common</artifactId>
@@ -121,6 +209,26 @@
             <dependency>
                 <groupId>cn.oa</groupId>
                 <artifactId>oa-service</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.oa</groupId>
+                <artifactId>oa-admin</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.oa</groupId>
+                <artifactId>oa-finance</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.oa</groupId>
+                <artifactId>oa-message</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.oa</groupId>
+                <artifactId>oa-integration</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

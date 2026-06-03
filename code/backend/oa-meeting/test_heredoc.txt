@@ -1,0 +1,2 @@
+List<MtRoom> list = new ArrayList<>();
+if (a && b) { }

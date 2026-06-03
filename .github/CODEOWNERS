@@ -1,0 +1,22 @@
+# Default owner for all files
+* @xiaohuang
+
+# Backend — Java / Spring Boot / Maven
+/code/backend/ @xiaohuang
+
+# Frontend — Vue 3 / TypeScript / Element Plus
+/code/frontend/ @xiaohuang
+
+# Mobile — uni-app
+/code/mobile/ @xiaohuang
+
+# GitHub workflows and CI/CD
+.github/ @xiaohuang
+
+# Docker / Deployment configuration
+docker-compose.yml @xiaohuang
+Dockerfile @xiaohuang
+
+# Documentation
+/docs/ @xiaohuang
+*.md @xiaohuang

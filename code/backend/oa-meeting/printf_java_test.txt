@@ -1,0 +1,20 @@
+import java.util.List;
+import java.util.Map;
+
+public class Test {
+    private String name;
+    private Integer count;
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public String toString() {
+        return "Test{name=" + name + "}";
+    }
+}

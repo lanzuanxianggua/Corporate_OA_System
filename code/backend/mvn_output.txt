@@ -1,0 +1,173 @@
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] Corporate OA System                                                [pom]
+[INFO] OA Common - 通用工具模块                                                 [jar]
+[INFO] OA Model - 实体类模块                                                   [jar]
+[INFO] OA Mapper - 数据访问层                                                  [jar]
+[INFO] OA Service - 业务逻辑层                                                 [jar]
+[INFO] 
+[INFO] --------------------------< cn.oa:oa-parent >---------------------------
+[INFO] Building Corporate OA System 1.0.0                                 [1/5]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ oa-parent ---
+[INFO] 
+[INFO] --- jacoco:0.8.12:prepare-agent (prepare-agent) @ oa-parent ---
+[INFO] argLine set to -javaagent:E:\\apache-maven-3.9.9\\LocalRepo\\org\\jacoco\\org.jacoco.agent\\0.8.12\\org.jacoco.agent-0.8.12-runtime.jar=destfile=E:\\JavaProject\\Corporate_OA_System\\code\\backend\\target\\jacoco.exec
+[INFO] 
+[INFO] --------------------------< cn.oa:oa-common >---------------------------
+[INFO] Building OA Common - 通用工具模块 1.0.0                                  [2/5]
+[INFO]   from oa-common\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ oa-common ---
+[INFO] Deleting E:\JavaProject\Corporate_OA_System\code\backend\oa-common\target
+[INFO] 
+[INFO] --- jacoco:0.8.12:prepare-agent (prepare-agent) @ oa-common ---
+[INFO] argLine set to -javaagent:E:\\apache-maven-3.9.9\\LocalRepo\\org\\jacoco\\org.jacoco.agent\\0.8.12\\org.jacoco.agent-0.8.12-runtime.jar=destfile=E:\\JavaProject\\Corporate_OA_System\\code\\backend\\oa-common\\target\\jacoco.exec
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ oa-common ---
+[INFO] skip non existing resourceDirectory E:\JavaProject\Corporate_OA_System\code\backend\oa-common\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ oa-common ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 28 source files with javac [debug target 17] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ oa-common ---
+[INFO] skip non existing resourceDirectory E:\JavaProject\Corporate_OA_System\code\backend\oa-common\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ oa-common ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.2.5:test (default-test) @ oa-common ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] ---------------------------< cn.oa:oa-model >---------------------------
+[INFO] Building OA Model - 实体类模块 1.0.0                                    [3/5]
+[INFO]   from oa-model\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ oa-model ---
+[INFO] Deleting E:\JavaProject\Corporate_OA_System\code\backend\oa-model\target
+[INFO] 
+[INFO] --- jacoco:0.8.12:prepare-agent (prepare-agent) @ oa-model ---
+[INFO] argLine set to -javaagent:E:\\apache-maven-3.9.9\\LocalRepo\\org\\jacoco\\org.jacoco.agent\\0.8.12\\org.jacoco.agent-0.8.12-runtime.jar=destfile=E:\\JavaProject\\Corporate_OA_System\\code\\backend\\oa-model\\target\\jacoco.exec
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ oa-model ---
+[INFO] skip non existing resourceDirectory E:\JavaProject\Corporate_OA_System\code\backend\oa-model\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ oa-model ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 83 source files with javac [debug target 17] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ oa-model ---
+[INFO] skip non existing resourceDirectory E:\JavaProject\Corporate_OA_System\code\backend\oa-model\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ oa-model ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.2.5:test (default-test) @ oa-model ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] --------------------------< cn.oa:oa-mapper >---------------------------
+[INFO] Building OA Mapper - 数据访问层 1.0.0                                   [4/5]
+[INFO]   from oa-mapper\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ oa-mapper ---
+[INFO] Deleting E:\JavaProject\Corporate_OA_System\code\backend\oa-mapper\target
+[INFO] 
+[INFO] --- jacoco:0.8.12:prepare-agent (prepare-agent) @ oa-mapper ---
+[INFO] argLine set to -javaagent:E:\\apache-maven-3.9.9\\LocalRepo\\org\\jacoco\\org.jacoco.agent\\0.8.12\\org.jacoco.agent-0.8.12-runtime.jar=destfile=E:\\JavaProject\\Corporate_OA_System\\code\\backend\\oa-mapper\\target\\jacoco.exec
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ oa-mapper ---
+[INFO] skip non existing resourceDirectory E:\JavaProject\Corporate_OA_System\code\backend\oa-mapper\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ oa-mapper ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 49 source files with javac [debug target 17] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ oa-mapper ---
+[INFO] skip non existing resourceDirectory E:\JavaProject\Corporate_OA_System\code\backend\oa-mapper\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ oa-mapper ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.2.5:test (default-test) @ oa-mapper ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] --------------------------< cn.oa:oa-service >--------------------------
+[INFO] Building OA Service - 业务逻辑层 1.0.0                                  [5/5]
+[INFO]   from oa-service\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ oa-service ---
+[INFO] Deleting E:\JavaProject\Corporate_OA_System\code\backend\oa-service\target
+[INFO] 
+[INFO] --- jacoco:0.8.12:prepare-agent (prepare-agent) @ oa-service ---
+[INFO] argLine set to -javaagent:E:\\apache-maven-3.9.9\\LocalRepo\\org\\jacoco\\org.jacoco.agent\\0.8.12\\org.jacoco.agent-0.8.12-runtime.jar=destfile=E:\\JavaProject\\Corporate_OA_System\\code\\backend\\oa-service\\target\\jacoco.exec
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ oa-service ---
+[INFO] skip non existing resourceDirectory E:\JavaProject\Corporate_OA_System\code\backend\oa-service\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ oa-service ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 89 source files with javac [debug target 17] to target\classes
+[INFO] /E:/JavaProject/Corporate_OA_System/code/backend/oa-service/src/main/java/cn/oa/service/impl/WorkflowServiceImpl.java: 某些输入文件使用或覆盖了已过时的 API。
+[INFO] /E:/JavaProject/Corporate_OA_System/code/backend/oa-service/src/main/java/cn/oa/service/impl/WorkflowServiceImpl.java: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+[INFO] /E:/JavaProject/Corporate_OA_System/code/backend/oa-service/src/main/java/cn/oa/service/impl/WorkflowServiceImpl.java: E:\JavaProject\Corporate_OA_System\code\backend\oa-service\src\main\java\cn\oa\service\impl\WorkflowServiceImpl.java使用了未经检查或不安全的操作。
+[INFO] /E:/JavaProject/Corporate_OA_System/code/backend/oa-service/src/main/java/cn/oa/service/impl/WorkflowServiceImpl.java: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ oa-service ---
+[INFO] skip non existing resourceDirectory E:\JavaProject\Corporate_OA_System\code\backend\oa-service\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ oa-service ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 5 source files with javac [debug target 17] to target\test-classes
+[INFO] /E:/JavaProject/Corporate_OA_System/code/backend/oa-service/src/test/java/cn/oa/service/impl/BaseApprovalServiceImplTest.java: 某些输入文件使用或覆盖了已过时的 API。
+[INFO] /E:/JavaProject/Corporate_OA_System/code/backend/oa-service/src/test/java/cn/oa/service/impl/BaseApprovalServiceImplTest.java: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /E:/JavaProject/Corporate_OA_System/code/backend/oa-service/src/test/java/cn/oa/service/impl/WorkflowServiceImplTest.java:[330,69] 找不到符号
+  符号:   变量 def
+  位置: 类 cn.oa.service.impl.WorkflowServiceImplTest
+[ERROR] /E:/JavaProject/Corporate_OA_System/code/backend/oa-service/src/test/java/cn/oa/service/impl/WorkflowServiceImplTest.java:[453,69] 找不到符号
+  符号:   变量 def
+  位置: 类 cn.oa.service.impl.WorkflowServiceImplTest
+[INFO] 2 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for Corporate OA System 1.0.0:
+[INFO] 
+[INFO] Corporate OA System ................................ SUCCESS [  0.335 s]
+[INFO] OA Common - 通用工具模块 ................................. SUCCESS [  6.603 s]
+[INFO] OA Model - 实体类模块 ................................... SUCCESS [  8.501 s]
+[INFO] OA Mapper - 数据访问层 .................................. SUCCESS [  2.907 s]
+[INFO] OA Service - 业务逻辑层 ................................. FAILURE [ 11.242 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  29.913 s
+[INFO] Finished at: 2026-06-01T21:40:55+08:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.11.0:testCompile (default-testCompile) on project oa-service: Compilation failure: Compilation failure: 
+[ERROR] /E:/JavaProject/Corporate_OA_System/code/backend/oa-service/src/test/java/cn/oa/service/impl/WorkflowServiceImplTest.java:[330,69] 找不到符号
+[ERROR]   符号:   变量 def
+[ERROR]   位置: 类 cn.oa.service.impl.WorkflowServiceImplTest
+[ERROR] /E:/JavaProject/Corporate_OA_System/code/backend/oa-service/src/test/java/cn/oa/service/impl/WorkflowServiceImplTest.java:[453,69] 找不到符号
+[ERROR]   符号:   变量 def
+[ERROR]   位置: 类 cn.oa.service.impl.WorkflowServiceImplTest
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+[ERROR] 
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn <args> -rf :oa-service
