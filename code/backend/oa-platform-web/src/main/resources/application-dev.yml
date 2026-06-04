@@ -1,0 +1,6 @@
+server:
+  port: 8080
+
+logging:
+  level:
+    cn.oa: DEBUG

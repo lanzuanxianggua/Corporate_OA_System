@@ -1,0 +1,24 @@
+spring:
+  datasource:
+    url: jdbc:mysql://${DB_HOST:mysql}:3306/oa_system_v2?useUnicode=true&characterEncoding=utf8&useSSL=true&serverTimezone=Asia/Shanghai
+    username: ${DB_USER:oa}
+    password: ${DB_PASSWORD}
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+oa:
+  auth:
+    jwt:
+      secret: ${OA_JWT_SECRET}
+    sign:
+      secret: ${OA_SIGN_SECRET}
+
+logging:
+  level:
+    root: INFO
+    cn.oa: INFO
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId}] %-5level %logger{36} - %msg%n'
