@@ -1,8 +1,0 @@
-target/
-.git/
-node_modules/
-*.md
-.idea/
-*.iml
-.settings/
-.project

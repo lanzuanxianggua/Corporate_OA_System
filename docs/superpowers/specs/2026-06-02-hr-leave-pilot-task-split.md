@@ -226,6 +226,16 @@ T1/T2 完成前不得开始代码实现。T6/T7 完成前，Web/Mobile 可以先
 
 ## 7. T1 数据库与 API 契约结果
 
+> **2026-06-04 更新（v2）**：以下 §7.1-§7.7 草案已被 T1 期间对照实际代码校准，正式版迁出至独立契约文档。
+>
+> - **本表** §7 保留为"草案 v1 历史记录"，可读、不可改。
+> - **正式契约 v2**：`docs/superpowers/specs/2026-06-02-hr-leave-pilot-contract.md`（已落盘，260 行）
+> - **SQL 草案 v2**：`code/backend/sql/hr_leave_contract.sql`（260 行）
+> - **Seed 草案**：`code/backend/sql/hr_leave_seed.sql`（76 行，9 条规则）
+> - **影响分析 v2**：`docs/superpowers/specs/2026-06-02-hr-leave-pilot-impact-analysis.md`（348 行）
+>
+> T3 实施期间**必须**使用 v2 文档，不再以 §7 草案为准。
+
 ### 7.1 旧实现摘要
 
 | 项目 | 旧实现 |
@@ -505,6 +515,9 @@ T3/T4 实现时必须使用以上契约，不再沿用旧的：
 | workflow 回调重复执行 | 重复扣减或重复释放 | T4/T6 必须实现幂等状态转换 |
 | 考勤联动时机 | 审批通过前不应标记请假 | 仅 `PASSED` 回调后标记；`REJECTED/REVOKED` 清理 |
 | 前端旧接口仍可访问 | 用户可能进入旧页面 | 菜单切换前保留；切换后旧入口 deprecated |
+| **旧包同名前缀类（5 个）冲突** | `cn.oa.hr.HrLeaveRule`/`HrLeaveBalance`/`HrTransfer`/`HrAttendance`/`HrEmployeeExt` 在 `oa-model` 下，与新 `cn.oa.hr.entity.Hr*` 同名 | T11 删前必须做引用分析 grep；其他模块如 admin 若 `@Autowired` 旧类会编译失败 |
+| **共用父类 `BaseApprovalServiceImpl` 风险** | 请假/出差/外出/采购/报销/加班/借款 7 个业务模块共用 | 删 `LeaveApplyServiceImpl` 前必须确认 `BaseApprovalServiceImpl` 没有请假专用代码，否则先重构父类 |
+| **`HrLeaveService` 双份并存** | `cn.oa.hr.service.HrLeaveService` (Controller 入口) + `cn.oa.hr.service.leave.HrLeaveService` (工作流回调入口) | **保留两份**，是项目有意分层模式（与 finance `service/` vs `service/v1/` 同 pattern），T11 不能合并 |
 
 ### 8.7 回滚方式
 

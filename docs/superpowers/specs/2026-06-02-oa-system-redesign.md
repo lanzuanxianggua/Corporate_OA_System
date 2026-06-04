@@ -398,6 +398,12 @@ CREATE TABLE `wf_delegation` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='审批委托表';
 ```
 
+> **2026-06-04 增补 - 业务单据状态对齐说明**：
+> §2.4 的 `wf_instance.status` 状态机为 7 个（DRAFT/RUNNING/PASSED/REJECTED/REVOKED/ABORTED/SUSPENDED），但**业务单据**（如 `hr_leave_apply`）的 status 字段只承载**5 个**（DRAFT/RUNNING/PASSED/REJECTED/REVOKED）。
+> - ABORTED/SUSPENDED 是**工作流实例**的状态，不由业务单据表达。
+> - 业务单据收到工作流回调后，**只需同步** 5 个状态到自己的 status 字段。
+> - 业务单据的完整状态定义见 `docs/superpowers/specs/2026-06-02-hr-leave-pilot-contract.md` §2。
+
 ### 2.5 审批人解析器链
 
 ```
@@ -2051,7 +2057,7 @@ code/backend/sql/
 
 | 项目 | 标准 |
 |------|------|
-| 字符集 | 所有表使用 `utf8mb4`，排序规则统一 |
+| 字符集 | 所有表使用 `utf8mb4`，排序规则统一 `utf8mb4_unicode_ci`（区别于 `_general_ci` 的不区分重音比较） |
 | 主键 | `BIGINT` 自增或统一雪花ID策略，不能混用 |
 | 软删除 | 统一 `del_flag`，MyBatis-Plus 配置与字段名一致 |
 | 时间字段 | 统一 `create_time`、`update_time`，使用 `DATETIME` |
@@ -2066,12 +2072,12 @@ code/backend/sql/
 
 | 规则 | 约定 |
 |------|------|
-| 路径前缀 | `/api/{module}/{resource}`，例如 `/api/hr/leaves`、`/api/wf/tasks` |
+| 路径前缀 | `/api/{module}/{resource}`，其中 `{resource}` 推荐用**复数**（`leaves` 而非 `leave`、`tasks` 而非 `task`），例如 `/api/hr/leaves`、`/api/wf/tasks` |
 | HTTP方法 | 查询 `GET`，创建 `POST`，更新 `PUT`，删除 `DELETE`，业务动作 `POST /{id}/actions/{action}` |
 | 分页参数 | `pageNum`、`pageSize`、`sortField`、`sortOrder` |
 | 响应格式 | 沿用 `{"code":0,"message":"操作成功","data":...}` |
 | 错误码 | 业务错误 `-1`，未认证 `401`，无权限 `403`，不存在 `404`，系统错误 `500` |
-| 权限码 | `{module}:{resource}:{action}`，例如 `hr:leave:approve` |
+| 权限码 | `{module}:{resource}:{action}` 三段式，例如 `hr:leave:approve`；`{resource}` 可带连字符（`hr:leave-balance:list`） |
 | API文档 | 每个 Controller 必须出现在 Knife4j/OpenAPI 分组中 |
 
 每个接口实现前必须先写清：
@@ -2081,6 +2087,12 @@ code/backend/sql/
 3. 角色权限和数据权限。
 4. 事务边界与幂等规则。
 5. 前端调用文件路径和页面入口。
+
+**v1 版本切换期双写策略（2026-06-04 增补）**：在 `/api/{module}/v1/*` 与旧 `/api/{module}/*` 并行期间，
+- 新接口统一走 v1 路径（`/api/finance/v1/loans`），旧路径在 6 个月内保持只读
+- 旧 Controller 加 `@Deprecated` 注解 + 启动 WARN 日志
+- 数据写入只走 v1，读路径兼容两套（前端优先 v1，老前端 fallback 旧）
+- 切换期结束后（旧 Controller 全部删完）删除 v1 前缀
 
 ### 11.7 前端与移动端迁移规则
 
