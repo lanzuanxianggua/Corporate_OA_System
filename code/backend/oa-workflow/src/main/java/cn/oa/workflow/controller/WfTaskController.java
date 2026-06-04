@@ -30,7 +30,7 @@ public class WfTaskController {
     @GetMapping("/pending")
     @RequirePermission("workflow:task:read")
     public R<List<WfTask>> myPending() {
-        Long empId = UserContext.current().getEmpId();
+        Long empId = UserContext.get().getEmpId();
         return R.ok(service.myPending(empId));
     }
 
@@ -47,7 +47,7 @@ public class WfTaskController {
     public R<Void> approve(@PathVariable Long id, @RequestBody Map<String, String> body) {
         String action = body.getOrDefault("action", "APPROVE");
         String comment = body.getOrDefault("comment", "");
-        Long empId = UserContext.current().getEmpId();
+        Long empId = UserContext.get().getEmpId();
         service.approve(id, empId, action, comment);
         return R.ok();
     }

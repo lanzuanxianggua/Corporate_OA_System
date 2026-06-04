@@ -105,7 +105,7 @@ public class WfEngine {
         instance.setStatus(STATUS_RUNNING);
         instance.setCurrentNodeId(firstApproval.getId());
         instance.setStartTime(LocalDateTime.now());
-        instance.setDelFlag(0);
+        instance.setDelFlag("0");
         instanceMapper.insert(instance);
 
         // 3. 创建第一个 task
@@ -116,7 +116,7 @@ public class WfEngine {
         task.setAssigneeId(assignee);
         task.setStatus(TASK_PENDING);
         task.setCreateTime(LocalDateTime.now());
-        task.setDelFlag(0);
+        task.setDelFlag("0");
         taskMapper.insert(task);
 
         // 4. 写历史
@@ -194,7 +194,7 @@ public class WfEngine {
         nextTask.setAssigneeId(nextAssignee);
         nextTask.setStatus(TASK_PENDING);
         nextTask.setCreateTime(LocalDateTime.now());
-        nextTask.setDelFlag(0);
+        nextTask.setDelFlag("0");
         taskMapper.insert(nextTask);
 
         instance.setCurrentNodeId(nextNode.getId());

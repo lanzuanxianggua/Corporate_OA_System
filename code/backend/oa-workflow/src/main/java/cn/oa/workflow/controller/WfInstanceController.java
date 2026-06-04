@@ -37,7 +37,7 @@ public class WfInstanceController {
         if (defKey == null || defKey.isBlank() || businessKey == null || businessKey.isBlank()) {
             return R.fail(400, "defKey 和 businessKey 必填");
         }
-        Long initiator = UserContext.current().getEmpId();
+        Long initiator = UserContext.get().getEmpId();
         return R.ok(service.start(defKey, businessKey, initiator));
     }
 

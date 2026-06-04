@@ -44,13 +44,13 @@ public class WfDelegationController {
     @GetMapping("/outgoing")
     @RequirePermission("workflow:delegation:read")
     public R<List<WfDelegation>> outgoing() {
-        return R.ok(service.myOutgoing(UserContext.current().getEmpId()));
+        return R.ok(service.myOutgoing(UserContext.get().getEmpId()));
     }
 
     @Operation(summary = "我收到的委托")
     @GetMapping("/incoming")
     @RequirePermission("workflow:delegation:read")
     public R<List<WfDelegation>> incoming() {
-        return R.ok(service.myIncoming(UserContext.current().getEmpId()));
+        return R.ok(service.myIncoming(UserContext.get().getEmpId()));
     }
 }
