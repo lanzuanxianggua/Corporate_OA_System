@@ -50,6 +50,12 @@
             <artifactId>oa-hr-employee</artifactId>
         </dependency>
 
+        <!-- 行政管理 (印章/资产/用品) -->
+        <dependency>
+            <groupId>cn.oa</groupId>
+            <artifactId>oa-admin</artifactId>
+        </dependency>
+
         <!-- Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

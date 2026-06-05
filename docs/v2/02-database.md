@@ -68,9 +68,13 @@
 
 **MyBatis-Plus 实体**：
 ```java
-@Data
+/**
+ * 所有业务实体的基类。
+ * 项目允许使用 Lombok（@Getter/@Setter/@Slf4j/@Builder 等），
+ * 也可以手写 getter/setter，以各模块实际代码为准。
+ */
 public abstract class BaseEntity {
-    @TableId(type = IdType.AUTO)
+    @TableId(type = IdType.ASSIGN_ID)
     private Long id;
     @TableField(fill = FieldFill.INSERT)
     private String createBy;
@@ -82,9 +86,10 @@ public abstract class BaseEntity {
     private LocalDateTime updateTime;
     @TableLogic
     @TableField(select = false)
-    private String delFlag;
+    private String delFlag;  // @JsonIgnore 实际已加，序列化时不暴露
     @Version
     private Integer version;
+    // getter/setter 由 Lombok 生成或手写，此处省略
 }
 ```
 
@@ -95,7 +100,7 @@ public abstract class BaseEntity {
 > 完整 DDL 见 `code/backend/sql/v2/` 目录（Phase 2 创建）
 > 本节列关键表，详细字段见各模块详细设计 `05-modules/*`
 
-### 3.1 平台表（5 张）
+### 3.1 平台表（6 张）
 
 | 表 | 用途 |
 |----|------|
@@ -104,6 +109,7 @@ public abstract class BaseEntity {
 | `sys_roles` | 角色 |
 | `sys_employee_roles` | 员工-角色 |
 | `sys_permissions` | 权限码（菜单/按钮） |
+| `sys_role_permissions` | 角色-权限关联 |
 
 ### 3.2 工作流表（8 张）
 
@@ -318,27 +324,19 @@ CREATE TABLE `wf_tasks` (
 
 ### 5.1 迁移工具
 - **Flyway**（`flyway-mysql` 10.x）
-- 迁移文件：`code/backend/sql/v2/migration/`
-- 命名：`V{version}__{description}.sql`（如 `V1__init_schema.sql`）
+- 迁移文件：`oa-platform-web/src/main/resources/db/migration/`（Flyway 读取 classpath:db/migration）
+- 命名：`V{version}__{description}.sql`（如 `V100__init_platform.sql`）
 
 ### 5.2 迁移顺序
 ```
-V1__init_platform.sql          # 平台表
-V2__init_workflow.sql          # 工作流表
-V3__init_hr_leave.sql          # HR 请假
-V4__init_finance.sql           # 财务
-V5__init_admin.sql             # 行政
-V6__init_document.sql          # 文档
-V7__init_knowledge.sql         # 知识库
-V8__init_message.sql           # 消息
-V9__init_meeting.sql           # 会议
-V10__init_task.sql             # 任务
-V11__init_other_hr.sql         # HR 其他
-V12__init_system.sql           # 系统
-V20__seed_platform.sql         # 平台 seed
-V21__seed_workflow.sql         # 工作流 seed
-V22__seed_hr_leave.sql         # HR 请假 seed
-V30__indexes.sql               # 索引（性能调优阶段）
+V100__init_platform.sql           # 平台基础表（sys_employees/sys_departments/sys_roles/sys_permissions/sys_employee_roles/sys_role_permissions）
+V200__init_workflow.sql           # 工作流表（wf_definitions/wf_nodes/wf_transitions/wf_assignee_rules/wf_instances/wf_tasks/wf_records/wf_delegations）
+V900__init_seed.sql               # 种子数据（部门/员工/角色/权限/菜单）
+V910__add_sys_employee_password.sql  # 增量：员工表加 password 列
+V920__workflow_permissions.sql    # 增量：工作流模块权限注册
+V930__hr_leave_tables.sql         # HR 请假表（hr_leaves/hr_leave_balances/hr_leave_rules）
+V940__hr_employee_profile.sql     # HR 员工档案表（hr_employee_profiles）
+V200+__<module>.sql ...           # 未来业务模块各用 V200+ 段（V210/V220/...）
 ```
 
 ### 5.3 v1 → v2 数据迁移
@@ -394,14 +392,18 @@ V30__indexes.sql               # 索引（性能调优阶段）
 
 ## 8. 数据库连接池
 
-- **HikariCP**（Spring Boot 默认）
-- **配置**:
-  - `maximum-pool-size`: 20
-  - `minimum-idle`: 5
-  - `connection-timeout`: 30000
-  - `max-lifetime`: 1800000
-  - `idle-timeout`: 600000
-  - `leak-detection-threshold`: 60000
+- **Druid**（Alibaba Druid 1.2.24，Spring Boot 3 Starter）
+- **配置**（application.yml）:
+  - `initialSize`: 5
+  - `minIdle`: 5
+  - `maxActive`: 20
+  - `maxWait`: 60000
+  - `timeBetweenEvictionRunsMillis`: 60000
+  - `minEvictableIdleTimeMillis`: 300000
+  - `validationQuery`: SELECT 1
+  - `testWhileIdle`: true
+  - `testOnBorrow`: false
+  - `testOnReturn`: false
 
 ---
 

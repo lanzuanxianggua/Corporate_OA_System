@@ -227,12 +227,12 @@ stateDiagram-v2
   7. 启动工作流（`wfDefinitionBizType='HR_LEAVE'`）
   8. 更新 hr_leaves (wf_instance_id=...)
   9. 返回结果
-- **错误码**:
-  - `HL001` 假期类型无效
-  - `HL002` 余额不足
-  - `HL003` 请假日期重叠
-  - `HL004` 违反请假规则（缺附件/超限/不满足最小单位）
-  - `WF001` 找不到审批人
+- **错误码**（通过 `BizException(RCode, "消息")` 抛出）:
+  - 假期类型无效
+  - 余额不足
+  - 请假日期重叠
+  - 违反请假规则（缺附件/超限/不满足最小单位）
+  - 找不到审批人
 
 ---
 
@@ -240,13 +240,13 @@ stateDiagram-v2
 
 | 编码 | 名称 | 描述 | HTTP |
 |------|------|------|------|
-| `HR000` | (本模块错误码段) | - | - |
-| `HL001` | INVALID_LEAVE_TYPE | 假期类型无效 | 422 |
-| `HL002` | INSUFFICIENT_BALANCE | 余额不足 | 422 |
-| `HL003` | LEAVE_OVERLAP | 请假日期重叠 | 409 |
-| `HL004` | LEAVE_RULE_VIOLATION | 违反请假规则 | 422 |
-| `HL005` | LEAVE_STATUS_INVALID | 状态不允许该操作 | 409 |
-| `HL006` | BALANCE_NOT_FOUND | 余额不存在 | 404 |
+| - | (本模块错误码) | 通过 BizException 抛出，消息为中文可读文本 | - |
+| - | INVALID_LEAVE_TYPE | 假期类型无效 | 422 |
+| - | INSUFFICIENT_BALANCE | 余额不足 | 422 |
+| - | LEAVE_OVERLAP | 请假日期重叠 | 409 |
+| - | LEAVE_RULE_VIOLATION | 违反请假规则 | 422 |
+| - | LEAVE_STATUS_INVALID | 状态不允许该操作 | 409 |
+| - | BALANCE_NOT_FOUND | 余额不存在 | 404 |
 | `HL007` | RULE_NOT_FOUND | 规则不存在 | 404 |
 | `HL008` | ATTACHMENT_REQUIRED | 缺少附件 | 422 |
 

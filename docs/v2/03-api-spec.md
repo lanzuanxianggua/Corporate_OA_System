@@ -120,31 +120,19 @@
 ## 4. 错误码
 
 ### 4.1 错误码编码规则
-**5 位编码**：
-- 第 1-2 位：模块代码
-- 第 3-5 位：子错误（000-999）
 
-| 模块 | 代码 | 范围 |
+**纯数字分段编码**（与 `RCode` 枚举对齐）：
+
+| 范围 | 模块 | 说明 |
 |------|------|------|
-| 通用 | `00` | 000-099 |
-| 安全/认证 | `01` | 000-099 |
-| 权限 | `02` | 000-099 |
-| 平台 | `03` | 000-099 |
-| 工作流 | `WF` | 000-099 |
-| 行政 | `AD` | 000-099 |
-| 文档 | `DC` | 000-099 |
-| 财务 | `FN` | 000-099 |
-| HR 请假 | `HL` | 000-099 |
-| HR 考勤 | `HA` | 000-099 |
-| HR 员工 | `HE` | 000-099 |
-| HR 绩效 | `HP` | 000-099 |
-| HR 招聘 | `HR` | 000-099 |
-| HR 培训 | `HT` | 000-099 |
-| 知识 | `KM` | 000-099 |
-| 消息 | `MS` | 000-099 |
-| 会议 | `MT` | 000-099 |
-| 任务 | `TK` | 000-099 |
-| 系统 | `SY` | 000-099 |
+| 0 | 通用 | 成功 |
+| 1-99 | 通用 | 通用错误（参数/校验/404） |
+| 10001-10999 | 认证 | JWT/Token/签名 |
+| 20001-20999 | 权限 | RBAC/数据权限 |
+| 30001-30999 | 平台 | 限流/幂等 |
+| 99001-99999 | 系统 | 内部错误/数据库/第三方 |
+
+**业务模块错误码**：各模块在 Service 层通过 `BizException(RCode, "消息")` 抛出时使用对应范围的数字。模块内错误码由各模块 spec 定义。
 
 ### 4.2 错误码清单（核心）
 
@@ -172,18 +160,16 @@
 
 ### 4.3 业务错误示例
 
-| 模块 | 编码 | 名称 | 描述 |
-|------|------|------|------|
-| HR 请假 | `HL001` | INVALID_LEAVE_TYPE | 假期类型无效 |
-| HR 请假 | `HL002` | INSUFFICIENT_BALANCE | 余额不足 |
-| HR 请假 | `HL003` | LEAVE_OVERLAP | 请假日期重叠 |
-| HR 请假 | `HL004` | LEAVE_RULE_VIOLATION | 违反请假规则 |
-| HR 请假 | `HL005` | LEAVE_STATUS_INVALID | 状态不允许该操作 |
-| 工作流 | `WF001` | NO_ASSIGNEE | 找不到审批人 |
-| 工作流 | `WF002` | TASK_ALREADY_HANDLED | 任务已处理 |
-| 工作流 | `WF003` | INSTANCE_ALREADY_ENDED | 流程已结束 |
-| 财务 | `FN001` | BUDGET_INSUFFICIENT | 预算不足 |
-| 财务 | `FN002` | LOAN_OVERDUE | 借款逾期 |
+各业务模块在 Service 层通过 `throw new BizException(RCode.X, "消息")` 抛出。错误消息为中文可读文本，错误码在 RCode 枚举中定义。示例：
+
+| 模块 | 场景 | 抛出方式 |
+|------|------|----------|
+| HR 请假 | 假期类型无效 | `throw new BizException(RCode.PARAM_ERROR, "假期类型无效")` |
+| HR 请假 | 余额不足 | `throw new BizException(RCode.BIZ_ERROR, "余额不足")` |
+| HR 请假 | 日期重叠 | `throw new BizException(RCode.BIZ_ERROR, "请假日期重叠")` |
+| 工作流 | 找不到审批人 | `throw new BizException(RCode.BIZ_ERROR, "找不到审批人")` |
+| 工作流 | 任务已处理 | `throw new BizException(RCode.BIZ_ERROR, "任务已处理")` |
+| 财务 | 预算不足 | `throw new BizException(RCode.BIZ_ERROR, "预算不足")` |
 
 ### 4.4 错误响应格式
 ```json
@@ -245,8 +231,14 @@
 | `init` | 初始化 |
 | `adjust` | 调整 |
 | `print` | 打印 |
+| `archive` | 归档 |
+| `close` | 关闭 |
+| `publish` | 发布 |
+| `suspend` | 暂停 |
+| `enable` | 启用 |
+| `disable` | 停用 |
 
-**禁止自定义动作**（如 `leave:special:approve`）— 不在白名单内一律拒绝。
+白名单优先使用。超出白名单的动作码需在设计 review 中审批后方可使用。
 
 ### 5.3 权限码示例
 

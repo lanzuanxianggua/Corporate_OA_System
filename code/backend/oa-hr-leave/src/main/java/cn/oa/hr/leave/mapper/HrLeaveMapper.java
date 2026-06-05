@@ -48,4 +48,19 @@ public interface HrLeaveMapper extends BaseMapper<HrLeave> {
           AND l.id = #{id}
         """)
     Map<String, Object> findDetail(@Param("id") Long id);
+
+    /**
+     * 查询员工所有假期余额.
+     */
+    @Select("""
+        SELECT
+          b.id, b.emp_id, b.leave_type, b.year,
+          b.total_days, b.used_days, b.frozen_days, b.remaining_days, b.status
+        FROM hr_leave_balance b
+        WHERE b.del_flag = '0'
+          AND b.emp_id = #{empId}
+          AND b.status = 'ACTIVE'
+        ORDER BY b.leave_type, b.year DESC
+        """)
+    List<Map<String, Object>> findBalancesByEmpId(@Param("empId") Long empId);
 }

@@ -60,10 +60,39 @@ class JwtUtilTest {
     }
 
     @Test
+    void shouldRejectTamperedToken() {
+        String token = jwtUtil.generateAccessToken(1L, "x", List.of(), List.of());
+        String tampered = token.substring(0, token.lastIndexOf('.') + 1) + "tampered";
+
+        assertThatThrownBy(() -> jwtUtil.parse(tampered))
+                .isInstanceOf(BizException.class)
+                .hasMessageContaining("无效");
+    }
+
+    @Test
+    void shouldRejectInvalidTokenString() {
+        assertThatThrownBy(() -> jwtUtil.parse("not-a-jwt-token"))
+                .isInstanceOf(BizException.class)
+                .hasMessageContaining("无效");
+    }
+
+    @Test
+    void shouldExtractWithEmptyRolesAndPermissions() {
+        String token = jwtUtil.generateAccessToken(3L, "charlie", List.of(), List.of());
+        var info = jwtUtil.extract(jwtUtil.parse(token));
+
+        assertThat(info.getEmpId()).isEqualTo(3L);
+        assertThat(info.getUsername()).isEqualTo("charlie");
+        assertThat(info.getRoles()).isEmpty();
+        assertThat(info.getPermissions()).isEmpty();
+    }
+
+    @Test
     void shouldResolveTokenWithBearerPrefix() {
         assertThat(jwtUtil.resolveToken("Bearer abc.def.ghi")).isEqualTo("abc.def.ghi");
         assertThat(jwtUtil.resolveToken("abc.def.ghi")).isEqualTo("abc.def.ghi");
         assertThat(jwtUtil.resolveToken(null)).isNull();
         assertThat(jwtUtil.resolveToken("")).isNull();
+        assertThat(jwtUtil.resolveToken("  ")).isNull();
     }
 }

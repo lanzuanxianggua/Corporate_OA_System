@@ -1,7 +1,7 @@
 # Corporate OA System v2 — 设计文档总索引
 
 > 日期: 2026-06-04
-> 状态: **v2 设计阶段（Phase 1: 写设计文档）**
+> 状态: **v2 实施阶段（Phase 3: 核心模块开发）**
 > 维护人: Hermes 主 agent
 > 阅读顺序: **从 §1 开始往下**，每份文档有「依赖关系」一节标前置阅读
 
@@ -130,7 +130,7 @@ docs/v2/
 
 ### 3.5 安全
 - JWT（无状态）+ Refresh Token（HttpOnly Cookie）
-- 接口签名：写操作加 `X-Sign` 头（HMAC-SHA256）
+- 接口签名：写操作加 `X-Sign` 头（HMAC-SHA256）（Phase 3+ 可选实现，当前未启用）
 - 数据权限：5 级（本人/本部门/本部门及下级/本公司/全部），由 `@DataPermission` 注解实现
 - 操作日志：所有写操作记录 `oa_operation_log`（aop 自动）
 
@@ -146,9 +146,9 @@ docs/v2/
 
 | 阶段 | 任务 | 预计工时 | 状态 |
 |------|------|----------|------|
-| **Phase 1** | 写 v2 设计文档（25 份） | 2-3 天 | **进行中** |
-| **Phase 2** | 建项目骨架（删除 v1 旧代码，按 v2 重搭） | 3-5 天 | 未开始 |
-| **Phase 3** | 实施核心模块（HR/Workflow/Admin） | 10-15 天 | 未开始 |
+| **Phase 1** | 写 v2 设计文档（25 份） | 2-3 天 | **已完成** |
+| **Phase 2** | 建项目骨架（删除 v1 旧代码，按 v2 重搭） | 3-5 天 | **已完成** |
+| **Phase 3** | 实施核心模块（HR/Workflow/Admin） | 10-15 天 | **进行中** |
 | **Phase 4** | 实施外围模块（Finance/Document/Meeting/...） | 10-15 天 | 未开始 |
 | **Phase 5** | E2E 测试 + 性能调优 + 上线 | 5-7 天 | 未开始 |
 
@@ -159,19 +159,32 @@ docs/v2/
 - [x] v1 spec 摸底（已读 20 份 spec + 1 份 workflow + 项目说明书）
 - [x] 当前代码摸底（25 模块/65 Controller/77 Service/74 Vue view/40 API/20 mobile page/30+ 表）
 - [x] v1 5 项 spec 内部不一致修复（已合并到 v2）
-- [/] **Phase 1 写 v2 文档**
+- [x] **Phase 1 写 v2 文档**（已完成）
   - [x] 00-index.md (本文件)
-  - [ ] 01-architecture.md ← 进行中
-  - [ ] 02-database.md
-  - [ ] 03-api-spec.md
-  - [ ] 04-frontend.md
-  - [ ] 05-modules/* (14 份)
-  - [ ] 06-testing.md
-  - [ ] 07-cicd.md
-  - [ ] 08-development-sop.md
-- [ ] v1 文档批量加 deprecation 头（20 份）
-- [ ] 用户审 v2 设计文档
-- [ ] Phase 2 启动（删除 v1 旧代码 + 重建项目骨架）
+  - [x] 01-architecture.md
+  - [x] 02-database.md
+  - [x] 03-api-spec.md
+  - [x] 04-frontend.md
+  - [x] 05-modules/* (14 份)
+  - [x] 06-testing.md
+  - [x] 07-cicd.md
+  - [x] 08-development-sop.md
+- [x] v1 文档批量加 deprecation 头（20 份）
+- [x] 用户审 v2 设计文档
+- [x] **Phase 2 项目骨架**（已完成）
+  - [x] 父 POM + 18 个 Maven 模块
+  - [x] oa-platform-common（23 类）
+  - [x] oa-platform-security（8 类）
+  - [x] oa-platform-web（启动模块 + Flyway 迁移）
+  - [x] oa-workflow（26 类）
+  - [x] oa-system（16 类）
+- [/] **Phase 3 核心模块实施**
+  - [x] oa-hr-leave 骨架（Entity/Mapper/Service/Controller）
+  - [x] oa-hr-employee 骨架
+  - [ ] oa-hr-leave 完善（DTO/VO/测试）
+  - [ ] oa-hr-employee 完善
+  - [ ] oa-admin
+  - [ ] 其余 10 个业务模块（空壳）
 
 ---
 

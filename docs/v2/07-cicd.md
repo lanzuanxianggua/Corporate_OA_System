@@ -626,7 +626,7 @@ kubectl rollout undo deployment/oa-backend --to-revision=5 -n prod
 `/actuator/prometheus` 暴露：
 - JVM 指标（heap/threads/GC）
 - HTTP 指标（请求数/响应时间/状态码）
-- 数据库指标（连接池/HikariCP）
+- 数据库指标（连接池/Druid）
 - 自定义业务指标
 
 ### 8.2 Grafana 仪表板

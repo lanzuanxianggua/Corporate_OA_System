@@ -4,8 +4,10 @@ import cn.oa.platform.common.api.RCode;
 import cn.oa.platform.common.exception.BizException;
 import cn.oa.workflow.entity.*;
 import cn.oa.workflow.mapper.*;
+import cn.oa.workflow.event.WfInstanceCompletedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,6 +52,7 @@ public class WfEngine {
     private final WfTaskMapper taskMapper;
     private final WfRecordMapper recordMapper;
     private final WfAssigneeResolver assigneeResolver;
+    private final ApplicationEventPublisher eventPublisher;
 
     public WfEngine(WfDefinitionMapper definitionMapper,
                     WfNodeMapper nodeMapper,
@@ -57,7 +60,8 @@ public class WfEngine {
                     WfInstanceMapper instanceMapper,
                     WfTaskMapper taskMapper,
                     WfRecordMapper recordMapper,
-                    WfAssigneeResolver assigneeResolver) {
+                    WfAssigneeResolver assigneeResolver,
+                    ApplicationEventPublisher eventPublisher) {
         this.definitionMapper = definitionMapper;
         this.nodeMapper = nodeMapper;
         this.transitionMapper = transitionMapper;
@@ -65,6 +69,7 @@ public class WfEngine {
         this.taskMapper = taskMapper;
         this.recordMapper = recordMapper;
         this.assigneeResolver = assigneeResolver;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -161,6 +166,8 @@ public class WfEngine {
             instance.setEndTime(LocalDateTime.now());
             instanceMapper.updateById(instance);
             saveRecord(instance.getId(), task.getNodeId(), actionEmpId, ACTION_END, "流程被拒绝");
+            eventPublisher.publishEvent(new WfInstanceCompletedEvent(
+                    instance.getId(), STATUS_REJECTED, instance.getBusinessKey()));
             log.info("Workflow rejected: instanceId={}, taskId={}", instance.getId(), taskId);
             return;
         }
@@ -182,6 +189,8 @@ public class WfEngine {
             instance.setCurrentNodeId(nextNode.getId());
             instanceMapper.updateById(instance);
             saveRecord(instance.getId(), nextNode.getId(), actionEmpId, ACTION_END, "流程通过");
+            eventPublisher.publishEvent(new WfInstanceCompletedEvent(
+                    instance.getId(), STATUS_APPROVED, instance.getBusinessKey()));
             log.info("Workflow approved: instanceId={}", instance.getId());
             return;
         }

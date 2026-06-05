@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.oa.hr.employee.mapper.HrEmployeeProfileMapper">
+
+    <!-- 公用关联列 -->
+    <sql id="joinColumns">
+        p.id, p.emp_id, p.work_no, p.hire_date, p.contract_type, p.contract_end_date,
+        p.emergency_contact, p.emergency_phone, p.bank_name, p.bank_account, p.status,
+        p.create_time, p.update_time,
+        e.real_name AS emp_name, e.username, e.emp_no,
+        d.id AS dept_id, d.dept_name
+    </sql>
+
+    <!-- 公用关联表 -->
+    <sql id="joinTables">
+        FROM hr_employee_profile p
+        LEFT JOIN sys_employee e ON p.emp_id = e.id AND e.del_flag = '0'
+        LEFT JOIN sys_dept d ON e.dept_id = d.id AND d.del_flag = '0'
+        WHERE p.del_flag = '0'
+    </sql>
+
+    <!-- 列表查询 -->
+    <select id="findAllWithJoins" resultType="java.util.Map">
+        SELECT <include refid="joinColumns"/>
+        <include refid="joinTables"/>
+        ORDER BY p.create_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 详情查询 -->
+    <select id="findDetail" resultType="java.util.Map">
+        SELECT <include refid="joinColumns"/>
+        <include refid="joinTables"/>
+        AND p.id = #{id}
+    </select>
+
+    <!-- 分页关联查询 -->
+    <select id="findPageWithJoins" resultType="java.util.Map">
+        SELECT <include refid="joinColumns"/>
+        <include refid="joinTables"/>
+        <if test="keyword != null and keyword != ''">
+            AND (
+                e.real_name LIKE CONCAT('%', #{keyword}, '%')
+                OR p.work_no LIKE CONCAT('%', #{keyword}, '%')
+                OR e.username LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+        <if test="status != null and status != ''">
+            AND p.status = #{status}
+        </if>
+        <if test="contractType != null and contractType != ''">
+            AND p.contract_type = #{contractType}
+        </if>
+        ORDER BY p.create_time DESC
+    </select>
+
+</mapper>

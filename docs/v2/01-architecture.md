@@ -87,6 +87,7 @@
 | 框架 | Spring Boot | 3.4.x | Java 17 原生支持、Jakarta EE 9 |
 | ORM | MyBatis-Plus | 3.5.x | 国产、动态 SQL 友好、代码生成 |
 | 数据库 | MySQL | 8.0+ | 主流、字符集/事务成熟 |
+| 连接池 | Druid | 1.2.24 | 阿里巴巴 Druid，监控+防SQL注入 |
 | 缓存 | Redis | 7.x | 高性能、丰富数据结构 |
 | 消息 | Redis Pub/Sub | 7.x | v2 暂不引入 MQ |
 | WebSocket | Spring WebFlux | 6.x | 消息推送 |
@@ -99,6 +100,9 @@
 | 路由 | Vue Router | 4.x | - |
 | HTTP | Axios | 1.x | 拦截器/取消 |
 | 移动端 | uni-app + Vue 3 | - | 跨端 |
+
+**架构决策**：
+- **不使用 Spring Security** — 项目自研 JWT + Servlet Filter + Spring Interceptor 安全栈。原因：Spring Security 的 filter chain 模型与项目的 InterceptorRegistry 冲突，且 UserContext（ThreadLocal）与 SecurityContextHolder 不兼容。如需 Spring Security 功能，需先在设计 review 中讨论。
 
 ---
 
@@ -223,6 +227,10 @@ oa-platform-web (启动)
 ### 6.10 数据权限
 - **v1**: 4 级（本人/本部门/本公司/全部）
 - **v2**: 5 级（本人/本部门/本部门及下级/本公司/全部）
+
+### 6.11 Lombok
+- **v1**: 部分模块用 Lombok，部分手写
+- **v2**: Lombok 1.18.34 已验证可用（2026-06-05 javap 验证通过）。@Getter/@Setter/@Slf4j/@Builder 等注解可直接使用。旧文档中 "Lombok 禁用" 的规定已撤销。
 
 ---
 
