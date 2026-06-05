@@ -56,6 +56,12 @@
             <artifactId>oa-admin</artifactId>
         </dependency>
 
+        <!-- 财务管理 -->
+        <dependency>
+            <groupId>cn.oa</groupId>
+            <artifactId>oa-finance</artifactId>
+        </dependency>
+
         <!-- Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

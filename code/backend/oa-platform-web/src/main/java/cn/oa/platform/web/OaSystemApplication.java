@@ -28,7 +28,8 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
         "cn.oa.hr.employee.mapper",
         "cn.oa.hr.mapper",
         "cn.oa.document.mapper",
-        "cn.oa.admin.mapper"
+        "cn.oa.admin.mapper",
+        "cn.oa.finance.mapper"
 })
 @Import({
         MybatisPlusConfig.class,
