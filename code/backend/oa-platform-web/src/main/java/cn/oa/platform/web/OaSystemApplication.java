@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
         "cn.oa.system.mapper",
         "cn.oa.platform.common.mapper",
         "cn.oa.workflow.mapper",
+        "cn.oa.hr.leave.mapper",
         "cn.oa.hr.mapper",
         "cn.oa.document.mapper",
         "cn.oa.admin.mapper"

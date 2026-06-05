@@ -13,39 +13,54 @@
 
     <artifactId>oa-hr-leave</artifactId>
     <name>oa-hr-leave</name>
-    <description>v2 module: oa-hr-leave</description>
+    <description>v2 HR 请假申请模块 (HrLeave 业务端到端: 提交/列表/详情/审批)</description>
 
     <dependencies>
-        <dependency><groupId>cn.oa</groupId><artifactId>oa-platform-common</artifactId></dependency><dependency><groupId>cn.oa</groupId><artifactId>oa-platform-security</artifactId></dependency><dependency><groupId>cn.oa</groupId><artifactId>oa-workflow</artifactId></dependency><dependency><groupId>cn.oa</groupId><artifactId>oa-system</artifactId></dependency>
+        <!-- 平台层 -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
+            <groupId>cn.oa</groupId>
+            <artifactId>oa-platform-common</artifactId>
         </dependency>
+        <dependency>
+            <groupId>cn.oa</groupId>
+            <artifactId>oa-platform-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>cn.oa</groupId>
+            <artifactId>oa-workflow</artifactId>
+        </dependency>
+
+        <!-- MyBatis-Plus -->
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.github.xiaoymin</groupId>
-            <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
-        </dependency>
+
+        <!-- Validation -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
+            <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
+
+        <!-- Web (Controller 注解) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
         </dependency>
-            </dependencies>
+    </dependencies>
 
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>
 </project>
-
