@@ -10,10 +10,11 @@ import java.time.LocalDateTime;
  * 员工/用户.
  */
 @Schema(description = "员工")
-@TableName("sys_emp")
+@TableName("sys_employee")
 public class SysEmp extends BaseEntity {
 
     @Schema(description = "工号")
+    @com.baomidou.mybatisplus.annotation.TableField(value = "emp_no")
     private String empCode;
 
     @Schema(description = "用户名")
@@ -26,6 +27,7 @@ public class SysEmp extends BaseEntity {
     private String realName;
 
     @Schema(description = "昵称")
+    @com.baomidou.mybatisplus.annotation.TableField(value = "nickname", exist = false)
     private String nickname;
 
     @Schema(description = "邮箱")

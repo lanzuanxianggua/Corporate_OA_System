@@ -21,6 +21,7 @@ public class SysRole extends BaseEntity {
     private String dataScope;
 
     @Schema(description = "描述")
+    @com.baomidou.mybatisplus.annotation.TableField(value = "description", exist = false)
     private String description;
 
     @Schema(description = "排序")

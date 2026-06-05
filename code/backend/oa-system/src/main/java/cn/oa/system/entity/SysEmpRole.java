@@ -8,7 +8,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * 员工-角色关联.
  */
 @Schema(description = "员工-角色关联")
-@TableName("sys_emp_role")
+@TableName("sys_employee_role")
 public class SysEmpRole extends BaseEntity {
 
     @Schema(description = "员工ID")

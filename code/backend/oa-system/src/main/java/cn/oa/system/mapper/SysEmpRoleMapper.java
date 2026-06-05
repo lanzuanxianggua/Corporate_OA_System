@@ -10,6 +10,6 @@ import java.util.List;
 @Mapper
 public interface SysEmpRoleMapper extends BaseMapper<SysEmpRole> {
 
-    @Select("SELECT role_id FROM sys_emp_role WHERE emp_id = #{empId} AND del_flag = '0'")
+    @Select("SELECT role_id FROM sys_employee_role WHERE emp_id = #{empId}")
     List<Long> selectRoleIdsByEmpId(Long empId);
 }
