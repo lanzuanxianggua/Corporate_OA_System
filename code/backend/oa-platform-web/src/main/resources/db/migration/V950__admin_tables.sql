@@ -52,14 +52,21 @@ CREATE TABLE adm_asset (
 -- ============================================================
 -- 权限数据 (admin 模块 10 个权限码)
 -- ============================================================
-INSERT INTO sys_permission (id, code, name, menu_path, sort_order, status) VALUES
-(951, 'admin:seal:create',  '印章-新增', '/admin/seals',       1, '1'),
-(952, 'admin:seal:update',  '印章-修改', '/admin/seals',       2, '1'),
-(953, 'admin:seal:delete',  '印章-删除', '/admin/seals',       3, '1'),
-(954, 'admin:seal:view',    '印章-查看', '/admin/seals',       4, '1'),
-(955, 'admin:seal:list',    '印章-列表', '/admin/seals',       5, '1'),
-(956, 'admin:asset:create', '资产-新增', '/admin/assets',      1, '1'),
-(957, 'admin:asset:update', '资产-修改', '/admin/assets',      2, '1'),
-(958, 'admin:asset:delete', '资产-删除', '/admin/assets',      3, '1'),
-(959, 'admin:asset:view',   '资产-查看', '/admin/assets',      4, '1'),
-(960, 'admin:asset:list',   '资产-列表', '/admin/assets',      5, '1');
+-- 2) 注册权限(挂载在行政事务菜单 parent_id=4 下)
+INSERT INTO sys_permission (parent_id, perm_code, perm_name, perm_type, path, sort_order, status, create_by) VALUES
+  (4, 'admin:seal:create', '印章-新增', 'BUTTON', NULL, 1, 'ACTIVE', 'system'),
+  (4, 'admin:seal:update', '印章-修改', 'BUTTON', NULL, 2, 'ACTIVE', 'system'),
+  (4, 'admin:seal:delete', '印章-删除', 'BUTTON', NULL, 3, 'ACTIVE', 'system'),
+  (4, 'admin:seal:view',   '印章-查看', 'BUTTON', NULL, 4, 'ACTIVE', 'system'),
+  (4, 'admin:seal:list',   '印章-列表', 'BUTTON', NULL, 5, 'ACTIVE', 'system'),
+  (4, 'admin:asset:create','资产-新增', 'BUTTON', NULL, 1, 'ACTIVE', 'system'),
+  (4, 'admin:asset:update','资产-修改', 'BUTTON', NULL, 2, 'ACTIVE', 'system'),
+  (4, 'admin:asset:delete','资产-删除', 'BUTTON', NULL, 3, 'ACTIVE', 'system'),
+  (4, 'admin:asset:view',  '资产-查看', 'BUTTON', NULL, 4, 'ACTIVE', 'system'),
+  (4, 'admin:asset:list',  '资产-列表', 'BUTTON', NULL, 5, 'ACTIVE', 'system');
+
+-- 3) 给 SUPER_ADMIN 分配 admin 权限
+INSERT INTO sys_role_permission (role_id, perm_id, create_by)
+  SELECT 1, id, 'system'
+  FROM sys_permission
+  WHERE perm_code LIKE 'admin:%%' AND del_flag = '0';

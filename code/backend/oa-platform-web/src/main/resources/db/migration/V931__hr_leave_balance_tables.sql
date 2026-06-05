@@ -26,14 +26,3 @@ CREATE TABLE `hr_leave_balance` (
   KEY `idx_emp_id` (`emp_id`),
   KEY `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='假期余额';
-
--- 2) 请假余额相关权限 (挂载在已有 hr-leave 菜单下)
-INSERT INTO `sys_permission` (`parent_id`, `perm_code`, `perm_name`, `perm_type`, `path`, `icon`, `sort_order`, `status`, `create_by`) VALUES
-  (0, 'hr-leave:balance', '假期余额', 'BUTTON', NULL, NULL, 200, 'ACTIVE', 'system'),
-  (0, 'hr-leave:leave:revoke', '撤回请假', 'BUTTON', NULL, NULL, 201, 'ACTIVE', 'system');
-
--- 3) 给 SUPER_ADMIN (id=1) 分配新权限
-INSERT INTO `sys_role_permission` (`role_id`, `perm_id`, `create_by`)
-  SELECT 1, id, 'system'
-  FROM `sys_permission`
-  WHERE `perm_code` IN ('hr-leave:balance', 'hr-leave:leave:revoke') AND `del_flag` = '0';

@@ -3,6 +3,8 @@ package cn.oa.finance.service;
 import cn.oa.finance.dto.FinLoanCreateDTO;
 import cn.oa.finance.dto.FinLoanQueryDTO;
 import cn.oa.finance.entity.FinLoan;
+import cn.oa.platform.common.context.UserContext;
+import cn.oa.finance.entity.FinLoan;
 import cn.oa.finance.entity.FinLoanRepayment;
 import cn.oa.finance.enums.FinConstants;
 import cn.oa.finance.mapper.FinLoanMapper;
