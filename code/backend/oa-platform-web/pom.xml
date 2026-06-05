@@ -62,10 +62,22 @@
             <artifactId>oa-finance</artifactId>
         </dependency>
 
+        <!-- 会议管理 -->
+        <dependency>
+            <groupId>cn.oa</groupId>
+            <artifactId>oa-meeting</artifactId>
+        </dependency>
+
         <!-- 文档管理 -->
         <dependency>
             <groupId>cn.oa</groupId>
             <artifactId>oa-document</artifactId>
+        </dependency>
+
+        <!-- 消息通知 -->
+        <dependency>
+            <groupId>cn.oa</groupId>
+            <artifactId>oa-message</artifactId>
         </dependency>
 
         <!-- Web -->
