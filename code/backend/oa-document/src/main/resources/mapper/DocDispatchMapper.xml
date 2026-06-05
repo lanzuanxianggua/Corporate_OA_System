@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.oa.document.mapper.DocDispatchMapper">
+
+    <sql id="joinColumns">
+        d.id, d.title, d.subject_word, d.send_to_dept, d.copy_to_dept,
+        d.urgency, d.security_level, d.content, d.status,
+        d.emp_id, d.dept_id, d.wf_instance_id,
+        d.create_time, d.update_time,
+        e.real_name AS emp_name,
+        dp.dept_name
+    </sql>
+
+    <sql id="joinTables">
+        FROM doc_dispatches d
+        LEFT JOIN sys_employee e ON d.emp_id = e.id AND e.del_flag = '0'
+        LEFT JOIN sys_dept dp ON d.dept_id = dp.id AND dp.del_flag = '0'
+        WHERE d.del_flag = '0'
+    </sql>
+
+    <select id="findPageWithJoins" resultType="java.util.Map">
+        SELECT <include refid="joinColumns"/>
+        <include refid="joinTables"/>
+        <if test="status != null and status != ''">
+            AND d.status = #{status}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (d.title LIKE CONCAT('%', #{keyword}, '%')
+                 OR d.subject_word LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="deptId != null">
+            AND d.dept_id = #{deptId}
+        </if>
+        ORDER BY d.create_time DESC
+    </select>
+
+    <select id="findDetail" resultType="java.util.Map">
+        SELECT <include refid="joinColumns"/>
+        <include refid="joinTables"/>
+        AND d.id = #{id}
+    </select>
+
+</mapper>
