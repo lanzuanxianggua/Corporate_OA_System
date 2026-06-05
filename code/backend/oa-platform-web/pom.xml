@@ -44,6 +44,12 @@
             <artifactId>oa-hr-leave</artifactId>
         </dependency>
 
+        <!-- HR 员工档案 -->
+        <dependency>
+            <groupId>cn.oa</groupId>
+            <artifactId>oa-hr-employee</artifactId>
+        </dependency>
+
         <!-- Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
