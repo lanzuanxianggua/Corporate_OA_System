@@ -38,6 +38,12 @@
             <artifactId>oa-workflow</artifactId>
         </dependency>
 
+        <!-- HR 业务 (HrLeave 请假申请) -->
+        <dependency>
+            <groupId>cn.oa</groupId>
+            <artifactId>oa-hr-leave</artifactId>
+        </dependency>
+
         <!-- Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
