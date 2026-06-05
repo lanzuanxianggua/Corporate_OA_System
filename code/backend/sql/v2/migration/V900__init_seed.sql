@@ -108,8 +108,8 @@ INSERT INTO `sys_dict_data` (`id`, `dict_type`, `dict_label`, `dict_value`, `is_
 -- -----------------------------------------------------------------------------
 -- 超级管理员拥有所有权限
 -- -----------------------------------------------------------------------------
-INSERT INTO `sys_role_permission` (`id`, `role_id`, `perm_id`, `create_by`)
-SELECT id, 1, perm_id, 'system' FROM (
+INSERT INTO `sys_role_permission` (`role_id`, `perm_id`, `create_by`)
+SELECT 1, perm_id, 'system' FROM (
   SELECT id AS perm_id FROM sys_permission WHERE del_flag = 0
 ) t;
 

@@ -13,7 +13,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS `sys_dept`;
 CREATE TABLE `sys_dept` (
-  `id`           BIGINT       NOT NULL COMMENT '主键',
+  `id`           BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
   `parent_id`    BIGINT       NOT NULL DEFAULT 0 COMMENT '父部门ID, 0=根',
   `dept_name`    VARCHAR(64)  NOT NULL COMMENT '部门名称',
   `dept_code`    VARCHAR(64)  NOT NULL COMMENT '部门编码(全局唯一)',
@@ -41,7 +41,7 @@ CREATE TABLE `sys_dept` (
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS `sys_employee`;
 CREATE TABLE `sys_employee` (
-  `id`           BIGINT       NOT NULL COMMENT '主键',
+  `id`           BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
   `username`     VARCHAR(64)  NOT NULL COMMENT '登录名',
   `real_name`    VARCHAR(64)  NOT NULL COMMENT '真实姓名',
   `emp_no`       VARCHAR(64)  NOT NULL COMMENT '工号',
@@ -81,7 +81,7 @@ CREATE TABLE `sys_employee` (
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS `sys_role`;
 CREATE TABLE `sys_role` (
-  `id`           BIGINT       NOT NULL,
+  `id`           BIGINT       NOT NULL AUTO_INCREMENT,
   `role_code`    VARCHAR(64)  NOT NULL COMMENT '角色编码',
   `role_name`    VARCHAR(64)  NOT NULL COMMENT '角色名称',
   `data_scope`   VARCHAR(16)  NOT NULL DEFAULT 'SELF' COMMENT 'SELF/DEPT/DEPT_DOWN/COMPANY/ALL',
@@ -104,7 +104,7 @@ CREATE TABLE `sys_role` (
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS `sys_permission`;
 CREATE TABLE `sys_permission` (
-  `id`           BIGINT       NOT NULL,
+  `id`           BIGINT       NOT NULL AUTO_INCREMENT,
   `parent_id`    BIGINT       NOT NULL DEFAULT 0,
   `perm_code`    VARCHAR(128) DEFAULT NULL COMMENT '权限码, 如 hr-leave:leave:create',
   `perm_name`    VARCHAR(64)  NOT NULL COMMENT '权限名称',
@@ -132,7 +132,7 @@ CREATE TABLE `sys_permission` (
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS `sys_employee_role`;
 CREATE TABLE `sys_employee_role` (
-  `id`           BIGINT       NOT NULL,
+  `id`           BIGINT       NOT NULL AUTO_INCREMENT,
   `emp_id`       BIGINT       NOT NULL,
   `role_id`      BIGINT       NOT NULL,
   `create_by`    VARCHAR(64)  NOT NULL DEFAULT 'system',
@@ -147,7 +147,7 @@ CREATE TABLE `sys_employee_role` (
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS `sys_role_permission`;
 CREATE TABLE `sys_role_permission` (
-  `id`           BIGINT       NOT NULL,
+  `id`           BIGINT       NOT NULL AUTO_INCREMENT,
   `role_id`      BIGINT       NOT NULL,
   `perm_id`      BIGINT       NOT NULL,
   `create_by`    VARCHAR(64)  NOT NULL DEFAULT 'system',
@@ -162,7 +162,7 @@ CREATE TABLE `sys_role_permission` (
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS `sys_dict_type`;
 CREATE TABLE `sys_dict_type` (
-  `id`           BIGINT       NOT NULL,
+  `id`           BIGINT       NOT NULL AUTO_INCREMENT,
   `dict_type`    VARCHAR(64)  NOT NULL COMMENT '字典类型编码',
   `dict_name`    VARCHAR(64)  NOT NULL,
   `status`       VARCHAR(16)  NOT NULL DEFAULT 'ACTIVE',
@@ -182,7 +182,7 @@ CREATE TABLE `sys_dict_type` (
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS `sys_dict_data`;
 CREATE TABLE `sys_dict_data` (
-  `id`           BIGINT       NOT NULL,
+  `id`           BIGINT       NOT NULL AUTO_INCREMENT,
   `dict_type`    VARCHAR(64)  NOT NULL,
   `dict_label`   VARCHAR(64)  NOT NULL,
   `dict_value`   VARCHAR(128) NOT NULL,
@@ -207,7 +207,7 @@ CREATE TABLE `sys_dict_data` (
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS `oa_operation_log`;
 CREATE TABLE `oa_operation_log` (
-  `id`           BIGINT       NOT NULL,
+  `id`           BIGINT       NOT NULL AUTO_INCREMENT,
   `emp_id`       BIGINT       DEFAULT NULL,
   `emp_name`     VARCHAR(64)  DEFAULT NULL,
   `module`       VARCHAR(32)  NOT NULL,
@@ -237,7 +237,7 @@ CREATE TABLE `oa_operation_log` (
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS `sys_attachment`;
 CREATE TABLE `sys_attachment` (
-  `id`           BIGINT       NOT NULL,
+  `id`           BIGINT       NOT NULL AUTO_INCREMENT,
   `biz_type`     VARCHAR(64)  DEFAULT NULL COMMENT '业务类型',
   `biz_id`       VARCHAR(64)  DEFAULT NULL COMMENT '业务ID',
   `file_name`    VARCHAR(256) NOT NULL,
@@ -262,7 +262,7 @@ CREATE TABLE `sys_attachment` (
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS `msg_notification`;
 CREATE TABLE `msg_notification` (
-  `id`           BIGINT       NOT NULL,
+  `id`           BIGINT       NOT NULL AUTO_INCREMENT,
   `title`        VARCHAR(256) NOT NULL,
   `content`      TEXT         NOT NULL,
   `category`     VARCHAR(32)  NOT NULL COMMENT 'SYSTEM/WORKFLOW/ANNOUNCE/TODO',
@@ -285,7 +285,7 @@ CREATE TABLE `msg_notification` (
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS `msg_notification_recipient`;
 CREATE TABLE `msg_notification_recipient` (
-  `id`           BIGINT       NOT NULL,
+  `id`           BIGINT       NOT NULL AUTO_INCREMENT,
   `notification_id` BIGINT    NOT NULL,
   `recipient_id` BIGINT       NOT NULL,
   `is_read`      CHAR(1)      NOT NULL DEFAULT 'N',
