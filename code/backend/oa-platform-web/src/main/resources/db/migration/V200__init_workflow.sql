@@ -13,7 +13,7 @@ CREATE TABLE `wf_definitions` (
   `create_emp`  BIGINT       DEFAULT NULL                 COMMENT '创建人',
   `create_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  `del_flag`    TINYINT(1)   NOT NULL DEFAULT 0           COMMENT '软删除',
+  `del_flag`    CHAR(1)      NOT NULL DEFAULT '0'           COMMENT '软删除',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_def_key_version` (`def_key`, `version`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='流程定义';
@@ -27,7 +27,7 @@ CREATE TABLE `wf_nodes` (
   `assignee_rule_id` BIGINT  DEFAULT NULL                 COMMENT '审批人规则',
   `sort_order`  INT          NOT NULL DEFAULT 0           COMMENT '排序',
   `create_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  `del_flag`    TINYINT(1)   NOT NULL DEFAULT 0           COMMENT '软删除',
+  `del_flag`    CHAR(1)      NOT NULL DEFAULT '0'           COMMENT '软删除',
   PRIMARY KEY (`id`),
   KEY `idx_def_id` (`def_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='流程节点';
@@ -66,7 +66,7 @@ CREATE TABLE `wf_instances` (
   `vars`         JSON         DEFAULT NULL                COMMENT '流程变量',
   `start_time`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '启动时间',
   `end_time`     DATETIME     DEFAULT NULL                COMMENT '结束时间',
-  `del_flag`     TINYINT(1)   NOT NULL DEFAULT 0          COMMENT '软删除',
+  `del_flag`     CHAR(1)      NOT NULL DEFAULT '0'          COMMENT '软删除',
   PRIMARY KEY (`id`),
   KEY `idx_business_key` (`business_key`),
   KEY `idx_status` (`status`),
@@ -87,7 +87,7 @@ CREATE TABLE `wf_tasks` (
   `delegated_from` BIGINT      DEFAULT NULL               COMMENT '委托来源 emp_id',
   `due_time`      DATETIME     DEFAULT NULL               COMMENT '超时时间',
   `create_time`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  `del_flag`      TINYINT(1)   NOT NULL DEFAULT 0         COMMENT '软删除',
+  `del_flag`      CHAR(1)      NOT NULL DEFAULT '0'         COMMENT '软删除',
   PRIMARY KEY (`id`),
   KEY `idx_instance` (`instance_id`),
   KEY `idx_assignee_status` (`assignee_id`, `status`),
