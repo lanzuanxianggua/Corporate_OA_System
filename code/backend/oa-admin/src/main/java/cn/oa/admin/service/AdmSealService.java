@@ -13,6 +13,8 @@ import cn.oa.system.mapper.SysEmpMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -25,6 +27,7 @@ import java.util.stream.Collectors;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AdmSealService {
 
     private final AdmSealMapper sealMapper;
@@ -34,6 +37,7 @@ public class AdmSealService {
     /**
      * 新增印章.
      */
+    @Transactional(rollbackFor = Exception.class)
     public Long create(AdmSealCreateDTO dto) {
         AdmSeal seal = new AdmSeal();
         seal.setSealName(dto.getSealName());
@@ -49,6 +53,7 @@ public class AdmSealService {
     /**
      * 修改印章.
      */
+    @Transactional(rollbackFor = Exception.class)
     public void update(Long id, AdmSealCreateDTO dto) {
         AdmSeal exist = sealMapper.selectById(id);
         if (exist == null) {
@@ -67,6 +72,7 @@ public class AdmSealService {
     /**
      * 删除印章.
      */
+    @Transactional(rollbackFor = Exception.class)
     public void delete(Long id) {
         if (sealMapper.selectById(id) == null) {
             throw new BizException(RCode.NOT_FOUND, "印章不存在");

@@ -7,6 +7,8 @@ import cn.oa.hr.employee.entity.HrEmployeeProfile;
 import cn.oa.hr.employee.mapper.HrEmployeeProfileMapper;
 import cn.oa.hr.employee.vo.HrEmployeeProfileVO;
 import cn.oa.platform.common.api.PageResult;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.transaction.annotation.Transactional;
 import cn.oa.platform.common.api.RCode;
 import cn.oa.platform.common.exception.BizException;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -22,6 +24,7 @@ import java.util.Map;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class HrEmployeeProfileService {
 
     private final HrEmployeeProfileMapper mapper;
@@ -29,6 +32,7 @@ public class HrEmployeeProfileService {
     /**
      * 新增员工档案.
      */
+    @Transactional(rollbackFor = Exception.class)
     public Long create(HrEmployeeProfileCreateDTO dto) {
         // 1) 检查 empId 是否已存在档案
         LambdaQueryWrapper<HrEmployeeProfile> existsWrapper = new LambdaQueryWrapper<HrEmployeeProfile>()
@@ -58,6 +62,7 @@ public class HrEmployeeProfileService {
     /**
      * 修改员工档案.
      */
+    @Transactional(rollbackFor = Exception.class)
     public void update(Long id, HrEmployeeProfileUpdateDTO dto) {
         HrEmployeeProfile exist = mapper.selectById(id);
         if (exist == null) {
@@ -84,6 +89,7 @@ public class HrEmployeeProfileService {
     /**
      * 删除员工档案.
      */
+    @Transactional(rollbackFor = Exception.class)
     public void delete(Long id) {
         if (mapper.selectById(id) == null) {
             throw new BizException(RCode.NOT_FOUND, "员工档案不存在");

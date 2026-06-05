@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 假期余额 Service.
@@ -127,6 +128,11 @@ public class HrLeaveBalanceService {
     /**
      * 审批拒绝或撤回时解冻余额.
      */
+    
+    public List<HrLeaveBalance> listByEmpId(Long empId) {
+        return balanceMapper.findAllByEmpId(empId);
+    }
+
     @Transactional
     public void unfreezeOnReject(Long empId, String leaveType, int year, BigDecimal days) {
         HrLeaveBalance balance = balanceMapper.findByEmpAndTypeAndYear(empId, leaveType, year);

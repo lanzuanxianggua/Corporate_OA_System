@@ -67,28 +67,28 @@ export const LEAVE_STATUS_TAG: Record<number, "warning" | "success" | "danger" |
 // ── API methods ──────────────────────────────────────────────────────────────
 
 export const leaveApi = {
-  /** GET /api/v1/hr/leaves/mine — 我的请假列表（分页） */
+  /** GET /api/v1/hr-leave/leaves/mine — 我的请假列表（分页） */
   listMy(params: { pageNum: number; pageSize: number; leaveType?: number; status?: number }) {
-    return apiGet<LeavePageResult>("/api/v1/hr/leaves/mine", params);
+    return apiGet<LeavePageResult>("/api/v1/hr-leave/leaves/mine", params);
   },
 
-  /** GET /api/v1/hr/leaves/{id} — 请假详情 */
+  /** GET /api/v1/hr-leave/leaves/{id} — 请假详情 */
   getDetail(id: number) {
-    return apiGet<LeaveVO>(`/api/v1/hr/leaves/${id}`);
+    return apiGet<LeaveVO>(`/api/v1/hr-leave/leaves/${id}`);
   },
 
-  /** POST /api/v1/hr/leaves — 新建请假 */
+  /** POST /api/v1/hr-leave/leaves — 新建请假 */
   create(data: LeaveCreateDTO) {
-    return apiPost<number>("/api/v1/hr/leaves", data);
+    return apiPost<number>("/api/v1/hr-leave/leaves", data);
   },
 
-  /** POST /api/v1/hr/leaves/{id}/actions/revoke — 撤回请假（仅 PENDING） */
+  /** POST /api/v1/hr-leave/leaves/{id}/actions/revoke — 撤回请假（仅 PENDING） */
   revoke(id: number) {
-    return apiPost<void>(`/api/v1/hr/leaves/${id}/actions/revoke`, {});
+    return apiPost<void>(`/api/v1/hr-leave/leaves/${id}/actions/revoke`, {});
   },
 
-  /** GET /api/v1/hr/leaves/balances/me — 我的假期余额 */
+  /** GET /api/v1/hr-leave/leaves/balances/me — 我的假期余额 */
   getBalances() {
-    return apiGet<LeaveBalanceVO[]>("/api/v1/hr/leaves/balances/me");
+    return apiGet<LeaveBalanceVO[]>("/api/v1/hr-leave/leaves/balances/me");
   },
 };

@@ -13,6 +13,8 @@ import cn.oa.system.mapper.SysEmpMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -28,6 +30,7 @@ import java.util.stream.Collectors;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AdmAssetService {
 
     private final AdmAssetMapper assetMapper;
@@ -40,6 +43,7 @@ public class AdmAssetService {
     /**
      * 新增资产 (自动生成 assetCode: "AST" + yyyyMMdd + 4位序列).
      */
+    @Transactional(rollbackFor = Exception.class)
     public Long create(AdmAssetCreateDTO dto) {
         AdmAsset asset = new AdmAsset();
         asset.setAssetName(dto.getAssetName());
@@ -60,6 +64,7 @@ public class AdmAssetService {
     /**
      * 修改资产.
      */
+    @Transactional(rollbackFor = Exception.class)
     public void update(Long id, AdmAssetCreateDTO dto) {
         AdmAsset exist = assetMapper.selectById(id);
         if (exist == null) {
@@ -82,6 +87,7 @@ public class AdmAssetService {
     /**
      * 删除资产.
      */
+    @Transactional(rollbackFor = Exception.class)
     public void delete(Long id) {
         if (assetMapper.selectById(id) == null) {
             throw new BizException(RCode.NOT_FOUND, "资产不存在");
