@@ -32,6 +32,12 @@
             <artifactId>oa-system</artifactId>
         </dependency>
 
+        <!-- 流程引擎 (WfInstance/Task/Assignee) -->
+        <dependency>
+            <groupId>cn.oa</groupId>
+            <artifactId>oa-workflow</artifactId>
+        </dependency>
+
         <!-- Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
