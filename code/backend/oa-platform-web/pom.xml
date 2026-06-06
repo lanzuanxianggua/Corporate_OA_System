@@ -62,6 +62,12 @@
             <artifactId>oa-hr-recruitment</artifactId>
         </dependency>
 
+        <!-- HR 培训 -->
+        <dependency>
+            <groupId>cn.oa</groupId>
+            <artifactId>oa-hr-training</artifactId>
+        </dependency>
+
         <!-- HR 员工档案 -->
         <dependency>
             <groupId>cn.oa</groupId>
