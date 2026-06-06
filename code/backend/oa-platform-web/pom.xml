@@ -86,6 +86,12 @@
             <artifactId>oa-knowledge</artifactId>
         </dependency>
 
+        <!-- 任务管理 -->
+        <dependency>
+            <groupId>cn.oa</groupId>
+            <artifactId>oa-task</artifactId>
+        </dependency>
+
         <!-- Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

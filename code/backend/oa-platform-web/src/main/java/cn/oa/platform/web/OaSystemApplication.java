@@ -32,7 +32,8 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
         "cn.oa.finance.mapper",
 	"cn.oa.meeting.mapper",
 	"cn.oa.message.mapper",
-	"cn.oa.knowledge.mapper"
+	"cn.oa.knowledge.mapper",
+		"cn.oa.task.mapper"
 })
 @Import({
         MybatisPlusConfig.class,
