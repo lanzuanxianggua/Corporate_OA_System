@@ -39,7 +39,7 @@ CREATE TABLE hr_perf_eval (
 
 CREATE TABLE hr_perf_result (
   id BIGINT AUTO_INCREMENT, cycle_id BIGINT NOT NULL, emp_id BIGINT NOT NULL,
-  total_score DECIMAL(5,2), grade VARCHAR(8), rank INT,
+  total_score DECIMAL(5,2), grade VARCHAR(8), ranking INT,
   status VARCHAR(16) DEFAULT 'PENDING',
   del_flag CHAR(1) DEFAULT '0', create_by VARCHAR(64), create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
   update_by VARCHAR(64), update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

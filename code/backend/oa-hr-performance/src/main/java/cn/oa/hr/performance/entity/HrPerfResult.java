@@ -7,5 +7,5 @@ import java.math.BigDecimal;
 @Data @EqualsAndHashCode(callSuper=true) @TableName("hr_perf_result") @Schema(description="绩效结果")
 public class HrPerfResult extends BaseEntity {
     private Long cycleId; private Long empId;
-    private BigDecimal totalScore; private String grade; private Integer rank; private String status;
+    private BigDecimal totalScore; private String grade; private Integer ranking; private String status;
 }

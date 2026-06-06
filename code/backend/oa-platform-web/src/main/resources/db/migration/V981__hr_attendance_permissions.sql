@@ -1,4 +1,9 @@
 -- V981__hr_attendance_permissions.sql
+-- 1) 父菜单 (parent_id=2 => HR 管理)
+INSERT INTO sys_permission (parent_id, perm_code, perm_name, perm_type, path, sort_order, status, create_by) VALUES
+  (2, 'hr-attendance', '考勤管理', 'MENU', '/hr/attendance', 2, 'ACTIVE', 'system');
+
+-- 2) 业务权限
 SET @parent = (SELECT id FROM sys_permission WHERE perm_code='hr-attendance' OR (path='/hr/attendance' AND perm_type='MENU') LIMIT 1);
 INSERT INTO sys_permission (parent_id, perm_code, perm_name, perm_type, sort_order, status, create_by) VALUES
   (@parent, 'hr-attendance:record:list', '打卡记录', 'BUTTON', 1, 'ACTIVE', 'system'),

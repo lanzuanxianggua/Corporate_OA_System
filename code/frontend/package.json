@@ -7,6 +7,14 @@
     "node": ">=20",
     "pnpm": ">=9"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "core-js-pure",
+      "esbuild",
+      "vue-demi"
+    ]
+  },
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
