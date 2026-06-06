@@ -28,6 +28,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
         "cn.oa.hr.employee.mapper",
 		"cn.oa.hr.attendance.mapper",
 		"cn.oa.hr.performance.mapper",
+		"cn.oa.hr.recruitment.mapper",
         "cn.oa.hr.mapper",
         "cn.oa.document.mapper",
         "cn.oa.admin.mapper",
