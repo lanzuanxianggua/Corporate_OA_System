@@ -15,6 +15,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.NoHandlerFoundException;
@@ -30,10 +31,11 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(BizException.class)
-    public R<?> handleBiz(BizException e, HttpServletRequest request) {
+    public ResponseEntity<R<?>> handleBiz(BizException e, HttpServletRequest request) {
         log.warn("BizException: code={}, message={}, uri={}, user={}",
                 e.getCode(), e.getMessage(), request.getRequestURI(), currentUser());
-        return R.fail(e.getCode(), e.getMessage());
+        return ResponseEntity.status(httpStatusFor(e.getCode()))
+                .body(R.fail(e.getCode(), e.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -97,5 +99,40 @@ public class GlobalExceptionHandler {
     private String currentUser() {
         Long empId = UserContext.getCurrentEmpId();
         return empId == null ? "anonymous" : String.valueOf(empId);
+    }
+
+    private HttpStatus httpStatusFor(Integer code) {
+        if (RCode.UNAUTHORIZED.getCode().equals(code)
+                || RCode.TOKEN_EXPIRED.getCode().equals(code)
+                || RCode.INVALID_TOKEN.getCode().equals(code)
+                || RCode.SIGN_INVALID.getCode().equals(code)) {
+            return HttpStatus.UNAUTHORIZED;
+        }
+        if (RCode.FORBIDDEN.getCode().equals(code)
+                || RCode.DATA_PERMISSION_DENIED.getCode().equals(code)) {
+            return HttpStatus.FORBIDDEN;
+        }
+        if (RCode.NOT_FOUND.getCode().equals(code)) {
+            return HttpStatus.NOT_FOUND;
+        }
+        if (RCode.METHOD_NOT_ALLOWED.getCode().equals(code)) {
+            return HttpStatus.METHOD_NOT_ALLOWED;
+        }
+        if (RCode.VALIDATION_FAILED.getCode().equals(code)) {
+            return HttpStatus.UNPROCESSABLE_ENTITY;
+        }
+        if (RCode.BAD_REQUEST.getCode().equals(code)) {
+            return HttpStatus.BAD_REQUEST;
+        }
+        if (RCode.INTERNAL_ERROR.getCode().equals(code)) {
+            return HttpStatus.INTERNAL_SERVER_ERROR;
+        }
+        if (RCode.SERVICE_UNAVAILABLE.getCode().equals(code)) {
+            return HttpStatus.SERVICE_UNAVAILABLE;
+        }
+        if (RCode.THIRD_PARTY_ERROR.getCode().equals(code)) {
+            return HttpStatus.BAD_GATEWAY;
+        }
+        return HttpStatus.BAD_REQUEST;
     }
 }
