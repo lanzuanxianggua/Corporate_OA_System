@@ -50,6 +50,12 @@
             <artifactId>oa-hr-attendance</artifactId>
         </dependency>
 
+        <!-- HR 绩效 -->
+        <dependency>
+            <groupId>cn.oa</groupId>
+            <artifactId>oa-hr-performance</artifactId>
+        </dependency>
+
         <!-- HR 员工档案 -->
         <dependency>
             <groupId>cn.oa</groupId>
