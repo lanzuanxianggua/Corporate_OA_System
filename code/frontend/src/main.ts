@@ -1,8 +1,5 @@
 import { createApp } from "vue";
 import { createPinia } from "pinia";
-import ElementPlus from "element-plus";
-import "element-plus/dist/index.css";
-import zhCn from "element-plus/es/locale/lang/zh-cn";
 import {
   User, Menu, Setting, Bell, Search, Edit, Delete, Plus, Download,
   Upload, Refresh, Files, Document, Message, ChatDotSquare, Check,
@@ -28,5 +25,4 @@ icons.forEach(component => app.component(component.name!, component));
 
 app.use(createPinia());
 app.use(router);
-app.use(ElementPlus, { locale: zhCn });
 app.mount("#app");
