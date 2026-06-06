@@ -1,5 +1,7 @@
 package cn.oa.platform.web;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -7,8 +9,6 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
-
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -22,25 +22,27 @@ class ApplicationSmokeTest {
     @Autowired
     TestRestTemplate rest;
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     @Test
-    void shouldStartAndRespondToPing() {
-        ResponseEntity<Map> resp = rest.getForEntity("http://localhost:" + port + "/api/ping", Map.class);
+    void shouldStartAndRespondToPing() throws Exception {
+        ResponseEntity<String> resp = rest.getForEntity("http://localhost:" + port + "/api/ping", String.class);
 
         assertThat(resp.getStatusCode().value()).isEqualTo(200);
         assertThat(resp.getBody()).isNotNull();
-        assertThat(resp.getBody().get("code")).isEqualTo(0);
-        Map<String, Object> data = (Map<String, Object>) resp.getBody().get("data");
-        assertThat(data.get("status")).isEqualTo("UP");
-        assertThat(data.get("service")).isEqualTo("oa-system");
+        JsonNode body = objectMapper.readTree(resp.getBody());
+        assertThat(body.path("code").asInt()).isEqualTo(0);
+        assertThat(body.path("data").path("status").asText()).isEqualTo("UP");
+        assertThat(body.path("data").path("service").asText()).isEqualTo("oa-system");
     }
 
     @Test
-    void shouldAllowGetEmpsWithoutAuthSincePermCheckIsInInterceptor() {
-        // v2 设计: JwtAuthenticationFilter 仅解析 Token 写入 UserContext,
-        // 未登录时不影响请求. 业务侧 @RequirePermission 拦截器才会拒绝.
-        // 单元测试: 仅验证不抛异常即可 (业务层会返回 200 + 空列表).
-        ResponseEntity<Map> resp = rest.getForEntity("http://localhost:" + port + "/api/system/emps", Map.class);
+    void shouldReturnUnauthorizedWhenProtectedApiHasNoToken() throws Exception {
+        // v2 API 契约: 未登录访问受保护资源返回 HTTP 401 + RCode.UNAUTHORIZED.
+        ResponseEntity<String> resp = rest.getForEntity("http://localhost:" + port + "/api/system/emps", String.class);
 
-        assertThat(resp.getStatusCode().value()).isEqualTo(200);
+        assertThat(resp.getStatusCode().value()).isEqualTo(401);
+        assertThat(resp.getBody()).isNotNull();
+        assertThat(objectMapper.readTree(resp.getBody()).path("code").asInt()).isEqualTo(10001);
     }
 }
