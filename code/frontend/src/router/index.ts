@@ -272,6 +272,36 @@ const staticRoutes: RouteRecordRaw[] = [
         meta: { title: "我的薪资", icon: "Money" }
       },
 
+      // ── 人事管理（v2 hr-leave） ──────────────────────────────────
+      {
+        path: "hr-leave/my-leaves",
+        name: "HrLeaveMy",
+        component: () => import("@/views/hr-leave/MyLeaves.vue"),
+        meta: { title: "我的请假", icon: "Calendar", permission: "hr-leave:leave:list" }
+      },
+      {
+        path: "hr-leave/pending-approvals",
+        name: "HrLeavePending",
+        component: () => import("@/views/hr-leave/PendingApprovals.vue"),
+        meta: {
+          title: "待我审批-请假",
+          icon: "Checked",
+          permission: "workflow:task:approve"
+        }
+      },
+      {
+        path: "hr-leave/balances",
+        name: "HrLeaveBalances",
+        component: () => import("@/views/hr-leave/MyBalances.vue"),
+        meta: { title: "假期余额", icon: "Timer", permission: "hr-leave:leave-balance:view" }
+      },
+      {
+        path: "hr-leave/detail/:id",
+        name: "HrLeaveDetail",
+        component: () => import("@/views/hr-leave/LeaveDetail.vue"),
+        meta: { title: "请假详情", icon: "Document", hidden: true, permission: "hr-leave:leave:view" }
+      },
+
       // ── 工作流管理 ────────────────────────────────────────────────────
       {
         path: "oa/workflow-definition",
