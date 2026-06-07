@@ -71,17 +71,17 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted, nextTick } from "vue";
 import dayjs from "dayjs";
-import * as echarts from "echarts";
 import {
   getAdminAttendanceSummary, getAdminAttendanceTrend,
   getAdminDeptCompare, getAdminLeaveAnalysis, getAdminEmployeeRanking
 } from "@/api/report";
+import { graphic, init, type ECharts } from "@/utils/echarts";
 
 const month = ref(dayjs().format("YYYY-MM"));
 const trendChartRef = ref<HTMLDivElement>();
 const deptChartRef = ref<HTMLDivElement>();
 const leaveChartRef = ref<HTMLDivElement>();
-const charts: echarts.ECharts[] = [];
+const charts: ECharts[] = [];
 const rankType = ref("best");
 const rankingList = ref<any[]>([]);
 const rankColors = ["#FFD700", "#C0C0C0", "#CD7F32"];
@@ -114,7 +114,7 @@ const initTrendChart = async () => {
   if (!trendChartRef.value) return;
   try {
     const r: any = await getAdminAttendanceTrend(month.value, 12);
-    const chart = echarts.init(trendChartRef.value); charts.push(chart);
+    const chart = init(trendChartRef.value); charts.push(chart);
     const data = r.data || [];
     const normalCountMap: Record<string, number> = {};
     (data as any[]).forEach((d: any) => { normalCountMap[d.month || d.date || ""] = d.normalCount || 0; });
@@ -125,7 +125,7 @@ const initTrendChart = async () => {
       } },
       xAxis: { type: "category", data: data.map((d: any) => d.month || d.date || "") },
       yAxis: { type: "value", name: "出勤率(%)", max: 100 },
-      series: [{ type: "line", data: data.map((d: any) => d.rate || 0), areaStyle: { opacity: 0.3, color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "#409EFF" }, { offset: 1, color: "rgba(64,158,255,0.1)" }]) }, smooth: true, itemStyle: { color: "#409EFF" }, lineStyle: { width: 3 } }]
+      series: [{ type: "line", data: data.map((d: any) => d.rate || 0), areaStyle: { opacity: 0.3, color: new graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "#409EFF" }, { offset: 1, color: "rgba(64,158,255,0.1)" }]) }, smooth: true, itemStyle: { color: "#409EFF" }, lineStyle: { width: 3 } }]
     });
   } catch {}
 };
@@ -134,7 +134,7 @@ const initDeptChart = async () => {
   if (!deptChartRef.value) return;
   try {
     const r: any = await getAdminDeptCompare(month.value);
-    const chart = echarts.init(deptChartRef.value); charts.push(chart);
+    const chart = init(deptChartRef.value); charts.push(chart);
     const data = r.data || [];
     chart.setOption({
       tooltip: { trigger: "axis" },
@@ -149,7 +149,7 @@ const initLeaveChart = async () => {
   if (!leaveChartRef.value) return;
   try {
     const r: any = await getAdminLeaveAnalysis(month.value);
-    const chart = echarts.init(leaveChartRef.value); charts.push(chart);
+    const chart = init(leaveChartRef.value); charts.push(chart);
     chart.setOption({
       tooltip: { trigger: "item", formatter: "{b}: {c}次 ({d}%)" },
       legend: { bottom: 0, type: "scroll" },

@@ -95,9 +95,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
-import * as echarts from "echarts";
 import { Refresh } from "@element-plus/icons-vue";
 import { getDashboardStats } from "@/api/statistics";
+import { graphic, init, type ECharts } from "@/utils/echarts";
 
 const loading = ref(false);
 const period = ref("today");
@@ -111,7 +111,7 @@ const tripCountChartRef = ref<HTMLDivElement>();
 const approvalNewChartRef = ref<HTMLDivElement>();
 const lateRankChartRef = ref<HTMLDivElement>();
 const attendanceRankChartRef = ref<HTMLDivElement>();
-const charts: echarts.ECharts[] = [];
+const charts: ECharts[] = [];
 const cachedData = ref<any>(null);
 
 const trendTitle = computed(() => {
@@ -184,7 +184,7 @@ const fetchAllData = async () => {
 
 const initTrendChart = () => {
   if (!trendChartRef.value) return;
-  const chart = echarts.init(trendChartRef.value);
+  const chart = init(trendChartRef.value);
   charts.push(chart);
 
   if (period.value === 'year') {
@@ -197,7 +197,7 @@ const initTrendChart = () => {
         type: "bar",
         data: trend.map((d: any) => d.rate || 0),
         itemStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          color: new graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: "#409EFF" },
             { offset: 1, color: "#79bbff" }
           ]),
@@ -216,7 +216,7 @@ const initTrendChart = () => {
     yAxis: { type: "value", name: "出勤率(%)", max: 100 },
     series: [{
       type: "line", data: trend.map((d: any) => d.rate || 0),
-      areaStyle: { opacity: 0.3, color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "#409EFF" }, { offset: 1, color: "rgba(64,158,255,0.1)" }]) },
+      areaStyle: { opacity: 0.3, color: new graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "#409EFF" }, { offset: 1, color: "rgba(64,158,255,0.1)" }]) },
       smooth: true, itemStyle: { color: "#409EFF" }, lineStyle: { width: 3 }
     }]
   });
@@ -224,7 +224,7 @@ const initTrendChart = () => {
 
 const initDeptChart = () => {
   if (!deptChartRef.value) return;
-  const chart = echarts.init(deptChartRef.value);
+  const chart = init(deptChartRef.value);
   charts.push(chart);
   const dept = cachedData.value?.departmentDistribution || [];
   if (!dept.length) {
@@ -245,7 +245,7 @@ const initDeptChart = () => {
 
 const initAttStatusChart = () => {
   if (!attStatusChartRef.value) return;
-  const chart = echarts.init(attStatusChartRef.value);
+  const chart = init(attStatusChartRef.value);
   charts.push(chart);
   const att = cachedData.value?.attendance || {};
   const dataItems = [
@@ -268,7 +268,7 @@ const initAttStatusChart = () => {
 
 const initLeaveTypeChart = () => {
   if (!leaveTypeChartRef.value) return;
-  const chart = echarts.init(leaveTypeChartRef.value);
+  const chart = init(leaveTypeChartRef.value);
   charts.push(chart);
   const lv = cachedData.value?.leave || {};
   const byType = lv.byType || {};
@@ -288,7 +288,7 @@ const initLeaveTypeChart = () => {
       type: "bar",
       data: values,
       itemStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        color: new graphic.LinearGradient(0, 0, 0, 1, [
           { offset: 0, color: "#9254de" },
           { offset: 1, color: "#b37feb" }
         ]),
@@ -301,7 +301,7 @@ const initLeaveTypeChart = () => {
 
 const initLeaveCountChart = () => {
   if (!leaveCountChartRef.value) return;
-  const chart = echarts.init(leaveCountChartRef.value);
+  const chart = init(leaveCountChartRef.value);
   charts.push(chart);
   const d = cachedData.value || {};
   const leaveCount = Number(d.leaveCountThisMonth) || 0;
@@ -325,7 +325,7 @@ const initLeaveCountChart = () => {
 
 const initTripCountChart = () => {
   if (!tripCountChartRef.value) return;
-  const chart = echarts.init(tripCountChartRef.value);
+  const chart = init(tripCountChartRef.value);
   charts.push(chart);
   const d = cachedData.value || {};
   const tripCount = Number(d.businessTripCountThisMonth) || 0;
@@ -349,7 +349,7 @@ const initTripCountChart = () => {
 
 const initApprovalNewChart = () => {
   if (!approvalNewChartRef.value) return;
-  const chart = echarts.init(approvalNewChartRef.value);
+  const chart = init(approvalNewChartRef.value);
   charts.push(chart);
   const d = cachedData.value || {};
   const pendingApprovals = Number(d.pendingApprovals) || 0;
@@ -362,8 +362,8 @@ const initApprovalNewChart = () => {
     series: [{
       type: "bar",
       data: [
-        { value: pendingApprovals, itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "#F56C6C" }, { offset: 1, color: "#fab6b6" }]) } },
-        { value: newEmployees, itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "#67C23A" }, { offset: 1, color: "#b3e19d" }]) } }
+        { value: pendingApprovals, itemStyle: { color: new graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "#F56C6C" }, { offset: 1, color: "#fab6b6" }]) } },
+        { value: newEmployees, itemStyle: { color: new graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "#67C23A" }, { offset: 1, color: "#b3e19d" }]) } }
       ],
       barWidth: "40%",
       label: { show: true, position: "top", formatter: "{c}", fontSize: 16, fontWeight: "bold" }
@@ -373,7 +373,7 @@ const initApprovalNewChart = () => {
 
 const initLateRankChart = () => {
   if (!lateRankChartRef.value) return;
-  const chart = echarts.init(lateRankChartRef.value);
+  const chart = init(lateRankChartRef.value);
   charts.push(chart);
   const ranking = cachedData.value?.lateRanking || [];
   if (ranking.length === 0) {
@@ -397,7 +397,7 @@ const initLateRankChart = () => {
 
 const initAttendanceRankChart = () => {
   if (!attendanceRankChartRef.value) return;
-  const chart = echarts.init(attendanceRankChartRef.value);
+  const chart = init(attendanceRankChartRef.value);
   charts.push(chart);
   const ranking = cachedData.value?.attendanceRanking || [];
   if (ranking.length === 0) {

@@ -62,11 +62,11 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted, nextTick } from "vue";
 import dayjs from "dayjs";
-import * as echarts from "echarts";
 import {
   getPersonalAttendanceSummary, getPersonalAttendanceTrend,
   getPersonalLeaveSummary, getPersonalMonthlyCompare
 } from "@/api/report";
+import { init, type ECharts } from "@/utils/echarts";
 
 const period = ref("month");
 const month = ref(dayjs().format("YYYY-MM"));
@@ -75,7 +75,7 @@ const trendChartRef = ref<HTMLDivElement>();
 const leaveChartRef = ref<HTMLDivElement>();
 const compareChartRef = ref<HTMLDivElement>();
 const rateChartRef = ref<HTMLDivElement>();
-const charts: echarts.ECharts[] = [];
+const charts: ECharts[] = [];
 
 const statsData = reactive({ normalDays: 0, lateDays: 0, earlyLeaveDays: 0, absentDays: 0 });
 
@@ -133,7 +133,7 @@ const initTrendChart = async () => {
   if (!trendChartRef.value) return;
   try {
     const r: any = await getPersonalAttendanceTrend(getTrendMonths(), period.value);
-    const chart = echarts.init(trendChartRef.value);
+    const chart = init(trendChartRef.value);
     charts.push(chart);
     chart.setOption({
       tooltip: { trigger: "axis" },
@@ -148,7 +148,7 @@ const initLeaveChart = async (qMonth: string) => {
   if (!leaveChartRef.value) return;
   try {
     const r: any = await getPersonalLeaveSummary(qMonth);
-    const chart = echarts.init(leaveChartRef.value);
+    const chart = init(leaveChartRef.value);
     charts.push(chart);
     chart.setOption({
       tooltip: { trigger: "item" },
@@ -162,7 +162,7 @@ const initCompareChart = async (qMonth: string) => {
   if (!compareChartRef.value) return;
   try {
     const r: any = await getPersonalMonthlyCompare(qMonth);
-    const chart = echarts.init(compareChartRef.value);
+    const chart = init(compareChartRef.value);
     charts.push(chart);
     const d = r.data || {};
     chart.setOption({
@@ -182,7 +182,7 @@ const initRateChart = async (qMonth: string) => {
   if (!rateChartRef.value) return;
   try {
     const r: any = await getPersonalAttendanceSummary(qMonth, period.value);
-    const chart = echarts.init(rateChartRef.value);
+    const chart = init(rateChartRef.value);
     charts.push(chart);
     const data = r.data || {};
     const total = data.totalDays || 0;

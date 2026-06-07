@@ -39,12 +39,11 @@ export default defineConfig({
   build: {
     target: 'es2022',
     sourcemap: false,
+    chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
         manualChunks: {
-          vue: ['vue', 'vue-router', 'pinia'],
-          element: ['element-plus', '@element-plus/icons-vue'],
-          echarts: ['echarts', 'vue-echarts']
+          vue: ['vue', 'vue-router', 'pinia']
         }
       }
     }
