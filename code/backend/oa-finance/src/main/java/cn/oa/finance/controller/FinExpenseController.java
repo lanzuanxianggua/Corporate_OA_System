@@ -44,6 +44,15 @@ public class FinExpenseController {
         return R.ok();
     }
 
+    @Operation(summary = "重新提交报销单 (DRAFT/REJECTED → PENDING)")
+    @PostMapping("/{id}/actions/resubmit")
+    @RequirePermission("finance:expense:create")
+    public R<Void> resubmit(@PathVariable Long id) {
+        Long empId = UserContext.get().getEmpId();
+        service.resubmit(id, empId);
+        return R.ok();
+    }
+
     @Operation(summary = "审批通过报销单")
     @PostMapping("/{id}/actions/approve")
     @RequirePermission("finance:expense:approve")

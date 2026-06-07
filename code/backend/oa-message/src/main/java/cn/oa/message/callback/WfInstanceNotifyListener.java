@@ -37,11 +37,15 @@ public class WfInstanceNotifyListener {
      */
     private static final String BIZ_LEAVE = "LEAVE_";
     private static final String BIZ_EXPENSE = "EXPENSE_";
+    private static final String BIZ_EXP = "EXP_";
+    private static final String BIZ_LOAN = "LOAN_";
 
     private static final String TYPE_LEAVE_APPROVE = "LEAVE_APPROVE";
     private static final String TYPE_LEAVE_REJECT = "LEAVE_REJECT";
     private static final String TYPE_EXPENSE_APPROVE = "EXPENSE_APPROVE";
     private static final String TYPE_EXPENSE_REJECT = "EXPENSE_REJECT";
+    private static final String TYPE_LOAN_APPROVE = "LOAN_APPROVE";
+    private static final String TYPE_LOAN_REJECT = "LOAN_REJECT";
     private static final String TYPE_GENERAL = "GENERAL";
 
     private static final String STATUS_APPROVED = "APPROVED";
@@ -145,8 +149,11 @@ public class WfInstanceNotifyListener {
         if (businessKey.startsWith(BIZ_LEAVE)) {
             return approved ? TYPE_LEAVE_APPROVE : TYPE_LEAVE_REJECT;
         }
-        if (businessKey.startsWith(BIZ_EXPENSE)) {
+        if (businessKey.startsWith(BIZ_EXPENSE) || businessKey.startsWith(BIZ_EXP)) {
             return approved ? TYPE_EXPENSE_APPROVE : TYPE_EXPENSE_REJECT;
+        }
+        if (businessKey.startsWith(BIZ_LOAN)) {
+            return approved ? TYPE_LOAN_APPROVE : TYPE_LOAN_REJECT;
         }
         return TYPE_GENERAL;
     }
@@ -157,6 +164,8 @@ public class WfInstanceNotifyListener {
             case TYPE_LEAVE_REJECT -> "您的请假申请被拒绝";
             case TYPE_EXPENSE_APPROVE -> "您的报销申请已通过";
             case TYPE_EXPENSE_REJECT -> "您的报销申请被拒绝";
+            case TYPE_LOAN_APPROVE -> "您的借款申请已通过";
+            case TYPE_LOAN_REJECT -> "您的借款申请被拒绝";
             default -> "流程通知";
         };
     }

@@ -3,6 +3,7 @@ package cn.oa.finance.service;
 import cn.oa.finance.dto.FinLoanCreateDTO;
 import cn.oa.finance.dto.FinLoanQueryDTO;
 import cn.oa.finance.entity.FinLoan;
+import cn.oa.finance.event.FinBusinessSubmittedEvent;
 import cn.oa.platform.common.context.UserContext;
 import cn.oa.finance.entity.FinLoan;
 import cn.oa.finance.entity.FinLoanRepayment;
@@ -18,6 +19,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +39,7 @@ public class FinLoanService {
     private final FinLoanMapper mapper;
     private final FinLoanRepaymentMapper repaymentMapper;
     private final WfInstanceService wfInstanceService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 创建借款单.
@@ -67,6 +70,10 @@ public class FinLoanService {
         loan.setWfInstanceId(wfInstanceId);
         loan.setStatus(FinConstants.LOAN_STATUS_PENDING);
         mapper.updateById(loan);
+
+        // 发布业务提交事件
+        eventPublisher.publishEvent(new FinBusinessSubmittedEvent(
+                "LOAN_", loanId, loan.getApplyNo(), empId, wfInstanceId));
 
         log.info("借款单已创建: loanId={}, applyNo={}, empId={}, amount={}",
                 loanId, loan.getApplyNo(), empId, dto.getAmount());
@@ -132,6 +139,22 @@ public class FinLoanService {
         loan.setStatus(FinConstants.LOAN_STATUS_APPROVED);
         mapper.updateById(loan);
         log.info("借款单已审批通过: loanId={}", id);
+    }
+
+    /**
+     * 驳回借款单 (业务层兜底 — 与 oa-workflow 任务完成路径并列).
+     * <p>状态机: PENDING → REJECTED. 不涉及预算冻结/解冻 (借款本身不占预算).
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void reject(Long id) {
+        FinLoan loan = checkLoanExists(id);
+        if (!FinConstants.LOAN_STATUS_PENDING.equals(loan.getStatus())) {
+            throw new BizException(RCode.BAD_REQUEST,
+                    "仅待审批状态可驳回, 当前状态: " + loan.getStatus());
+        }
+        loan.setStatus(FinConstants.LOAN_STATUS_REJECTED);
+        mapper.updateById(loan);
+        log.info("借款单已驳回: loanId={}", id);
     }
 
     /**

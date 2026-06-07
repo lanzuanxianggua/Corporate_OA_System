@@ -4,6 +4,7 @@ import cn.oa.finance.dto.FinExpenseCreateDTO;
 import cn.oa.finance.dto.FinExpenseQueryDTO;
 import cn.oa.finance.entity.FinBudget;
 import cn.oa.finance.entity.FinExpense;
+import cn.oa.finance.event.FinBusinessSubmittedEvent;
 import cn.oa.platform.common.context.UserContext;
 import cn.oa.finance.entity.FinExpenseDetail;
 import cn.oa.finance.enums.FinConstants;
@@ -19,6 +20,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +42,7 @@ public class FinExpenseService {
     private final FinExpenseDetailMapper detailMapper;
     private final FinBudgetMapper budgetMapper;
     private final WfInstanceService wfInstanceService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 创建报销单.
@@ -90,6 +93,10 @@ public class FinExpenseService {
         // 4) 冻结预算
         freezeBudget(expense.getDeptId(), dto.getTotalAmount());
 
+        // 5) 发布业务提交事件 (供 oa-message 等下游 listener 监听)
+        eventPublisher.publishEvent(new FinBusinessSubmittedEvent(
+                "EXP_", expenseId, expense.getApplyNo(), empId, wfInstanceId));
+
         log.info("报销单已创建: expenseId={}, applyNo={}, empId={}, amount={}",
                 expenseId, expense.getApplyNo(), empId, dto.getTotalAmount());
         return expenseId;
@@ -118,6 +125,33 @@ public class FinExpenseService {
         unfreezeBudget(expense.getDeptId(), expense.getTotalAmount());
 
         log.info("报销单已撤回: expenseId={}, empId={}", id, empId);
+    }
+
+    /**
+     * 重新提交报销单.
+     * <p>状态机: REJECTED/REVOKED → PENDING, 重启 workflow.
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void resubmit(Long id, Long empId) {
+        FinExpense expense = checkExpenseExists(id);
+        String cur = expense.getStatus();
+        if (!FinConstants.EXPENSE_STATUS_REJECTED.equals(cur)
+                && !FinConstants.EXPENSE_STATUS_DRAFT.equals(cur)) {
+            throw new BizException(RCode.BAD_REQUEST,
+                    "仅 DRAFT/REJECTED 状态可重新提交, 当前状态: " + cur);
+        }
+        // 重启工作流
+        String businessKey = "EXP_" + id;
+        Long wfInstanceId = wfInstanceService.start("finance_expense", businessKey, empId);
+        expense.setWfInstanceId(wfInstanceId);
+        expense.setStatus(FinConstants.EXPENSE_STATUS_PENDING);
+        mapper.updateById(expense);
+
+        // 事件
+        eventPublisher.publishEvent(new FinBusinessSubmittedEvent(
+                "EXP_", id, expense.getApplyNo(), empId, wfInstanceId));
+
+        log.info("报销单已重新提交: expenseId={}, empId={}", id, empId);
     }
 
     /**

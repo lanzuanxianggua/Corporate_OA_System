@@ -5,7 +5,9 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -52,4 +54,66 @@ public interface FinBudgetMapper extends BaseMapper<FinBudget> {
         ORDER BY b.create_time DESC
         """)
     List<Map<String, Object>> findByDeptAndYear(@Param("deptId") Long deptId, @Param("year") int year);
+
+    /**
+     * 行级锁: 按 deptId + budgetYear 取一条 ACTIVE 预算并加 X 锁.
+     * 同一事务内串行化并发冻结/解冻请求, 避免超扣.
+     */
+    @Select("""
+        SELECT *
+        FROM fin_budgets
+        WHERE del_flag = '0'
+          AND dept_id = #{deptId}
+          AND budget_year = #{year}
+          AND status = 'ACTIVE'
+        ORDER BY create_time DESC
+        LIMIT 1
+        FOR UPDATE
+        """)
+    FinBudget selectActiveForUpdate(@Param("deptId") Long deptId, @Param("year") int year);
+
+    /**
+     * 原子冻结: 累加 frozen_amount.
+     * <p>配合 selectActiveForUpdate 行级锁, 由 Service 在同一事务内调用.
+     */
+    @Update("""
+        UPDATE fin_budgets
+        SET frozen_amount = frozen_amount + #{delta},
+            update_by = 'system',
+            update_time = NOW(),
+            version = version + 1
+        WHERE id = #{id}
+          AND del_flag = '0'
+        """)
+    int atomicFreeze(@Param("id") Long id, @Param("delta") BigDecimal delta);
+
+    /**
+     * 原子解冻: 扣减 frozen_amount (不允许为负).
+     */
+    @Update("""
+        UPDATE fin_budgets
+        SET frozen_amount = GREATEST(frozen_amount - #{delta}, 0),
+            update_by = 'system',
+            update_time = NOW(),
+            version = version + 1
+        WHERE id = #{id}
+          AND del_flag = '0'
+        """)
+    int atomicUnfreeze(@Param("id") Long id, @Param("delta") BigDecimal delta);
+
+    /**
+     * 原子扣减: frozen - delta, used + delta.
+     * <p>配合 selectActiveForUpdate, 由 Service 在同一事务内调用.
+     */
+    @Update("""
+        UPDATE fin_budgets
+        SET frozen_amount = GREATEST(frozen_amount - #{delta}, 0),
+            used_amount   = used_amount + #{delta},
+            update_by = 'system',
+            update_time = NOW(),
+            version = version + 1
+        WHERE id = #{id}
+          AND del_flag = '0'
+        """)
+    int atomicDeduct(@Param("id") Long id, @Param("delta") BigDecimal delta);
 }

@@ -43,6 +43,14 @@ public class FinLoanController {
         service.approve(id);
         return R.ok();
     }
+
+    @Operation(summary = "驳回借款单 (业务层兜底)")
+    @PostMapping("/{id}/actions/reject")
+    @RequirePermission("finance:loan:approve")
+    public R<Void> reject(@PathVariable Long id) {
+        service.reject(id);
+        return R.ok();
+    }
     @Operation(summary = "借款单详情")
     @GetMapping("/{id}")
     @RequirePermission("finance:loan:view")

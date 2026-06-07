@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 /**
  * 预算 Service.
@@ -114,6 +115,106 @@ public class FinBudgetService {
         Page<FinBudget> result = mapper.selectPage(page, wrapper);
         return PageResult.of(result.getRecords().stream().map(this::toVO).toList(),
                 result.getTotal(), pageNum, pageSize);
+    }
+
+    /**
+     * 报销提交时冻结预算 (callback / Service 共用).
+     * <p>使用 {@code SELECT ... FOR UPDATE} 行级锁, 同一事务内串行化并发请求,
+     * 防超扣. 失败抛 {@link BizException} (业务层按需 catch log 跳过).
+     *
+     * @param deptId 部门 ID
+     * @param year   预算年度
+     * @param amount 冻结金额
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void freezeOnExpense(Long deptId, Integer year, BigDecimal amount) {
+        if (deptId == null || year == null || amount == null
+                || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+        FinBudget budget = mapper.selectActiveForUpdate(deptId, year);
+        if (budget == null) {
+            log.warn("未找到 ACTIVE 预算, 跳过冻结: deptId={}, year={}", deptId, year);
+            return;
+        }
+        BigDecimal used = nz(budget.getUsedAmount());
+        BigDecimal frozen = nz(budget.getFrozenAmount());
+        BigDecimal available = budget.getTotalAmount().subtract(used).subtract(frozen);
+        if (available.compareTo(amount) < 0) {
+            throw new BizException(RCode.BAD_REQUEST,
+                    "预算不足, 可用: " + available + ", 需冻结: " + amount);
+        }
+        mapper.atomicFreeze(budget.getId(), amount);
+        log.info("预算已冻结: budgetId={}, deptId={}, year={}, amount={}",
+                budget.getId(), deptId, year, amount);
+    }
+
+    /**
+     * 报销驳回/撤回时解冻预算.
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void unfreezeOnReject(Long deptId, Integer year, BigDecimal amount) {
+        if (deptId == null || year == null || amount == null
+                || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+        FinBudget budget = mapper.selectActiveForUpdate(deptId, year);
+        if (budget == null) {
+            log.warn("未找到 ACTIVE 预算, 跳过解冻: deptId={}, year={}", deptId, year);
+            return;
+        }
+        mapper.atomicUnfreeze(budget.getId(), amount);
+        log.info("预算已解冻: budgetId={}, deptId={}, year={}, amount={}",
+                budget.getId(), deptId, year, amount);
+    }
+
+    /**
+     * 报销审批通过: 冻结转已使用.
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void deductOnApprove(Long deptId, Integer year, BigDecimal amount) {
+        if (deptId == null || year == null || amount == null
+                || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+        FinBudget budget = mapper.selectActiveForUpdate(deptId, year);
+        if (budget == null) {
+            log.warn("未找到 ACTIVE 预算, 跳过扣减: deptId={}, year={}", deptId, year);
+            return;
+        }
+        mapper.atomicDeduct(budget.getId(), amount);
+        log.info("预算已扣减: budgetId={}, deptId={}, year={}, amount={}",
+                budget.getId(), deptId, year, amount);
+    }
+
+    /**
+     * 查询可用预算余额 (total - used - frozen).
+     */
+    public BigDecimal getAvailableBalance(Long deptId, Integer year) {
+        if (deptId == null || year == null) {
+            return BigDecimal.ZERO;
+        }
+        FinBudget budget = findActiveBudget(deptId, year);
+        if (budget == null) {
+            return BigDecimal.ZERO;
+        }
+        return budget.getTotalAmount()
+                .subtract(nz(budget.getUsedAmount()))
+                .subtract(nz(budget.getFrozenAmount()));
+    }
+
+    private static BigDecimal nz(BigDecimal v) {
+        return v == null ? BigDecimal.ZERO : v;
+    }
+
+    private FinBudget findActiveBudget(Long deptId, Integer year) {
+        if (deptId == null || year == null) return null;
+        LambdaQueryWrapper<FinBudget> wrapper = new LambdaQueryWrapper<FinBudget>()
+                .eq(FinBudget::getDeptId, deptId)
+                .eq(FinBudget::getBudgetYear, year)
+                .eq(FinBudget::getStatus, FinConstants.BUDGET_STATUS_ACTIVE)
+                .last("LIMIT 1");
+        return mapper.selectOne(wrapper);
     }
 
     /**
