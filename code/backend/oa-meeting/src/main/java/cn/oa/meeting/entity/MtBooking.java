@@ -13,7 +13,7 @@ import java.time.LocalTime;
 /**
  * 会议室预约.
  *
- * <p>对应表 mt_bookings.
+ * <p>对应表 mt_bookings. 字段已对齐 V972 SQL 实际列名 (book_emp_id).
  * 状态: PENDING/APPROVED/REJECTED/CANCELLED/COMPLETED
  */
 @Data
@@ -26,8 +26,8 @@ public class MtBooking extends BaseEntity {
     @TableField("room_id")
     private Long roomId;
 
-    @Schema(description = "预约人 emp_id")
-    @TableField("emp_id")
+    @Schema(description = "预约人 emp_id (DB: book_emp_id)")
+    @TableField("book_emp_id")
     private Long empId;
 
     @Schema(description = "预约日期")
@@ -57,4 +57,8 @@ public class MtBooking extends BaseEntity {
     @Schema(description = "状态: PENDING/APPROVED/REJECTED/CANCELLED/COMPLETED")
     @TableField("status")
     private String status;
+
+    @Schema(description = "流程实例 ID")
+    @TableField("wf_instance_id")
+    private Long wfInstanceId;
 }

@@ -32,6 +32,7 @@ public interface MtBookingMapper extends BaseMapper<MtBooking> {
 
     /**
      * 查询预约详情(含会议室名称和预订人姓名).
+     * 注意: DB 列是 book_emp_id (V972), 不是 emp_id.
      */
     @Select("""
         SELECT
@@ -40,7 +41,7 @@ public interface MtBookingMapper extends BaseMapper<MtBooking> {
           e.real_name AS book_emp_name
         FROM mt_bookings b
         LEFT JOIN mt_rooms r ON b.room_id = r.id AND r.del_flag = '0'
-        LEFT JOIN sys_employee e ON b.emp_id = e.id AND e.del_flag = '0'
+        LEFT JOIN sys_employee e ON b.book_emp_id = e.id AND e.del_flag = '0'
         WHERE b.id = #{id}
           AND b.del_flag = '0'
         """)

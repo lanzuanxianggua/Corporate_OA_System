@@ -41,6 +41,9 @@ public class WfInstanceNotifyListener {
     private static final String BIZ_LOAN = "LOAN_";
     private static final String BIZ_DISPATCH = "DISPATCH_";
     private static final String BIZ_SIGN_REPORT = "SIGN_REPORT_";
+    private static final String BIZ_SEAL = "SEAL_";
+    private static final String BIZ_ASSET = "ASSET_";
+    private static final String BIZ_BOOKING = "BOOKING_";
 
     private static final String TYPE_LEAVE_APPROVE = "LEAVE_APPROVE";
     private static final String TYPE_LEAVE_REJECT = "LEAVE_REJECT";
@@ -52,6 +55,12 @@ public class WfInstanceNotifyListener {
     private static final String TYPE_DISPATCH_REJECT = "DISPATCH_REJECT";
     private static final String TYPE_SIGN_REPORT_APPROVE = "SIGN_REPORT_APPROVE";
     private static final String TYPE_SIGN_REPORT_REJECT = "SIGN_REPORT_REJECT";
+    private static final String TYPE_SEAL_APPROVE = "SEAL_APPROVE";
+    private static final String TYPE_SEAL_REJECT = "SEAL_REJECT";
+    private static final String TYPE_ASSET_APPROVE = "ASSET_APPROVE";
+    private static final String TYPE_ASSET_REJECT = "ASSET_REJECT";
+    private static final String TYPE_BOOKING_APPROVE = "BOOKING_APPROVE";
+    private static final String TYPE_BOOKING_REJECT = "BOOKING_REJECT";
     private static final String TYPE_GENERAL = "GENERAL";
 
     private static final String STATUS_APPROVED = "APPROVED";
@@ -167,6 +176,15 @@ public class WfInstanceNotifyListener {
         if (businessKey.startsWith(BIZ_SIGN_REPORT)) {
             return approved ? TYPE_SIGN_REPORT_APPROVE : TYPE_SIGN_REPORT_REJECT;
         }
+        if (businessKey.startsWith(BIZ_SEAL)) {
+            return approved ? TYPE_SEAL_APPROVE : TYPE_SEAL_REJECT;
+        }
+        if (businessKey.startsWith(BIZ_ASSET)) {
+            return approved ? TYPE_ASSET_APPROVE : TYPE_ASSET_REJECT;
+        }
+        if (businessKey.startsWith(BIZ_BOOKING)) {
+            return approved ? TYPE_BOOKING_APPROVE : TYPE_BOOKING_REJECT;
+        }
         return TYPE_GENERAL;
     }
 
@@ -182,6 +200,12 @@ public class WfInstanceNotifyListener {
             case TYPE_DISPATCH_REJECT -> "您的发文被拒绝";
             case TYPE_SIGN_REPORT_APPROVE -> "您的签报已审批通过";
             case TYPE_SIGN_REPORT_REJECT -> "您的签报被拒绝";
+            case TYPE_SEAL_APPROVE -> "您的印章申请已通过";
+            case TYPE_SEAL_REJECT -> "您的印章申请被拒绝";
+            case TYPE_ASSET_APPROVE -> "您的资产领用已通过";
+            case TYPE_ASSET_REJECT -> "您的资产领用被拒绝";
+            case TYPE_BOOKING_APPROVE -> "您的会议室预约已通过";
+            case TYPE_BOOKING_REJECT -> "您的会议室预约被拒绝";
             default -> "流程通知";
         };
     }

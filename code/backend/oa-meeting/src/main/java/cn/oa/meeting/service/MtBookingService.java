@@ -1,28 +1,35 @@
 package cn.oa.meeting.service;
 
+import cn.oa.meeting.constant.MtConstants;
 import cn.oa.meeting.dto.MtBookingCreateDTO;
 import cn.oa.meeting.dto.MtBookingQueryDTO;
 import cn.oa.meeting.entity.MtBooking;
+import cn.oa.meeting.event.MtBusinessSubmittedEvent;
 import cn.oa.meeting.mapper.MtBookingMapper;
 import cn.oa.meeting.vo.MtBookingVO;
 import cn.oa.platform.common.api.PageResult;
 import cn.oa.platform.common.api.RCode;
 import cn.oa.platform.common.exception.BizException;
+import cn.oa.workflow.service.WfInstanceService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
- * 会议室预约业务 Service.
+ * 会议室预约 Service.
+ *
+ * <p>业务主路径: 申请人创建 PENDING → 启动工作流 → 审批通过 → 完成.
  */
 @Slf4j
 @Service
@@ -31,21 +38,22 @@ public class MtBookingService {
 
     private final MtBookingMapper mapper;
     private final ObjectMapper objectMapper;
+    private final WfInstanceService wfInstanceService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
-     * 创建预约.
-     * 1) 校验时间合法性
-     * 2) 校验时间不冲突
-     * 3) 创建预约 (PENDING)
+     * 创建预约 (PENDING + 启动工作流).
      */
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Long create(MtBookingCreateDTO dto, Long empId) {
-        // 校验时间
         if (dto.getEndTime().isBefore(dto.getStartTime()) || dto.getEndTime().equals(dto.getStartTime())) {
             throw new BizException(RCode.BAD_REQUEST, "结束时间必须晚于开始时间");
         }
+        if (dto.getStartTime().toNanoOfDay() < LocalTime.of(7, 0).toNanoOfDay()
+                || dto.getEndTime().toNanoOfDay() > LocalTime.of(22, 0).toNanoOfDay()) {
+            throw new BizException(RCode.BAD_REQUEST, "预约时段需在 07:00-22:00 之间");
+        }
 
-        // 校验冲突
         List<MtBooking> conflicts = mapper.findByRoomAndDate(dto.getRoomId(), dto.getBookDate());
         for (MtBooking existing : conflicts) {
             if (isTimeOverlap(dto.getStartTime(), dto.getEndTime(),
@@ -54,7 +62,6 @@ public class MtBookingService {
             }
         }
 
-        // 创建预约
         MtBooking booking = new MtBooking();
         booking.setRoomId(dto.getRoomId());
         booking.setEmpId(empId);
@@ -70,32 +77,43 @@ public class MtBookingService {
                 throw new BizException(RCode.BAD_REQUEST, "参会人数据格式错误");
             }
         }
-        booking.setStatus("PENDING");
-        booking.setCreateBy(String.valueOf(empId));
+        booking.setStatus(MtConstants.BOOKING_STATUS_PENDING);
         mapper.insert(booking);
 
-        log.info("会议室预约已创建: bookingId={}, roomId={}, date={}, time={}-{}",
+        // 启动工作流
+        String businessKey = MtConstants.BIZ_KEY_PREFIX_BOOKING + booking.getId();
+        Long wfInstanceId = wfInstanceService.start(MtConstants.WF_DEF_BOOKING, businessKey, empId);
+        booking.setWfInstanceId(wfInstanceId);
+        mapper.updateById(booking);
+
+        // 事件
+        eventPublisher.publishEvent(new MtBusinessSubmittedEvent(
+                MtConstants.BIZ_KEY_PREFIX_BOOKING, booking.getId(),
+                buildBookNo(booking.getId()), empId, wfInstanceId));
+
+        log.info("会议室预约已创建并提交: bookingId={}, roomId={}, date={}, time={}-{}",
                 booking.getId(), dto.getRoomId(), dto.getBookDate(), dto.getStartTime(), dto.getEndTime());
         return booking.getId();
     }
 
     /**
      * 取消预约.
-     * 仅 PENDING/APPROVED 状态可取消.
      */
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void cancel(Long id, Long empId) {
         MtBooking booking = mapper.selectById(id);
         if (booking == null) {
             throw new BizException(RCode.NOT_FOUND, "预约不存在: " + id);
         }
-
-        String status = booking.getStatus();
-        if (!"PENDING".equals(status) && !"APPROVED".equals(status)) {
-            throw new BizException(RCode.BAD_REQUEST, "仅待审批或已通过的预约可取消, 当前状态: " + status);
+        if (!Objects.equals(booking.getEmpId(), empId)) {
+            throw new BizException(RCode.FORBIDDEN, "只能取消自己的预约");
         }
-
-        booking.setStatus("CANCELLED");
+        String status = booking.getStatus();
+        if (!MtConstants.BOOKING_STATUS_PENDING.equals(status)
+                && !MtConstants.BOOKING_STATUS_APPROVED.equals(status)) {
+            throw new BizException(RCode.BAD_REQUEST, "仅 PENDING/APPROVED 状态可取消, 当前状态: " + status);
+        }
+        booking.setStatus(MtConstants.BOOKING_STATUS_CANCELLED);
         mapper.updateById(booking);
         log.info("会议室预约已取消: bookingId={}, empId={}", id, empId);
     }
@@ -125,21 +143,18 @@ public class MtBookingService {
 
         Page<MtBooking> result = mapper.selectPage(page, wrapper);
         return PageResult.of(
-                result.getRecords().stream().map(this::toVO).toList(),
+                result.getRecords().stream().map(this::toVOEntity).toList(),
                 result.getTotal(),
                 query.getPageNum(),
                 query.getPageSize()
         );
     }
 
-    /**
-     * 判断两个时间段是否重叠.
-     */
     private boolean isTimeOverlap(LocalTime start1, LocalTime end1, LocalTime start2, LocalTime end2) {
         return start1.isBefore(end2) && start2.isBefore(end1);
     }
 
-    private MtBookingVO toVO(MtBooking booking) {
+    private MtBookingVO toVOEntity(MtBooking booking) {
         MtBookingVO vo = new MtBookingVO();
         vo.setId(booking.getId());
         vo.setRoomId(booking.getRoomId());
@@ -159,7 +174,7 @@ public class MtBookingService {
         MtBookingVO vo = new MtBookingVO();
         vo.setId(toLong(map.get("id")));
         vo.setRoomId(toLong(map.get("room_id")));
-        vo.setEmpId(toLong(map.get("emp_id")));
+        vo.setEmpId(toLong(map.get("book_emp_id")));
         vo.setRoomName(toString(map.get("room_name")));
         vo.setBookEmpName(toString(map.get("book_emp_name")));
         vo.setBookDate(toLocalDate(map.get("book_date")));
@@ -182,14 +197,23 @@ public class MtBookingService {
     }
 
     private java.time.LocalDate toLocalDate(Object v) {
-        return v instanceof java.time.LocalDate ? (java.time.LocalDate) v : null;
+        return v instanceof java.sql.Date ? ((java.sql.Date) v).toLocalDate()
+                : v instanceof java.time.LocalDate ? (java.time.LocalDate) v : null;
     }
 
     private java.time.LocalTime toLocalTime(Object v) {
-        return v instanceof java.time.LocalTime ? (java.time.LocalTime) v : null;
+        return v instanceof java.sql.Time ? ((java.sql.Time) v).toLocalTime()
+                : v instanceof java.time.LocalTime ? (java.time.LocalTime) v : null;
     }
 
     private java.time.LocalDateTime toLocalDateTime(Object v) {
-        return v instanceof java.time.LocalDateTime ? (java.time.LocalDateTime) v : null;
+        if (v == null) return null;
+        if (v instanceof java.time.LocalDateTime ldt) return ldt;
+        if (v instanceof java.sql.Timestamp ts) return ts.toLocalDateTime();
+        try { return java.time.LocalDateTime.parse(v.toString()); } catch (Exception e) { return null; }
+    }
+
+    private String buildBookNo(Long id) {
+        return "MT" + System.currentTimeMillis() + "_" + id;
     }
 }
