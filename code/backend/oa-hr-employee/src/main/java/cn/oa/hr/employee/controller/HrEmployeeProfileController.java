@@ -60,7 +60,7 @@ public class HrEmployeeProfileController {
 
     @Operation(summary = "员工档案详情")
     @GetMapping("/{id}")
-    @RequirePermission("hr-employee:profile:list")
+    @RequirePermission("hr-employee:profile:view")
     public R<Map<String, Object>> get(@PathVariable Long id) {
         return R.ok(service.getDetail(id));
     }
