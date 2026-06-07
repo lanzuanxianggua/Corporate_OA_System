@@ -1,6 +1,7 @@
 package cn.oa.admin.controller;
 
 import cn.oa.admin.dto.AdmSealCreateDTO;
+import cn.oa.admin.dto.AdmSealUpdateDTO;
 import cn.oa.admin.service.AdmSealService;
 import cn.oa.platform.common.api.R;
 import cn.oa.platform.security.annotation.RequirePermission;
@@ -35,7 +36,7 @@ public class AdmSealController {
     @Operation(summary = "修改印章")
     @PutMapping("/{id}")
     @RequirePermission("admin:seal:update")
-    public R<Void> update(@PathVariable Long id, @RequestBody @Valid AdmSealCreateDTO dto) {
+    public R<Void> update(@PathVariable Long id, @RequestBody @Valid AdmSealUpdateDTO dto) {
         sealService.update(id, dto);
         return R.ok();
     }

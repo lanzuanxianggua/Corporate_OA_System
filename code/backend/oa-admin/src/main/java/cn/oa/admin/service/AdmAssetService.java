@@ -1,6 +1,7 @@
 package cn.oa.admin.service;
 
 import cn.oa.admin.dto.AdmAssetCreateDTO;
+import cn.oa.admin.dto.AdmAssetUpdateDTO;
 import cn.oa.admin.entity.AdmAsset;
 import cn.oa.admin.mapper.AdmAssetMapper;
 import cn.oa.admin.vo.AdmAssetVO;
@@ -65,7 +66,7 @@ public class AdmAssetService {
      * 修改资产.
      */
     @Transactional(rollbackFor = Exception.class)
-    public void update(Long id, AdmAssetCreateDTO dto) {
+    public void update(Long id, AdmAssetUpdateDTO dto) {
         AdmAsset exist = assetMapper.selectById(id);
         if (exist == null) {
             throw new BizException(RCode.NOT_FOUND, "资产不存在");

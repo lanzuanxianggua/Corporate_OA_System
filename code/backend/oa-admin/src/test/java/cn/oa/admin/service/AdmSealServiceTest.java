@@ -1,6 +1,7 @@
 package cn.oa.admin.service;
 
 import cn.oa.admin.dto.AdmSealCreateDTO;
+import cn.oa.admin.dto.AdmSealUpdateDTO;
 import cn.oa.admin.entity.AdmSeal;
 import cn.oa.admin.mapper.AdmSealMapper;
 import cn.oa.admin.vo.AdmSealVO;
@@ -100,7 +101,7 @@ class AdmSealServiceTest {
             exist.setId(1L);
             exist.setSealName("旧公章");
 
-            AdmSealCreateDTO dto = new AdmSealCreateDTO();
+            AdmSealUpdateDTO dto = new AdmSealUpdateDTO();
             dto.setSealName("新公章");
             dto.setSealType("CONTRACT");
             dto.setCustodian(2L);
@@ -132,7 +133,7 @@ class AdmSealServiceTest {
             when(sealMapper.selectById(999L)).thenReturn(null);
 
             // when & then
-            assertThatThrownBy(() -> service.update(999L, new AdmSealCreateDTO()))
+            assertThatThrownBy(() -> service.update(999L, new AdmSealUpdateDTO()))
                     .isInstanceOf(BizException.class)
                     .hasMessage("印章不存在")
                     .satisfies(e -> assertThat(((BizException) e).getCode()).isEqualTo(RCode.NOT_FOUND.getCode()));

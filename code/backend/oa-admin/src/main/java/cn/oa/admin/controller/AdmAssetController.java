@@ -1,6 +1,7 @@
 package cn.oa.admin.controller;
 
 import cn.oa.admin.dto.AdmAssetCreateDTO;
+import cn.oa.admin.dto.AdmAssetUpdateDTO;
 import cn.oa.admin.service.AdmAssetService;
 import cn.oa.platform.common.api.R;
 import cn.oa.platform.security.annotation.RequirePermission;
@@ -35,7 +36,7 @@ public class AdmAssetController {
     @Operation(summary = "修改资产")
     @PutMapping("/{id}")
     @RequirePermission("admin:asset:update")
-    public R<Void> update(@PathVariable Long id, @RequestBody @Valid AdmAssetCreateDTO dto) {
+    public R<Void> update(@PathVariable Long id, @RequestBody @Valid AdmAssetUpdateDTO dto) {
         assetService.update(id, dto);
         return R.ok();
     }

@@ -1,6 +1,7 @@
 package cn.oa.admin.service;
 
 import cn.oa.admin.dto.AdmSealCreateDTO;
+import cn.oa.admin.dto.AdmSealUpdateDTO;
 import cn.oa.admin.entity.AdmSeal;
 import cn.oa.admin.mapper.AdmSealMapper;
 import cn.oa.admin.vo.AdmSealVO;
@@ -54,7 +55,7 @@ public class AdmSealService {
      * 修改印章.
      */
     @Transactional(rollbackFor = Exception.class)
-    public void update(Long id, AdmSealCreateDTO dto) {
+    public void update(Long id, AdmSealUpdateDTO dto) {
         AdmSeal exist = sealMapper.selectById(id);
         if (exist == null) {
             throw new BizException(RCode.NOT_FOUND, "印章不存在");

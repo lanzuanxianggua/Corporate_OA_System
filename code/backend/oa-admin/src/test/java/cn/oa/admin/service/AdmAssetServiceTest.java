@@ -1,6 +1,7 @@
 package cn.oa.admin.service;
 
 import cn.oa.admin.dto.AdmAssetCreateDTO;
+import cn.oa.admin.dto.AdmAssetUpdateDTO;
 import cn.oa.admin.entity.AdmAsset;
 import cn.oa.admin.mapper.AdmAssetMapper;
 import cn.oa.admin.vo.AdmAssetVO;
@@ -139,7 +140,7 @@ class AdmAssetServiceTest {
             exist.setAssetCode("AST202606010001");
             exist.setAssetName("旧显示器");
 
-            AdmAssetCreateDTO dto = new AdmAssetCreateDTO();
+            AdmAssetUpdateDTO dto = new AdmAssetUpdateDTO();
             dto.setAssetName("新显示器");
             dto.setCategory("IT");
             dto.setBrand("戴尔");
@@ -179,7 +180,7 @@ class AdmAssetServiceTest {
             when(assetMapper.selectById(999L)).thenReturn(null);
 
             // when & then
-            assertThatThrownBy(() -> service.update(999L, new AdmAssetCreateDTO()))
+            assertThatThrownBy(() -> service.update(999L, new AdmAssetUpdateDTO()))
                     .isInstanceOf(BizException.class)
                     .hasMessage("资产不存在")
                     .satisfies(e -> assertThat(((BizException) e).getCode()).isEqualTo(RCode.NOT_FOUND.getCode()));
