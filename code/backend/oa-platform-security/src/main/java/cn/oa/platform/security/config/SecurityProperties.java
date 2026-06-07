@@ -10,11 +10,32 @@ public class SecurityProperties {
 
     private Jwt jwt = new Jwt();
     private RateLimit rateLimit = new RateLimit();
+    private Bcrypt bcrypt = new Bcrypt();
 
     public Jwt getJwt() { return jwt; }
     public void setJwt(Jwt jwt) { this.jwt = jwt; }
     public RateLimit getRateLimit() { return rateLimit; }
     public void setRateLimit(RateLimit rateLimit) { this.rateLimit = rateLimit; }
+    public Bcrypt getBcrypt() { return bcrypt; }
+    public void setBcrypt(Bcrypt bcrypt) { this.bcrypt = bcrypt; }
+
+    /**
+     * BCrypt 密码编码器配置.
+     */
+    public static class Bcrypt {
+        /** BCrypt cost 因子, 范围 [4, 31], 默认 10. */
+        private int strength = 10;
+        /**
+         * 登录路径上检测到明文旧密码时是否自动升级为 BCrypt 哈希.
+         * <p>默认开启, 保证存量 V910 明文 seed 用户首次登录后自动迁移.
+         */
+        private boolean enableLazyRehash = true;
+
+        public int getStrength() { return strength; }
+        public void setStrength(int strength) { this.strength = strength; }
+        public boolean isEnableLazyRehash() { return enableLazyRehash; }
+        public void setEnableLazyRehash(boolean enableLazyRehash) { this.enableLazyRehash = enableLazyRehash; }
+    }
 
     public static class Jwt {
         private String secret = "oa-default-secret-key-please-change-in-production-32+chars";

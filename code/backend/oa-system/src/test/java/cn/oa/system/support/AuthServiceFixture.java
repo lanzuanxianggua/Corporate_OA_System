@@ -2,6 +2,8 @@ package cn.oa.system.support;
 
 import cn.oa.platform.security.config.SecurityProperties;
 import cn.oa.platform.security.jwt.JwtUtil;
+import cn.oa.platform.security.password.BCryptPasswordEncoder;
+import cn.oa.platform.security.password.PasswordEncoder;
 import cn.oa.system.entity.SysDept;
 import cn.oa.system.entity.SysEmp;
 import cn.oa.system.entity.SysPermission;
@@ -35,7 +37,22 @@ public final class AuthServiceFixture {
     public static SecurityProperties securityProperties() { return mock(SecurityProperties.class); }
 
     /**
-     * 构造带全部依赖的 AuthService (主构造器).
+     * 创建测试用的 BCrypt 密码编码器 (cost=4 加速, 生产环境 cost=10).
+     */
+    public static PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder(4);
+    }
+
+    /**
+     * 一行替: 把员工密码字段填为指定明文的 BCrypt 哈希.
+     */
+    public static SysEmp withBcryptHash(SysEmp emp, String rawPassword) {
+        emp.setPassword(passwordEncoder().encode(rawPassword));
+        return emp;
+    }
+
+    /**
+     * 构造带全部依赖的 AuthService (主构造器, 9 参含 PasswordEncoder).
      */
     public static AuthService newAuthService(SysEmpMapper empMapper,
                                              SysEmpRoleMapper empRoleMapper,
@@ -44,9 +61,10 @@ public final class AuthServiceFixture {
                                              SysPermissionMapper permissionMapper,
                                              SysDeptMapper deptMapper,
                                              JwtUtil jwtUtil,
-                                             SecurityProperties securityProperties) {
+                                             SecurityProperties securityProperties,
+                                             PasswordEncoder passwordEncoder) {
         return new AuthService(empMapper, empRoleMapper, roleMapper, rolePermMapper,
-                permissionMapper, deptMapper, jwtUtil, securityProperties);
+                permissionMapper, deptMapper, jwtUtil, securityProperties, passwordEncoder);
     }
 
     /**

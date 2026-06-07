@@ -5,6 +5,8 @@ import cn.oa.platform.common.context.UserContext;
 import cn.oa.platform.common.exception.BizException;
 import cn.oa.platform.security.config.SecurityProperties;
 import cn.oa.platform.security.jwt.JwtUtil;
+import cn.oa.platform.security.password.BCryptPasswordEncoder;
+import cn.oa.platform.security.password.PasswordEncoder;
 import cn.oa.system.dto.ChangePasswordReq;
 import cn.oa.system.dto.LoginReq;
 import cn.oa.system.entity.SysDept;
@@ -58,6 +60,7 @@ public class AuthService {
     private final SysDeptMapper deptMapper;
     private final JwtUtil jwtUtil;
     private final SecurityProperties securityProperties;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * 主构造器 (Spring 注入用).
@@ -70,7 +73,8 @@ public class AuthService {
                        SysPermissionMapper permissionMapper,
                        SysDeptMapper deptMapper,
                        JwtUtil jwtUtil,
-                       SecurityProperties securityProperties) {
+                       SecurityProperties securityProperties,
+                       PasswordEncoder passwordEncoder) {
         this.empMapper = empMapper;
         this.empRoleMapper = empRoleMapper;
         this.roleMapper = roleMapper;
@@ -79,18 +83,21 @@ public class AuthService {
         this.deptMapper = deptMapper;
         this.jwtUtil = jwtUtil;
         this.securityProperties = securityProperties;
+        this.passwordEncoder = passwordEncoder;
     }
 
     /**
-     * 兼容旧测试桩的次构造器 (4 参), 仅注入旧字段.
-     * 新代码请用主构造器.
+     * 兼容旧测试桩的次构造器 (4 参), 仅注入旧字段, passwordEncoder 传 null.
+     * <p>仅供 {@code AuthServiceTest} 4 参老用例使用; 新代码请用主构造器.
+     * <p>{@code passwordEncoder=null} 时, {@link #matchesPassword(String, String)} 走纯明文相等分支,
+     * 与 v2 Phase 1 行为完全一致.
      */
     public AuthService(SysEmpMapper empMapper,
                        SysEmpRoleMapper empRoleMapper,
                        SysRoleMapper roleMapper,
                        SysRolePermissionMapper rolePermMapper) {
         this(empMapper, empRoleMapper, roleMapper, rolePermMapper,
-                null, null, null, null);
+                null, null, null, null, null);
     }
 
     // ===================== 兼容旧接口 (保留 v1 行为, 内部已切换 selectByUsername) =====================
@@ -159,7 +166,7 @@ public class AuthService {
             log.warn("登录失败 - 账号非 ACTIVE: {} status={}", req.getUsername(), emp.getStatus());
             throw AuthDomainException.accountDisabled();
         }
-        if (!matchesPassword(req.getPassword(), emp.getPassword())) {
+        if (!matchesPassword(req.getPassword(), emp.getPassword(), emp.getId(), true)) {
             log.warn("登录失败 - 密码错误: {}", req.getUsername());
             throw AuthDomainException.passwordInvalid();
         }
@@ -274,14 +281,20 @@ public class AuthService {
         if (emp == null) {
             throw AuthDomainException.userNotFound();
         }
-        if (!matchesPassword(req.getOldPassword(), emp.getPassword())) {
+        if (!matchesPassword(req.getOldPassword(), emp.getPassword(), emp.getId(), true)) {
             throw AuthDomainException.passwordInvalid();
         }
         if (!req.getNewPassword().equals(req.getConfirmPassword())) {
             throw new BizException(RCode.BAD_REQUEST, "两次输入的密码不一致");
         }
-        // v2 Phase 1: 明文存储 (后续切换 BCrypt)
-        empMapper.updatePassword(emp.getId(), req.getNewPassword());
+        if (req.getNewPassword() == null || req.getNewPassword().length() < 8) {
+            throw new BizException(RCode.PASSWORD_INVALID, "新密码长度不能少于 8 位");
+        }
+        // v2 Phase 2: BCrypt 哈希写入 (PasswordEncoder 由 SecurityAutoConfiguration 注入)
+        String encoded = passwordEncoder != null
+                ? passwordEncoder.encode(req.getNewPassword())
+                : req.getNewPassword();
+        empMapper.updatePassword(emp.getId(), encoded);
         log.info("密码已修改: empId={}", emp.getId());
     }
 
@@ -391,9 +404,60 @@ public class AuthService {
     }
 
     /**
-     * v2 Phase 1: 明文密码比较. 后续 phase 切换 BCrypt.
+     * v2 Phase 2: 密码双轨校验.
+     *
+     * <p>判定规则 (按以下顺序):
+     * <ol>
+     *   <li>{@code hashed} 为空 → 不匹配 (false)</li>
+     *   <li>已为 BCrypt 哈希 ({@code $2a$}/{@code $2b$}/{@code $2y$} 开头) → 走 {@link PasswordEncoder#matches}</li>
+     *   <li>旧明文 → {@code hashed.equals(raw)} 判定; 若命中 + {@code rehashOnSuccess=true}
+     *       + {@code enableLazyRehash=true} + {@code passwordEncoder != null} → 同步回写 BCrypt 哈希
+     *       (保持登录响应不阻塞, 但写库会稍微拖慢, 与 Lazy Rehash 语义一致)</li>
+     *   <li>{@code passwordEncoder == null} (兼容 4 参构造) → 仅明文相等, 行为与 v2 Phase 1 一致</li>
+     * </ol>
+     */
+    private boolean matchesPassword(String raw, String hashed, Long empId, boolean rehashOnSuccess) {
+        if (hashed == null) {
+            return false;
+        }
+        // 1) BCrypt 哈希
+        if (BCryptPasswordEncoder.looksHashed(hashed)) {
+            if (passwordEncoder == null) {
+                return false;
+            }
+            try {
+                return passwordEncoder.matches(raw, hashed);
+            } catch (RuntimeException ex) {
+                log.warn("BCrypt matches 异常, 视作不匹配: {}", ex.getMessage());
+                return false;
+            }
+        }
+        // 2) 旧明文
+        boolean plainMatch = hashed.equals(raw);
+        if (!plainMatch) {
+            return false;
+        }
+        // 3) 明文命中: 触发 Lazy Rehash
+        if (rehashOnSuccess && empId != null && passwordEncoder != null
+                && securityProperties != null
+                && securityProperties.getBcrypt() != null
+                && securityProperties.getBcrypt().isEnableLazyRehash()) {
+            try {
+                String encoded = passwordEncoder.encode(raw);
+                empMapper.updatePassword(empId, encoded);
+                log.info("Lazy Rehash: 员工 {} 明文密码已升级为 BCrypt 哈希", empId);
+            } catch (RuntimeException ex) {
+                // 异步回写失败不阻塞登录, 仅记录日志
+                log.warn("Lazy Rehash 回写失败 empId={}: {}", empId, ex.getMessage());
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 兼容旧签名: 不触发 Lazy Rehash (供测试或仅读场景).
      */
     private boolean matchesPassword(String raw, String hashed) {
-        return hashed != null && hashed.equals(raw);
+        return matchesPassword(raw, hashed, null, false);
     }
 }

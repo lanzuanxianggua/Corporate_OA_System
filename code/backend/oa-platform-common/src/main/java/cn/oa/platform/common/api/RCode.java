@@ -19,6 +19,23 @@ public enum RCode implements ResultCode {
     INVALID_TOKEN(10003, "Token 无效"),
     SIGN_INVALID(10004, "签名错误"),
 
+    // ===== 10005-10009 预留 (Phase 2 CaptchaService / 账号安全使用) =====
+
+    /** 密码格式不合法 (改密时新密码强度不足等). */
+    PASSWORD_INVALID(10010, "密码格式不合法"),
+    /** 新密码不可与旧密码相同. */
+    PASSWORD_REUSED(10011, "新密码不可与旧密码相同"),
+    /** 图形验证码错误 (Phase 2 CaptchaService). */
+    CAPTCHA_INVALID(10012, "验证码错误"),
+    /** 图形验证码已过期 (Phase 2 CaptchaService). */
+    CAPTCHA_EXPIRED(10013, "验证码已过期, 请刷新"),
+    /** 账号已锁定. */
+    ACCOUNT_LOCKED(10014, "账号已锁定, 请稍后再试"),
+    /** 登录失败次数过多, 触发风控. */
+    TOO_MANY_ATTEMPTS(10015, "尝试次数过多, 请稍后再试"),
+    /** Token 已加入黑名单 (登出 / 主动失效). */
+    TOKEN_BLACKLISTED(10016, "Token 已失效"),
+
     FORBIDDEN(20001, "无权限"),
     DATA_PERMISSION_DENIED(20002, "数据权限不足"),
 

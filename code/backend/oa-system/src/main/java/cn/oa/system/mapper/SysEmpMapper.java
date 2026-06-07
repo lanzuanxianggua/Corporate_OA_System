@@ -8,6 +8,7 @@ import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Mapper
 public interface SysEmpMapper extends BaseMapper<SysEmp> {
@@ -19,6 +20,19 @@ public interface SysEmpMapper extends BaseMapper<SysEmp> {
             "WHERE username = #{username} AND del_flag = '0' " +
             "LIMIT 1")
     SysEmp selectByUsername(@Param("username") String username);
+
+    /**
+     * 按用户名集合批量查找员工 (用于启动时种子密码批量升级).
+     */
+    @Select("<script>" +
+            "SELECT * FROM sys_employee " +
+            "WHERE del_flag = '0' " +
+            "AND username IN " +
+            "<foreach collection='usernames' item='u' open='(' separator=',' close=')'>" +
+            "  #{u}" +
+            "</foreach>" +
+            "</script>")
+    List<SysEmp> selectByUsernames(@Param("usernames") List<String> usernames);
 
     /**
      * 更新最后登录时间与 IP (带乐观锁).

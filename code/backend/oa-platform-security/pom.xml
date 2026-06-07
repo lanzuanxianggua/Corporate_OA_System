@@ -68,6 +68,15 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
         </dependency>
+        <!--
+            仅引 spring-security-crypto 子包 (BCrypt 算法),
+            不引 spring-security-core / web 整体, 避免与自研 JWT + Interceptor 冲突.
+            版本由 spring-boot-dependencies 3.4.0 BOM 统一管理.
+        -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-crypto</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

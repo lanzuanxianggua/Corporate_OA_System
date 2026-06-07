@@ -3,6 +3,8 @@ package cn.oa.platform.security.config;
 import cn.oa.platform.security.filter.JwtAuthenticationFilter;
 import cn.oa.platform.security.interceptor.PermissionInterceptor;
 import cn.oa.platform.security.jwt.JwtUtil;
+import cn.oa.platform.security.password.BCryptPasswordEncoder;
+import cn.oa.platform.security.password.PasswordEncoder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -39,6 +41,18 @@ public class SecurityAutoConfiguration implements WebMvcConfigurer {
     @Bean
     public PermissionInterceptor permissionInterceptor() {
         return new PermissionInterceptor(objectMapper);
+    }
+
+    /**
+     * 注册平台 BCrypt 密码编码器.
+     *
+     * <p>强度来自 {@code oa.security.bcrypt.strength} (默认 10).
+     * 业务模块 (oa-system) 注入 {@link PasswordEncoder} 接口即可使用,
+     * 避免直接依赖 spring-security-crypto.
+     */
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder(props.getBcrypt().getStrength());
     }
 
     @Override

@@ -5,6 +5,8 @@ import cn.oa.platform.common.context.UserContext;
 import cn.oa.platform.common.exception.BizException;
 import cn.oa.platform.security.config.SecurityProperties;
 import cn.oa.platform.security.jwt.JwtUtil;
+import cn.oa.platform.security.password.BCryptPasswordEncoder;
+import cn.oa.platform.security.password.PasswordEncoder;
 import cn.oa.system.dto.ChangePasswordReq;
 import cn.oa.system.dto.LoginReq;
 import cn.oa.system.entity.SysDept;
@@ -27,6 +29,7 @@ import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -42,20 +45,20 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * AuthService 单测 (v2 Phase 1).
+ * AuthService 单测 (v2 Phase 2).
  *
- * <p>覆盖 LoginReq/RefreshReq/ChangePasswordReq 三个 DTO + AuthService 8 个公开方法的关键路径:
- * login / refreshToken / logout / getCurrentUser / getCurrentUserMenus / changePassword.
+ * <p>密码相关用例已切换到 BCrypt: 员工 password 字段为 BCrypt 哈希,
+ * 登录/改密路径走 {@link PasswordEncoder#matches} / {@link PasswordEncoder#encode}.
  *
- * <p>设计范围说明: 当前 AuthService.login 不含 captcha 校验 (Phase 2 才接),
- * 因此 captchaInvalid / captchaExpired 用例不适用; 账号锁定 (5 次失败 LOCKED)
- * 也未在 Phase 1 实现, 用例跳过. 见 design §6.
+ * <p>Lazy Rehash 行为见 {@link BcryptScenarios}.
  */
 class AuthServiceImplTest {
 
@@ -67,6 +70,7 @@ class AuthServiceImplTest {
     private SysDeptMapper deptMapper;
     private JwtUtil jwtUtil;
     private SecurityProperties securityProperties;
+    private PasswordEncoder passwordEncoder;
     private AuthService authService;
 
     @BeforeEach
@@ -79,14 +83,22 @@ class AuthServiceImplTest {
         deptMapper = mock(SysDeptMapper.class);
         jwtUtil = mock(JwtUtil.class);
         securityProperties = mock(SecurityProperties.class);
+        // 测试用真实 BCrypt 编码器, cost=4 加速; 生产 strength=10
+        passwordEncoder = new BCryptPasswordEncoder(4);
         authService = new AuthService(empMapper, empRoleMapper, roleMapper, rolePermMapper,
-                permissionMapper, deptMapper, jwtUtil, securityProperties);
+                permissionMapper, deptMapper, jwtUtil, securityProperties, passwordEncoder);
 
         // default: jwt TTL = 3600
         SecurityProperties.Jwt jwtCfg = new SecurityProperties.Jwt();
         jwtCfg.setAccessTtlSeconds(3600L);
         jwtCfg.setRefreshTtlSeconds(604800L);
         when(securityProperties.getJwt()).thenReturn(jwtCfg);
+
+        // default: Bcrypt (Lazy Rehash 默认开)
+        SecurityProperties.Bcrypt bcryptCfg = new SecurityProperties.Bcrypt();
+        bcryptCfg.setStrength(4);
+        bcryptCfg.setEnableLazyRehash(true);
+        lenient().when(securityProperties.getBcrypt()).thenReturn(bcryptCfg);
     }
 
     @AfterEach
@@ -97,9 +109,9 @@ class AuthServiceImplTest {
     // ===================== login =====================
 
     @Test
-    @DisplayName("login 成功: 返回 LoginResp 含 token + userInfo (deptName/dataScope 完整)")
+    @DisplayName("login 成功: 返回 LoginResp 含 token + userInfo (deptName/dataScope 完整), 触发 Lazy Rehash")
     void login_success() {
-        // arrange
+        // arrange — 库中存的是明文 'admin123' (V910 状态), 登录成功后应被升级
         SysEmp emp = activeEmp(1L, "admin");
         emp.setPassword("admin123");
         when(empMapper.selectByUsername("admin")).thenReturn(emp);
@@ -112,6 +124,7 @@ class AuthServiceImplTest {
                 .thenReturn("access-token-xxx");
         when(jwtUtil.generateRefreshToken(1L, "admin")).thenReturn("refresh-token-xxx");
         when(deptMapper.selectById(10L)).thenReturn(dept(10L, "技术部"));
+        when(empMapper.updatePassword(eq(1L), anyString())).thenReturn(1);
 
         LoginReq req = new LoginReq();
         req.setUsername("admin");
@@ -146,6 +159,11 @@ class AuthServiceImplTest {
         verify(empMapper).updateLastLogin(idCap.capture(), tsCap.capture(), ipCap.capture(), verCap.capture());
         assertThat(idCap.getValue()).isEqualTo(1L);
         assertThat(ipCap.getValue()).isEqualTo("127.0.0.1");
+
+        // Lazy Rehash: updatePassword 应被调用一次, 参数是 BCrypt 哈希
+        ArgumentCaptor<String> hashCap = ArgumentCaptor.forClass(String.class);
+        verify(empMapper).updatePassword(eq(1L), hashCap.capture());
+        assertThat(hashCap.getValue()).startsWith("$2a$04$");
     }
 
     @Test
@@ -167,6 +185,7 @@ class AuthServiceImplTest {
         verify(roleMapper, never()).selectByEmpId(anyLong());
         verify(jwtUtil, never()).generateAccessToken(anyLong(), anyString(), anyList(), anyList());
         verify(empMapper, never()).updateLastLogin(anyLong(), any(), anyString(), any());
+        verify(empMapper, never()).updatePassword(anyLong(), anyString());
     }
 
     @Test
@@ -206,9 +225,6 @@ class AuthServiceImplTest {
     @Test
     @DisplayName("login 账号 LOCKED 状态: 当前实现未单独区分 LOCKED, 走 !ACTIVE 分支抛 accountDisabled")
     void login_accountLocked() {
-        // 当前实现仅检查 !ACTIVE, LOCKED 也走 accountDisabled 分支.
-        // 未来 phase 2 会在 V9xx 增加 failed_attempts / lock_until 字段后, 此用例需重写为期望
-        // AuthDomainException.accountLocked() 的 "账号已锁定" 消息. 见 design §7.4.
         SysEmp emp = inactiveEmp(1L, "admin", "LOCKED");
         when(empMapper.selectByUsername("admin")).thenReturn(emp);
 
@@ -234,6 +250,7 @@ class AuthServiceImplTest {
                 .thenReturn("access-empty-roles");
         when(jwtUtil.generateRefreshToken(1L, "loner")).thenReturn("refresh-empty-roles");
         when(deptMapper.selectById(10L)).thenReturn(dept(10L, "技术部"));
+        when(empMapper.updatePassword(eq(1L), anyString())).thenReturn(1);
 
         LoginReq req = new LoginReq();
         req.setUsername("loner");
@@ -508,7 +525,7 @@ class AuthServiceImplTest {
         UserContext.set(new UserContext.UserInfo(1L, "admin", null, null, null,
                 null, List.of(), List.of()));
         SysEmp emp = activeEmp(1L, "admin");
-        emp.setPassword("old12345");
+        emp.setPassword(passwordEncoder.encode("old12345"));
         when(empMapper.selectById(1L)).thenReturn(emp);
 
         ChangePasswordReq req = new ChangePasswordReq();
@@ -529,7 +546,7 @@ class AuthServiceImplTest {
         UserContext.set(new UserContext.UserInfo(1L, "admin", null, null, null,
                 null, List.of(), List.of()));
         SysEmp emp = activeEmp(1L, "admin");
-        emp.setPassword("old12345");
+        emp.setPassword(passwordEncoder.encode("old12345"));
         when(empMapper.selectById(1L)).thenReturn(emp);
 
         ChangePasswordReq req = new ChangePasswordReq();
@@ -545,14 +562,35 @@ class AuthServiceImplTest {
     }
 
     @Test
-    @DisplayName("changePassword: 成功路径 - updatePassword 被调用, 新密码传入")
+    @DisplayName("changePassword: 新密码长度 < 8 抛 PASSWORD_INVALID (RCode 10010)")
+    void changePassword_tooShort() {
+        UserContext.set(new UserContext.UserInfo(1L, "admin", null, null, null,
+                null, List.of(), List.of()));
+        SysEmp emp = activeEmp(1L, "admin");
+        emp.setPassword(passwordEncoder.encode("old12345"));
+        when(empMapper.selectById(1L)).thenReturn(emp);
+
+        ChangePasswordReq req = new ChangePasswordReq();
+        req.setOldPassword("old12345");
+        req.setNewPassword("abc");   // 长度 < 8
+        req.setConfirmPassword("abc");
+
+        assertThatThrownBy(() -> authService.changePassword(req))
+                .isInstanceOf(BizException.class)
+                .extracting("code").isEqualTo(10010);
+
+        verify(empMapper, never()).updatePassword(anyLong(), anyString());
+    }
+
+    @Test
+    @DisplayName("changePassword: 成功路径 - updatePassword 写入 BCrypt 哈希 (非明文)")
     void changePassword_success() {
         UserContext.set(new UserContext.UserInfo(1L, "admin", null, null, null,
                 null, List.of(), List.of()));
         SysEmp emp = activeEmp(1L, "admin");
-        emp.setPassword("old12345");
+        emp.setPassword(passwordEncoder.encode("old12345"));
         when(empMapper.selectById(1L)).thenReturn(emp);
-        when(empMapper.updatePassword(1L, "new12345")).thenReturn(1);
+        when(empMapper.updatePassword(eq(1L), anyString())).thenReturn(1);
 
         ChangePasswordReq req = new ChangePasswordReq();
         req.setOldPassword("old12345");
@@ -561,7 +599,141 @@ class AuthServiceImplTest {
 
         authService.changePassword(req);
 
-        verify(empMapper).updatePassword(1L, "new12345");
+        // 验证写入的是 BCrypt 哈希, 不是明文
+        ArgumentCaptor<String> hashCap = ArgumentCaptor.forClass(String.class);
+        verify(empMapper).updatePassword(eq(1L), hashCap.capture());
+        String written = hashCap.getValue();
+        assertThat(written).startsWith("$2a$04$");
+        assertThat(written).isNotEqualTo("new12345");
+        // 新密码能用 BCrypt 验证
+        assertThat(passwordEncoder.matches("new12345", written)).isTrue();
+    }
+
+    // ===================== BCrypt 切换 + Lazy Rehash 集成测试 =====================
+
+    @Nested
+    @DisplayName("BCrypt 集成: 登录/改密走 PasswordEncoder, Lazy Rehash 自动升级")
+    class BcryptScenarios {
+
+        @Test
+        @DisplayName("login: 库中已是 BCrypt 哈希时直接走 matches, 不触发 Lazy Rehash")
+        void login_bcryptHashed_emp() {
+            SysEmp emp = activeEmp(1L, "admin");
+            String hash = passwordEncoder.encode("admin123");
+            emp.setPassword(hash);
+            when(empMapper.selectByUsername("admin")).thenReturn(emp);
+            when(roleMapper.selectByEmpId(1L)).thenReturn(List.of(role(10L, "ADMIN", "ALL")));
+            when(empRoleMapper.selectRoleIdsByEmpId(1L)).thenReturn(List.of(10L));
+            when(rolePermMapper.selectPermCodesByRoleIds(List.of(10L)))
+                    .thenReturn(List.of("system:user:list"));
+            when(jwtUtil.generateAccessToken(eq(1L), eq("admin"), anyList(), anyList()))
+                    .thenReturn("access");
+            when(jwtUtil.generateRefreshToken(1L, "admin")).thenReturn("refresh");
+            when(deptMapper.selectById(10L)).thenReturn(dept(10L, "技术部"));
+
+            LoginReq req = new LoginReq();
+            req.setUsername("admin");
+            req.setPassword("admin123");
+
+            LoginResp resp = authService.login(req, "127.0.0.1");
+
+            assertThat(resp.getAccessToken()).isEqualTo("access");
+            // 已经是 BCrypt, 不应触发 updatePassword
+            verify(empMapper, never()).updatePassword(anyLong(), anyString());
+        }
+
+        @Test
+        @DisplayName("login: 库中明文 + Lazy Rehash 开启 → 登录成功, updatePassword 被调用写入 BCrypt 哈希")
+        void login_plainText_triggersRehash() {
+            SysEmp emp = activeEmp(1L, "admin");
+            emp.setPassword("admin123");  // 明文 (V910 状态)
+            when(empMapper.selectByUsername("admin")).thenReturn(emp);
+            when(roleMapper.selectByEmpId(1L)).thenReturn(List.of(role(10L, "ADMIN", "ALL")));
+            when(empRoleMapper.selectRoleIdsByEmpId(1L)).thenReturn(List.of(10L));
+            when(rolePermMapper.selectPermCodesByRoleIds(List.of(10L)))
+                    .thenReturn(List.of("system:user:list"));
+            when(jwtUtil.generateAccessToken(eq(1L), eq("admin"), anyList(), anyList()))
+                    .thenReturn("access");
+            when(jwtUtil.generateRefreshToken(1L, "admin")).thenReturn("refresh");
+            when(deptMapper.selectById(10L)).thenReturn(dept(10L, "技术部"));
+            when(empMapper.updatePassword(eq(1L), anyString())).thenReturn(1);
+
+            LoginReq req = new LoginReq();
+            req.setUsername("admin");
+            req.setPassword("admin123");
+
+            LoginResp resp = authService.login(req, "127.0.0.1");
+
+            assertThat(resp.getAccessToken()).isEqualTo("access");
+            // 触发 Lazy Rehash: 写入 BCrypt 哈希
+            ArgumentCaptor<String> hashCap = ArgumentCaptor.forClass(String.class);
+            verify(empMapper).updatePassword(eq(1L), hashCap.capture());
+            assertThat(hashCap.getValue()).startsWith("$2a$04$");
+            // 写入的 hash 能被相同明文校验通过
+            assertThat(passwordEncoder.matches("admin123", hashCap.getValue())).isTrue();
+        }
+
+        @Test
+        @DisplayName("login: 库中明文 + Lazy Rehash 关闭 → 登录成功, 不回写 updatePassword")
+        void login_plainText_rehashDisabled() {
+            SecurityProperties.Bcrypt cfg = new SecurityProperties.Bcrypt();
+            cfg.setStrength(4);
+            cfg.setEnableLazyRehash(false);
+            when(securityProperties.getBcrypt()).thenReturn(cfg);
+
+            SysEmp emp = activeEmp(1L, "admin");
+            emp.setPassword("admin123");
+            when(empMapper.selectByUsername("admin")).thenReturn(emp);
+            when(roleMapper.selectByEmpId(1L)).thenReturn(List.of(role(10L, "ADMIN", "ALL")));
+            when(empRoleMapper.selectRoleIdsByEmpId(1L)).thenReturn(List.of(10L));
+            when(rolePermMapper.selectPermCodesByRoleIds(List.of(10L)))
+                    .thenReturn(List.of("system:user:list"));
+            when(jwtUtil.generateAccessToken(eq(1L), eq("admin"), anyList(), anyList()))
+                    .thenReturn("access");
+            when(jwtUtil.generateRefreshToken(1L, "admin")).thenReturn("refresh");
+            when(deptMapper.selectById(10L)).thenReturn(dept(10L, "技术部"));
+
+            LoginReq req = new LoginReq();
+            req.setUsername("admin");
+            req.setPassword("admin123");
+
+            LoginResp resp = authService.login(req, "127.0.0.1");
+
+            assertThat(resp.getAccessToken()).isEqualTo("access");
+            // Lazy Rehash 关闭 → 不回写
+            verify(empMapper, never()).updatePassword(anyLong(), anyString());
+        }
+
+        @Test
+        @DisplayName("changePassword: 旧密码是明文, 改密后入库变 BCrypt (兼容老数据)")
+        void changePassword_fromPlainText() {
+            // 关闭 Lazy Rehash, 只验证 changePassword 自身的 updatePassword 行为
+            SecurityProperties.Bcrypt cfg = new SecurityProperties.Bcrypt();
+            cfg.setStrength(4);
+            cfg.setEnableLazyRehash(false);
+            when(securityProperties.getBcrypt()).thenReturn(cfg);
+
+            UserContext.set(new UserContext.UserInfo(1L, "admin", null, null, null,
+                    null, List.of(), List.of()));
+            SysEmp emp = activeEmp(1L, "admin");
+            emp.setPassword("old12345");  // 旧库中明文
+            when(empMapper.selectById(1L)).thenReturn(emp);
+            when(empMapper.updatePassword(eq(1L), anyString())).thenReturn(1);
+
+            ChangePasswordReq req = new ChangePasswordReq();
+            req.setOldPassword("old12345");
+            req.setNewPassword("new12345");
+            req.setConfirmPassword("new12345");
+
+            authService.changePassword(req);
+
+            // Lazy Rehash 关闭 → 旧密码验证时不会回写, 只由 changePassword 自身写入一次
+            ArgumentCaptor<String> hashCap = ArgumentCaptor.forClass(String.class);
+            verify(empMapper, times(1)).updatePassword(eq(1L), hashCap.capture());
+            assertThat(hashCap.getValue()).startsWith("$2a$04$");
+            // 新密码能用 BCrypt 验证
+            assertThat(passwordEncoder.matches("new12345", hashCap.getValue())).isTrue();
+        }
     }
 
     // ===================== fixtures =====================
