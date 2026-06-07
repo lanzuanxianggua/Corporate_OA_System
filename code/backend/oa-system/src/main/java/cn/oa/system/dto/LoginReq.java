@@ -24,4 +24,10 @@ public class LoginReq {
 
     @Schema(description = "设备指纹 / 客户端 ID, 可选")
     private String clientId;
+
+    @Schema(description = "图形验证码 key, 由 /api/auth/captcha 颁发, 可选 (生产环境必填)")
+    private String captchaKey;
+
+    @Schema(description = "图形验证码字符, 与 captchaKey 配套, 可选 (生产环境必填)")
+    private String captchaCode;
 }

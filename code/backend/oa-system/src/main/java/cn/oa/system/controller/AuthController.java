@@ -3,12 +3,16 @@ package cn.oa.system.controller;
 import cn.oa.platform.common.api.R;
 import cn.oa.platform.security.annotation.RequirePermission;
 import cn.oa.platform.security.jwt.JwtUtil;
+import cn.oa.system.dto.LoginReq;
 import cn.oa.system.entity.SysEmp;
 import cn.oa.system.service.AuthService;
+import cn.oa.system.service.CaptchaService;
+import cn.oa.system.vo.CaptchaResp;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -29,66 +33,50 @@ public class AuthController {
 
     private final AuthService authService;
     private final JwtUtil jwtUtil;
+    private final CaptchaService captchaService;
 
-    public AuthController(AuthService authService, JwtUtil jwtUtil) {
+    public AuthController(AuthService authService,
+                           JwtUtil jwtUtil,
+                           @Autowired(required = false) CaptchaService captchaService) {
         this.authService = authService;
         this.jwtUtil = jwtUtil;
+        this.captchaService = captchaService;
     }
 
     @Operation(summary = "登录")
     @PostMapping("/login")
-    public R<Map<String, Object>> login(@RequestBody @jakarta.validation.Valid LoginRequest req,
+    public R<Map<String, Object>> login(@RequestBody @jakarta.validation.Valid LoginReq req,
                                         HttpServletRequest request) {
-        SysEmp emp = authService.findByUsername(req.username());
-        if (emp == null) {
-            return R.fail(10001, "用户名或密码错误");
-        }
-        if (!"ACTIVE".equals(emp.getStatus())) {
-            return R.fail(10001, "账号已停用");
-        }
-        if (!matchesPassword(req.password(), emp.getPassword())) {
-            return R.fail(10001, "用户名或密码错误");
-        }
-        List<String> roles = authService.findRolesByEmpId(emp.getId());
-        List<String> perms = authService.findPermCodesByEmpId(emp.getId());
-
-        String access = jwtUtil.generateAccessToken(emp.getId(), emp.getUsername(), roles, perms);
-        String refresh = jwtUtil.generateRefreshToken(emp.getId(), emp.getUsername());
-        authService.recordLogin(emp.getId(), clientIp(request));
-
+        var resp = authService.login(req, clientIp(request));
         Map<String, Object> data = new HashMap<>();
-        data.put("accessToken", access);
-        data.put("refreshToken", refresh);
-        data.put("tokenType", "Bearer");
-        Map<String, Object> userInfo = new HashMap<>();
-        userInfo.put("empId", emp.getId());
-        userInfo.put("empCode", emp.getEmpCode());
-        userInfo.put("username", emp.getUsername());
-        userInfo.put("realName", emp.getRealName());
-        userInfo.put("avatar", emp.getAvatar());
-        userInfo.put("deptId", emp.getDeptId());
-        userInfo.put("roles", roles);
-        userInfo.put("permissions", perms);
-        data.put("userInfo", userInfo);
-
+        data.put("accessToken", resp.getAccessToken());
+        data.put("refreshToken", resp.getRefreshToken());
+        data.put("tokenType", resp.getTokenType());
+        data.put("expiresIn", resp.getExpiresIn());
+        data.put("userInfo", resp.getUserInfo());
         return R.ok("登录成功", data);
     }
 
     @Operation(summary = "刷新 Token")
     @PostMapping("/refresh")
     public R<Map<String, Object>> refresh(@RequestBody @jakarta.validation.Valid RefreshRequest req) {
-        var claims = jwtUtil.parse(req.refreshToken());
-        Long empId = claims.get("uid", Long.class);
-        String username = claims.get("uname", String.class);
-        if (!"refresh".equals(claims.get("type", String.class))) {
-            return R.fail(10003, "非刷新 Token");
-        }
-        List<String> roles = authService.findRolesByEmpId(empId);
-        List<String> perms = authService.findPermCodesByEmpId(empId);
-        String access = jwtUtil.generateAccessToken(empId, username, roles, perms);
+        var resp = authService.refreshToken(req.refreshToken());
         Map<String, Object> data = new HashMap<>();
-        data.put("accessToken", access);
+        data.put("accessToken", resp.getAccessToken());
+        data.put("refreshToken", resp.getRefreshToken());
+        data.put("tokenType", resp.getTokenType());
+        data.put("expiresIn", resp.getExpiresIn());
         return R.ok(data);
+    }
+
+    @Operation(summary = "获取图形验证码")
+    @GetMapping("/captcha")
+    public R<CaptchaResp> captcha() {
+        if (captchaService == null) {
+            // 测试环境 / 未启用 captcha 时的兜底
+            return R.fail(10012, "图形验证码服务未启用");
+        }
+        return R.ok(captchaService.generate());
     }
 
     @Operation(summary = "当前用户")
@@ -107,19 +95,10 @@ public class AuthController {
         return R.ok(data);
     }
 
-    private boolean matchesPassword(String raw, String hashed) {
-        // v2 Phase 2 简化: 明文比较 (生产应使用 BCrypt)
-        return hashed != null && hashed.equals(raw);
-    }
-
     private String clientIp(HttpServletRequest request) {
         String xff = request.getHeader("X-Forwarded-For");
         return xff != null && !xff.isBlank() ? xff.split(",")[0].trim() : request.getRemoteAddr();
     }
-
-    public record LoginRequest(
-            @NotBlank(message = "用户名不能为空") String username,
-            @NotBlank(message = "密码不能为空") String password) {}
 
     public record RefreshRequest(@NotBlank(message = "refreshToken 不能为空") String refreshToken) {}
 }

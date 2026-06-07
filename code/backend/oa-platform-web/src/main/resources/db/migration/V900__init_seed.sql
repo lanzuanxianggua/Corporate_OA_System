@@ -28,7 +28,11 @@ INSERT INTO `sys_role` (`id`, `role_code`, `role_name`, `data_scope`, `sort_orde
   (6, 'EMPLOYEE', '普通员工', 'SELF', 100, 'ACTIVE', 'system');
 
 -- -----------------------------------------------------------------------------
--- 默认管理员账号 (密码: admin123, bcrypt 加密)
+-- 默认管理员账号 (密码: admin123, 明文)
+-- 注: 密码列 password 在 V910 才 ALTER TABLE 新增, 此处 INSERT 不写 password.
+--     5 个 seed 用户的初始明文密码 'admin123' 在 V910 中写入, 首次登录后
+--     由 AuthService.matchesPassword 的 Lazy Rehash 机制自动升级为 BCrypt 哈希
+--     (cn.oa.platform.security.password.BCryptPasswordEncoder).
 -- -----------------------------------------------------------------------------
 INSERT INTO `sys_employee` (`id`, `username`, `real_name`, `emp_no`, `email`, `dept_id`, `position`, `job_level`, `hire_date`, `status`, `data_scope`, `create_by`) VALUES
   (1, 'admin', '系统管理员', 'EMP00001', 'admin@oa.local', 1, '系统管理员', 'P8', '2020-01-01', 'ACTIVE', 'ALL', 'system'),

@@ -86,7 +86,8 @@ class AuthServiceImplTest {
         // 测试用真实 BCrypt 编码器, cost=4 加速; 生产 strength=10
         passwordEncoder = new BCryptPasswordEncoder(4);
         authService = new AuthService(empMapper, empRoleMapper, roleMapper, rolePermMapper,
-                permissionMapper, deptMapper, jwtUtil, securityProperties, passwordEncoder);
+                permissionMapper, deptMapper, jwtUtil, securityProperties, passwordEncoder,
+                null /* captchaService */);
 
         // default: jwt TTL = 3600
         SecurityProperties.Jwt jwtCfg = new SecurityProperties.Jwt();

@@ -61,6 +61,12 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final SecurityProperties securityProperties;
     private final PasswordEncoder passwordEncoder;
+    /**
+     * 图形验证码服务 (可选). 注入为 {@code null} 时, 登录路径跳过 captcha 校验
+     * (便于在测试 profile 排除 Redis / 单测不依赖 Redis 的场景). 运行时 (dev/prod)
+     * 由 Spring 自动注入 CaptchaServiceImpl, 此时登录必须传 {@code captchaKey}+{@code captchaCode}.
+     */
+    private final CaptchaService captchaService;
 
     /**
      * 主构造器 (Spring 注入用).
@@ -74,7 +80,9 @@ public class AuthService {
                        SysDeptMapper deptMapper,
                        JwtUtil jwtUtil,
                        SecurityProperties securityProperties,
-                       PasswordEncoder passwordEncoder) {
+                       PasswordEncoder passwordEncoder,
+                       @org.springframework.beans.factory.annotation.Autowired(
+                               required = false) CaptchaService captchaService) {
         this.empMapper = empMapper;
         this.empRoleMapper = empRoleMapper;
         this.roleMapper = roleMapper;
@@ -84,6 +92,7 @@ public class AuthService {
         this.jwtUtil = jwtUtil;
         this.securityProperties = securityProperties;
         this.passwordEncoder = passwordEncoder;
+        this.captchaService = captchaService;
     }
 
     /**
@@ -97,7 +106,7 @@ public class AuthService {
                        SysRoleMapper roleMapper,
                        SysRolePermissionMapper rolePermMapper) {
         this(empMapper, empRoleMapper, roleMapper, rolePermMapper,
-                null, null, null, null, null);
+                null, null, null, null, null, null);
     }
 
     // ===================== 兼容旧接口 (保留 v1 行为, 内部已切换 selectByUsername) =====================
@@ -157,6 +166,10 @@ public class AuthService {
      */
     @Transactional
     public LoginResp login(LoginReq req, String clientIp) {
+        // 0) 图形验证码 (v2 Phase 2: 可选. captchaService 注入时强制校验, 未注入时跳过 - 保持单测零回归)
+        if (captchaService != null) {
+            captchaService.validate(req.getCaptchaKey(), req.getCaptchaCode());
+        }
         SysEmp emp = empMapper.selectByUsername(req.getUsername());
         if (emp == null) {
             log.warn("登录失败 - 用户不存在: {}", req.getUsername());

@@ -52,7 +52,9 @@ public final class AuthServiceFixture {
     }
 
     /**
-     * 构造带全部依赖的 AuthService (主构造器, 9 参含 PasswordEncoder).
+     * 构造带全部依赖的 AuthService (主构造器, 10 参含 PasswordEncoder + CaptchaService 可选).
+     *
+     * <p>captchaService 传 {@code null} 时, 登录路径跳过 captcha 校验 (与 Spring 注入缺失行为一致).
      */
     public static AuthService newAuthService(SysEmpMapper empMapper,
                                              SysEmpRoleMapper empRoleMapper,
@@ -62,9 +64,11 @@ public final class AuthServiceFixture {
                                              SysDeptMapper deptMapper,
                                              JwtUtil jwtUtil,
                                              SecurityProperties securityProperties,
-                                             PasswordEncoder passwordEncoder) {
+                                             PasswordEncoder passwordEncoder,
+                                             cn.oa.system.service.CaptchaService captchaService) {
         return new AuthService(empMapper, empRoleMapper, roleMapper, rolePermMapper,
-                permissionMapper, deptMapper, jwtUtil, securityProperties, passwordEncoder);
+                permissionMapper, deptMapper, jwtUtil, securityProperties, passwordEncoder,
+                captchaService);
     }
 
     /**
