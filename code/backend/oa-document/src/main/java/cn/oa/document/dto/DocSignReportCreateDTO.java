@@ -21,4 +21,7 @@ public class DocSignReportCreateDTO {
 
     @Schema(description = "签报内容")
     private String content;
+
+    @Schema(description = "附件 ID 列表 (JSON 数组字符串)")
+    private String attachmentIds;
 }

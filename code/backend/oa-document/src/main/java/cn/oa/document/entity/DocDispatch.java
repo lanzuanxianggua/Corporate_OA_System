@@ -19,6 +19,10 @@ import lombok.EqualsAndHashCode;
 @Schema(description = "发文")
 public class DocDispatch extends BaseEntity {
 
+    @Schema(description = "文号 (唯一)")
+    @TableField("doc_no")
+    private String docNo;
+
     @Schema(description = "标题")
     @TableField("title")
     private String title;
@@ -35,11 +39,11 @@ public class DocDispatch extends BaseEntity {
     @TableField("copy_to_dept")
     private String copyToDept;
 
-    @Schema(description = "紧急程度: URGENT/EMERGENCY/NORMAL")
+    @Schema(description = "紧急程度: URGENT/VERY_URGENT/NORMAL")
     @TableField("urgency")
     private String urgency;
 
-    @Schema(description = "密级: TOP_SECRET/SECRET/CONFIDENTIAL/NORMAL")
+    @Schema(description = "密级: TOP_SECRET/SECRET/CONFIDENTIAL/PUBLIC")
     @TableField("security_level")
     private String securityLevel;
 
@@ -47,12 +51,16 @@ public class DocDispatch extends BaseEntity {
     @TableField("content")
     private String content;
 
+    @Schema(description = "附件 ID 列表 (JSON 数组)")
+    @TableField("attachment_ids")
+    private String attachmentIds;
+
     @Schema(description = "状态: DRAFT/PENDING/APPROVED/PUBLISHED/ARCHIVED")
     @TableField("status")
     private String status;
 
-    @Schema(description = "申请人 emp_id")
-    @TableField("emp_id")
+    @Schema(description = "申请人 emp_id (关联 sys_employee.id)")
+    @TableField("create_emp_id")
     private Long empId;
 
     @Schema(description = "所属部门 dept_id")

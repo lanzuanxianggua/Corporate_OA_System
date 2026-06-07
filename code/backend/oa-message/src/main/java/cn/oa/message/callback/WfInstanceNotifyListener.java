@@ -39,6 +39,8 @@ public class WfInstanceNotifyListener {
     private static final String BIZ_EXPENSE = "EXPENSE_";
     private static final String BIZ_EXP = "EXP_";
     private static final String BIZ_LOAN = "LOAN_";
+    private static final String BIZ_DISPATCH = "DISPATCH_";
+    private static final String BIZ_SIGN_REPORT = "SIGN_REPORT_";
 
     private static final String TYPE_LEAVE_APPROVE = "LEAVE_APPROVE";
     private static final String TYPE_LEAVE_REJECT = "LEAVE_REJECT";
@@ -46,6 +48,10 @@ public class WfInstanceNotifyListener {
     private static final String TYPE_EXPENSE_REJECT = "EXPENSE_REJECT";
     private static final String TYPE_LOAN_APPROVE = "LOAN_APPROVE";
     private static final String TYPE_LOAN_REJECT = "LOAN_REJECT";
+    private static final String TYPE_DISPATCH_APPROVE = "DISPATCH_APPROVE";
+    private static final String TYPE_DISPATCH_REJECT = "DISPATCH_REJECT";
+    private static final String TYPE_SIGN_REPORT_APPROVE = "SIGN_REPORT_APPROVE";
+    private static final String TYPE_SIGN_REPORT_REJECT = "SIGN_REPORT_REJECT";
     private static final String TYPE_GENERAL = "GENERAL";
 
     private static final String STATUS_APPROVED = "APPROVED";
@@ -155,6 +161,12 @@ public class WfInstanceNotifyListener {
         if (businessKey.startsWith(BIZ_LOAN)) {
             return approved ? TYPE_LOAN_APPROVE : TYPE_LOAN_REJECT;
         }
+        if (businessKey.startsWith(BIZ_DISPATCH)) {
+            return approved ? TYPE_DISPATCH_APPROVE : TYPE_DISPATCH_REJECT;
+        }
+        if (businessKey.startsWith(BIZ_SIGN_REPORT)) {
+            return approved ? TYPE_SIGN_REPORT_APPROVE : TYPE_SIGN_REPORT_REJECT;
+        }
         return TYPE_GENERAL;
     }
 
@@ -166,6 +178,10 @@ public class WfInstanceNotifyListener {
             case TYPE_EXPENSE_REJECT -> "您的报销申请被拒绝";
             case TYPE_LOAN_APPROVE -> "您的借款申请已通过";
             case TYPE_LOAN_REJECT -> "您的借款申请被拒绝";
+            case TYPE_DISPATCH_APPROVE -> "您的发文已审批通过";
+            case TYPE_DISPATCH_REJECT -> "您的发文被拒绝";
+            case TYPE_SIGN_REPORT_APPROVE -> "您的签报已审批通过";
+            case TYPE_SIGN_REPORT_REJECT -> "您的签报被拒绝";
             default -> "流程通知";
         };
     }

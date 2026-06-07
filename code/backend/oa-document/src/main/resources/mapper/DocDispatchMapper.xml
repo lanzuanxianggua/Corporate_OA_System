@@ -4,9 +4,9 @@
 <mapper namespace="cn.oa.document.mapper.DocDispatchMapper">
 
     <sql id="joinColumns">
-        d.id, d.title, d.subject_word, d.send_to_dept, d.copy_to_dept,
-        d.urgency, d.security_level, d.content, d.status,
-        d.emp_id, d.dept_id, d.wf_instance_id,
+        d.id, d.doc_no, d.title, d.subject_word, d.send_to_dept, d.copy_to_dept,
+        d.urgency, d.security_level, d.content, d.attachment_ids, d.status,
+        d.create_emp_id AS emp_id, d.dept_id, d.wf_instance_id,
         d.create_time, d.update_time,
         e.real_name AS emp_name,
         dp.dept_name
@@ -14,7 +14,7 @@
 
     <sql id="joinTables">
         FROM doc_dispatches d
-        LEFT JOIN sys_employee e ON d.emp_id = e.id AND e.del_flag = '0'
+        LEFT JOIN sys_employee e ON d.create_emp_id = e.id AND e.del_flag = '0'
         LEFT JOIN sys_dept dp ON d.dept_id = dp.id AND dp.del_flag = '0'
         WHERE d.del_flag = '0'
     </sql>

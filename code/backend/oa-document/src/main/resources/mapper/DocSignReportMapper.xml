@@ -4,8 +4,8 @@
 <mapper namespace="cn.oa.document.mapper.DocSignReportMapper">
 
     <sql id="joinColumns">
-        s.id, s.title, s.report_type, s.content, s.status,
-        s.emp_id, s.dept_id, s.wf_instance_id,
+        s.id, s.report_no, s.title, s.report_type, s.content, s.attachment_ids, s.status,
+        s.create_emp_id AS emp_id, s.dept_id, s.wf_instance_id,
         s.create_time, s.update_time,
         e.real_name AS emp_name,
         dp.dept_name
@@ -13,7 +13,7 @@
 
     <sql id="joinTables">
         FROM doc_sign_reports s
-        LEFT JOIN sys_employee e ON s.emp_id = e.id AND e.del_flag = '0'
+        LEFT JOIN sys_employee e ON s.create_emp_id = e.id AND e.del_flag = '0'
         LEFT JOIN sys_dept dp ON s.dept_id = dp.id AND dp.del_flag = '0'
         WHERE s.del_flag = '0'
     </sql>
@@ -29,7 +29,7 @@
                  OR s.report_type LIKE CONCAT('%', #{keyword}, '%'))
         </if>
         <if test="empId != null">
-            AND s.emp_id = #{empId}
+            AND s.create_emp_id = #{empId}
         </if>
         ORDER BY s.create_time DESC
     </select>

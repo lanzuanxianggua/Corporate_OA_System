@@ -32,4 +32,7 @@ public class DocDispatchCreateDTO {
 
     @Schema(description = "正文内容(富文本)")
     private String content;
+
+    @Schema(description = "附件 ID 列表 (JSON 数组字符串)")
+    private String attachmentIds;
 }

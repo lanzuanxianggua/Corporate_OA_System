@@ -33,6 +33,22 @@ public class DocSignReportController {
         return R.ok(service.create(dto, user.getEmpId(), user.getDeptId()));
     }
 
+    @Operation(summary = "更新签报")
+    @PutMapping("/{id}")
+    @RequirePermission("document:sign-report:update")
+    public R<Void> update(@PathVariable Long id, @RequestBody @Valid DocSignReportCreateDTO dto) {
+        service.update(id, dto, UserContext.get().getEmpId());
+        return R.ok();
+    }
+
+    @Operation(summary = "删除签报")
+    @DeleteMapping("/{id}")
+    @RequirePermission("document:sign-report:update")
+    public R<Void> delete(@PathVariable Long id) {
+        service.delete(id, UserContext.get().getEmpId());
+        return R.ok();
+    }
+
     @Operation(summary = "提交签报审批 (触发工作流)")
     @PostMapping("/{id}/actions/submit")
     @RequirePermission("document:sign-report:submit")

@@ -21,6 +21,10 @@ import java.time.LocalDate;
 @Schema(description = "收文")
 public class DocReceive extends BaseEntity {
 
+    @Schema(description = "收文号 (唯一)")
+    @TableField("receive_no")
+    private String receiveNo;
+
     @Schema(description = "来文单位")
     @TableField("source_dept")
     private String sourceDept;

@@ -1,5 +1,6 @@
 package cn.oa.document.service;
 
+import cn.oa.document.constant.DocConstants;
 import cn.oa.document.entity.DocArchive;
 import cn.oa.document.mapper.DocArchiveMapper;
 import cn.oa.document.vo.DocArchiveVO;
@@ -15,7 +16,9 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 /**
- * 档案 Service (只读).
+ * 档案 Service.
+ *
+ * <p>v2 设计: 档案数据由发文/收文/签报归档动作写入, 本服务只读 + 按需手动新增.
  */
 @Slf4j
 @Service
@@ -51,16 +54,30 @@ public class DocArchiveService {
         return PageResult.of(voList, result.getTotal(), pageNum, pageSize);
     }
 
+    /**
+     * 新增档案 (供其他业务模块回调使用).
+     */
+    public Long create(DocArchive archive) {
+        if (archive.getStatus() == null) {
+            archive.setStatus(DocConstants.ARCHIVE_STATUS_ACTIVE);
+        }
+        mapper.insert(archive);
+        log.info("档案已创建: id={}, type={}, sourceId={}",
+                archive.getId(), archive.getArchiveType(), archive.getSourceId());
+        return archive.getId();
+    }
+
     private DocArchiveVO toVO(DocArchive archive) {
         DocArchiveVO vo = new DocArchiveVO();
         vo.setId(archive.getId());
         vo.setArchiveNo(archive.getArchiveNo());
-        vo.setArchiveTitle(archive.getArchiveTitle());
-        vo.setDocType(archive.getDocType());
-        vo.setBizId(archive.getBizId());
-        vo.setRemark(archive.getRemark());
+        vo.setArchiveType(archive.getArchiveType());
+        vo.setSourceId(archive.getSourceId());
+        vo.setArchiveDate(archive.getArchiveDate());
+        vo.setTitle(archive.getTitle());
         vo.setStatus(archive.getStatus());
         vo.setCreateTime(archive.getCreateTime());
+        vo.setUpdateTime(archive.getUpdateTime());
         return vo;
     }
 }

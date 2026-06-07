@@ -1,12 +1,11 @@
 package cn.oa.task.entity;
 
+import cn.oa.platform.common.base.BaseEntity;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-
-import java.io.Serializable;
 
 /**
  * 任务评论.
@@ -17,9 +16,7 @@ import java.io.Serializable;
 @EqualsAndHashCode(callSuper = true)
 @TableName("task_comments")
 @Schema(description = "任务评论")
-public class TaskComment extends BaseEntity implements Serializable {
-
-    private static final long serialVersionUID = 1L;
+public class TaskComment extends BaseEntity {
 
     @Schema(description = "任务 id")
     @TableField("item_id")

@@ -4,16 +4,17 @@ import cn.oa.document.constant.DocConstants;
 import cn.oa.document.dto.DocDispatchCreateDTO;
 import cn.oa.document.dto.DocDispatchQueryDTO;
 import cn.oa.document.entity.DocDispatch;
+import cn.oa.document.event.DocBusinessSubmittedEvent;
 import cn.oa.document.mapper.DocDispatchMapper;
 import cn.oa.document.vo.DocDispatchVO;
 import cn.oa.platform.common.api.PageResult;
 import cn.oa.platform.common.api.RCode;
 import cn.oa.platform.common.exception.BizException;
 import cn.oa.workflow.service.WfInstanceService;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +32,7 @@ public class DocDispatchService {
 
     private final DocDispatchMapper mapper;
     private final WfInstanceService wfInstanceService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 创建发文 (DRAFT).
@@ -38,19 +40,20 @@ public class DocDispatchService {
     @Transactional(rollbackFor = Exception.class)
     public Long create(DocDispatchCreateDTO dto, Long empId, Long deptId) {
         DocDispatch dispatch = new DocDispatch();
+        dispatch.setDocNo(generateDocNo());
         dispatch.setTitle(dto.getTitle());
         dispatch.setSubjectWord(dto.getSubjectWord());
         dispatch.setSendToDept(dto.getSendToDept());
         dispatch.setCopyToDept(dto.getCopyToDept());
-        dispatch.setUrgency(dto.getUrgency());
-        dispatch.setSecurityLevel(dto.getSecurityLevel());
+        dispatch.setUrgency(dto.getUrgency() == null ? DocConstants.URGENCY_NORMAL : dto.getUrgency());
+        dispatch.setSecurityLevel(dto.getSecurityLevel() == null ? DocConstants.SECURITY_PUBLIC : dto.getSecurityLevel());
         dispatch.setContent(dto.getContent());
+        dispatch.setAttachmentIds(dto.getAttachmentIds());
         dispatch.setStatus(DocConstants.DISPATCH_STATUS_DRAFT);
         dispatch.setEmpId(empId);
         dispatch.setDeptId(deptId);
-        dispatch.setCreateBy(String.valueOf(empId));
         mapper.insert(dispatch);
-        log.info("发文已创建: id={}, empId={}", dispatch.getId(), empId);
+        log.info("发文已创建: id={}, docNo={}, empId={}", dispatch.getId(), dispatch.getDocNo(), empId);
         return dispatch.getId();
     }
 
@@ -80,12 +83,17 @@ public class DocDispatchService {
         dispatch.setWfInstanceId(wfInstanceId);
         mapper.updateById(dispatch);
 
+        // 发布业务提交事件 (供 callback/通知监听)
+        eventPublisher.publishEvent(new DocBusinessSubmittedEvent(
+                DocConstants.BIZ_KEY_PREFIX_DISPATCH, id, dispatch.getDocNo(), empId, wfInstanceId));
+
         log.info("发文已提交审批: id={}, empId={}, wfInstanceId={}", id, empId, wfInstanceId);
         return wfInstanceId;
     }
 
     /**
      * 审批通过 (PENDING -> APPROVED).
+     * 可由 controller 或 DocDispatchWfCallback (workflow 终态) 触发.
      */
     @Transactional(rollbackFor = Exception.class)
     public void approve(Long id) {
@@ -93,12 +101,35 @@ public class DocDispatchService {
         if (dispatch == null) {
             throw new BizException(RCode.NOT_FOUND, "发文不存在: " + id);
         }
+        if (DocConstants.DISPATCH_STATUS_APPROVED.equals(dispatch.getStatus())
+                || DocConstants.DISPATCH_STATUS_PUBLISHED.equals(dispatch.getStatus())
+                || DocConstants.DISPATCH_STATUS_ARCHIVED.equals(dispatch.getStatus())) {
+            log.info("发文已是终态, 幂等跳过: id={}, status={}", id, dispatch.getStatus());
+            return;
+        }
         if (!DocConstants.DISPATCH_STATUS_PENDING.equals(dispatch.getStatus())) {
             throw new BizException(RCode.BAD_REQUEST, "仅待审批状态可审批通过, 当前状态: " + dispatch.getStatus());
         }
         dispatch.setStatus(DocConstants.DISPATCH_STATUS_APPROVED);
         mapper.updateById(dispatch);
         log.info("发文审批通过: id={}", id);
+    }
+
+    /**
+     * 驳回发文 (PENDING -> REJECTED).
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void reject(Long id) {
+        DocDispatch dispatch = mapper.selectById(id);
+        if (dispatch == null) {
+            throw new BizException(RCode.NOT_FOUND, "发文不存在: " + id);
+        }
+        if (!DocConstants.DISPATCH_STATUS_PENDING.equals(dispatch.getStatus())) {
+            throw new BizException(RCode.BAD_REQUEST, "仅待审批状态可驳回, 当前状态: " + dispatch.getStatus());
+        }
+        dispatch.setStatus("REJECTED");
+        mapper.updateById(dispatch);
+        log.info("发文已驳回: id={}", id);
     }
 
     /**
@@ -155,9 +186,10 @@ public class DocDispatchService {
         dispatch.setSubjectWord(dto.getSubjectWord());
         dispatch.setSendToDept(dto.getSendToDept());
         dispatch.setCopyToDept(dto.getCopyToDept());
-        dispatch.setUrgency(dto.getUrgency());
-        dispatch.setSecurityLevel(dto.getSecurityLevel());
+        if (dto.getUrgency() != null) dispatch.setUrgency(dto.getUrgency());
+        if (dto.getSecurityLevel() != null) dispatch.setSecurityLevel(dto.getSecurityLevel());
         dispatch.setContent(dto.getContent());
+        if (dto.getAttachmentIds() != null) dispatch.setAttachmentIds(dto.getAttachmentIds());
         mapper.updateById(dispatch);
         log.info("发文已更新: id={}", id);
     }
@@ -210,6 +242,7 @@ public class DocDispatchService {
         if (map == null) return null;
         DocDispatchVO vo = new DocDispatchVO();
         vo.setId(toLong(map.get("id")));
+        vo.setDocNo(toStr(map.get("doc_no")));
         vo.setTitle(toStr(map.get("title")));
         vo.setSubjectWord(toStr(map.get("subject_word")));
         vo.setSendToDept(toStr(map.get("send_to_dept")));
@@ -244,5 +277,9 @@ public class DocDispatchService {
         if (obj instanceof java.time.LocalDateTime ldt) return ldt;
         if (obj instanceof java.sql.Timestamp ts) return ts.toLocalDateTime();
         try { return java.time.LocalDateTime.parse(obj.toString()); } catch (Exception e) { return null; }
+    }
+
+    private String generateDocNo() {
+        return "DOC" + System.currentTimeMillis();
     }
 }

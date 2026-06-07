@@ -16,6 +16,9 @@ public class DocReceiveVO {
     @Schema(description = "主键ID")
     private Long id;
 
+    @Schema(description = "收文号")
+    private String receiveNo;
+
     @Schema(description = "来文单位")
     private String sourceDept;
 

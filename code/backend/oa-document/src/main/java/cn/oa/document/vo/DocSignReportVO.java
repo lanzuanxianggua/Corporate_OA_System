@@ -15,6 +15,9 @@ public class DocSignReportVO {
     @Schema(description = "主键ID")
     private Long id;
 
+    @Schema(description = "签报编号")
+    private String reportNo;
+
     @Schema(description = "标题")
     private String title;
 

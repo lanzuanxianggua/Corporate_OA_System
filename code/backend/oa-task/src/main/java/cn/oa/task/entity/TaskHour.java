@@ -1,12 +1,12 @@
 package cn.oa.task.entity;
 
+import cn.oa.platform.common.base.BaseEntity;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -19,9 +19,7 @@ import java.time.LocalDate;
 @EqualsAndHashCode(callSuper = true)
 @TableName("task_hours")
 @Schema(description = "工时")
-public class TaskHour extends BaseEntity implements Serializable {
-
-    private static final long serialVersionUID = 1L;
+public class TaskHour extends BaseEntity {
 
     @Schema(description = "任务 id")
     @TableField("item_id")

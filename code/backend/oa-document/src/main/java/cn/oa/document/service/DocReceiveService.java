@@ -9,7 +9,6 @@ import cn.oa.document.vo.DocReceiveVO;
 import cn.oa.platform.common.api.PageResult;
 import cn.oa.platform.common.api.RCode;
 import cn.oa.platform.common.exception.BizException;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +20,8 @@ import java.util.Map;
 
 /**
  * 收文 Service.
+ *
+ * <p>v2 设计: 收文是行政登记动作 (无工作流), 仅做登记 / 拟办 / 归档三态.
  */
 @Slf4j
 @Service
@@ -35,17 +36,18 @@ public class DocReceiveService {
     @Transactional(rollbackFor = Exception.class)
     public Long create(DocReceiveCreateDTO dto, Long deptId) {
         DocReceive receive = new DocReceive();
+        receive.setReceiveNo(generateReceiveNo());
         receive.setSourceDept(dto.getSourceDept());
         receive.setDocTitle(dto.getDocTitle());
         receive.setDocDate(dto.getDocDate());
         receive.setReceiveDate(dto.getReceiveDate());
-        receive.setUrgentLevel(dto.getUrgentLevel());
+        receive.setUrgentLevel(dto.getUrgentLevel() == null ? DocConstants.URGENCY_NORMAL : dto.getUrgentLevel());
         receive.setContent(dto.getContent());
         receive.setProcessOpinion(dto.getProcessOpinion());
         receive.setStatus(DocConstants.RECEIVE_STATUS_PENDING);
         receive.setProcessDeptId(deptId);
         mapper.insert(receive);
-        log.info("收文已登记: id={}", receive.getId());
+        log.info("收文已登记: id={}, receiveNo={}", receive.getId(), receive.getReceiveNo());
         return receive.getId();
     }
 
@@ -62,11 +64,47 @@ public class DocReceiveService {
         receive.setDocTitle(dto.getDocTitle());
         receive.setDocDate(dto.getDocDate());
         receive.setReceiveDate(dto.getReceiveDate());
-        receive.setUrgentLevel(dto.getUrgentLevel());
+        if (dto.getUrgentLevel() != null) receive.setUrgentLevel(dto.getUrgentLevel());
         receive.setContent(dto.getContent());
         receive.setProcessOpinion(dto.getProcessOpinion());
         mapper.updateById(receive);
         log.info("收文已更新: id={}", id);
+    }
+
+    /**
+     * 拟办 (PENDING -> PROCESSING, 拟办意见).
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void process(Long id, String opinion) {
+        DocReceive receive = mapper.selectById(id);
+        if (receive == null) {
+            throw new BizException(RCode.NOT_FOUND, "收文不存在: " + id);
+        }
+        if (!DocConstants.RECEIVE_STATUS_PENDING.equals(receive.getStatus())) {
+            throw new BizException(RCode.BAD_REQUEST, "仅待处理状态可拟办, 当前状态: " + receive.getStatus());
+        }
+        receive.setProcessOpinion(opinion);
+        receive.setStatus(DocConstants.RECEIVE_STATUS_PROCESSING);
+        mapper.updateById(receive);
+        log.info("收文已拟办: id={}", id);
+    }
+
+    /**
+     * 办结 (PROCESSING -> COMPLETED).
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void complete(Long id) {
+        DocReceive receive = mapper.selectById(id);
+        if (receive == null) {
+            throw new BizException(RCode.NOT_FOUND, "收文不存在: " + id);
+        }
+        if (!DocConstants.RECEIVE_STATUS_PROCESSING.equals(receive.getStatus())
+                && !DocConstants.RECEIVE_STATUS_PENDING.equals(receive.getStatus())) {
+            throw new BizException(RCode.BAD_REQUEST, "仅待处理/拟办中状态可办结, 当前状态: " + receive.getStatus());
+        }
+        receive.setStatus(DocConstants.RECEIVE_STATUS_COMPLETED);
+        mapper.updateById(receive);
+        log.info("收文已办结: id={}", id);
     }
 
     /**
@@ -115,6 +153,7 @@ public class DocReceiveService {
         if (map == null) return null;
         DocReceiveVO vo = new DocReceiveVO();
         vo.setId(toLong(map.get("id")));
+        vo.setReceiveNo(toStr(map.get("receive_no")));
         vo.setSourceDept(toStr(map.get("source_dept")));
         vo.setDocTitle(toStr(map.get("doc_title")));
         vo.setDocDate(toLocalDate(map.get("doc_date")));
@@ -153,5 +192,9 @@ public class DocReceiveService {
         if (obj instanceof java.time.LocalDateTime ldt) return ldt;
         if (obj instanceof java.sql.Timestamp ts) return ts.toLocalDateTime();
         try { return java.time.LocalDateTime.parse(obj.toString()); } catch (Exception e) { return null; }
+    }
+
+    private String generateReceiveNo() {
+        return "RCV" + System.currentTimeMillis();
     }
 }

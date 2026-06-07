@@ -15,6 +15,9 @@ public class DocDispatchVO {
     @Schema(description = "主键ID")
     private Long id;
 
+    @Schema(description = "文号")
+    private String docNo;
+
     @Schema(description = "标题")
     private String title;
 

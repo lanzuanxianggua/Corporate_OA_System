@@ -4,7 +4,7 @@
 <mapper namespace="cn.oa.document.mapper.DocReceiveMapper">
 
     <sql id="joinColumns">
-        r.id, r.source_dept, r.doc_title, r.doc_date, r.receive_date,
+        r.id, r.receive_no, r.source_dept, r.doc_title, r.doc_date, r.receive_date,
         r.urgent_level, r.content, r.process_opinion, r.status,
         r.process_dept_id, r.create_time, r.update_time,
         dp.dept_name AS process_dept_name

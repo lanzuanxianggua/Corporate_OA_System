@@ -7,10 +7,13 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.time.LocalDate;
+
 /**
  * 档案.
  *
  * <p>对应表 doc_archives.
+ * 状态: ACTIVE / FROZEN / DESTROYED
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -18,25 +21,25 @@ import lombok.EqualsAndHashCode;
 @Schema(description = "档案")
 public class DocArchive extends BaseEntity {
 
-    @Schema(description = "档案编号")
+    @Schema(description = "档案编号 (唯一)")
     @TableField("archive_no")
     private String archiveNo;
 
+    @Schema(description = "档案类型: DISPATCH/RECEIVE/SIGN_REPORT")
+    @TableField("archive_type")
+    private String archiveType;
+
+    @Schema(description = "关联业务 ID (如发文 ID / 收文 ID / 签报 ID)")
+    @TableField("source_id")
+    private Long sourceId;
+
+    @Schema(description = "归档日期")
+    @TableField("archive_date")
+    private LocalDate archiveDate;
+
     @Schema(description = "档案标题")
-    @TableField("archive_title")
-    private String archiveTitle;
-
-    @Schema(description = "文档类型: DISPATCH/RECEIVE/SIGN_REPORT")
-    @TableField("doc_type")
-    private String docType;
-
-    @Schema(description = "关联业务 ID")
-    @TableField("biz_id")
-    private Long bizId;
-
-    @Schema(description = "档案备注")
-    @TableField("remark")
-    private String remark;
+    @TableField("title")
+    private String title;
 
     @Schema(description = "档案状态: ACTIVE/FROZEN/DESTROYED")
     @TableField("status")

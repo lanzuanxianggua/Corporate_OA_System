@@ -4,6 +4,7 @@ import cn.oa.document.constant.DocConstants;
 import cn.oa.document.dto.DocSignReportCreateDTO;
 import cn.oa.document.dto.DocSignReportQueryDTO;
 import cn.oa.document.entity.DocSignReport;
+import cn.oa.document.event.DocBusinessSubmittedEvent;
 import cn.oa.document.mapper.DocSignReportMapper;
 import cn.oa.document.vo.DocSignReportVO;
 import cn.oa.platform.common.api.PageResult;
@@ -13,6 +14,7 @@ import cn.oa.workflow.service.WfInstanceService;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,7 @@ public class DocSignReportService {
 
     private final DocSignReportMapper mapper;
     private final WfInstanceService wfInstanceService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 创建签报 (DRAFT).
@@ -37,15 +40,16 @@ public class DocSignReportService {
     @Transactional(rollbackFor = Exception.class)
     public Long create(DocSignReportCreateDTO dto, Long empId, Long deptId) {
         DocSignReport report = new DocSignReport();
+        report.setReportNo(generateReportNo());
         report.setTitle(dto.getTitle());
-        report.setReportType(dto.getReportType());
+        report.setReportType(dto.getReportType() == null ? DocConstants.REPORT_TYPE_GENERAL : dto.getReportType());
         report.setContent(dto.getContent());
+        report.setAttachmentIds(dto.getAttachmentIds());
         report.setStatus(DocConstants.SIGN_REPORT_STATUS_DRAFT);
         report.setEmpId(empId);
         report.setDeptId(deptId);
-        report.setCreateBy(String.valueOf(empId));
         mapper.insert(report);
-        log.info("签报已创建: id={}, empId={}", report.getId(), empId);
+        log.info("签报已创建: id={}, reportNo={}, empId={}", report.getId(), report.getReportNo(), empId);
         return report.getId();
     }
 
@@ -75,6 +79,10 @@ public class DocSignReportService {
         report.setWfInstanceId(wfInstanceId);
         mapper.updateById(report);
 
+        // 发布业务提交事件
+        eventPublisher.publishEvent(new DocBusinessSubmittedEvent(
+                DocConstants.BIZ_KEY_PREFIX_SIGN_REPORT, id, report.getReportNo(), empId, wfInstanceId));
+
         log.info("签报已提交审批: id={}, empId={}, wfInstanceId={}", id, empId, wfInstanceId);
         return wfInstanceId;
     }
@@ -87,6 +95,10 @@ public class DocSignReportService {
         DocSignReport report = mapper.selectById(id);
         if (report == null) {
             throw new BizException(RCode.NOT_FOUND, "签报不存在: " + id);
+        }
+        if (DocConstants.SIGN_REPORT_STATUS_APPROVED.equals(report.getStatus())) {
+            log.info("签报已是 APPROVED 终态, 幂等跳过: id={}", id);
+            return;
         }
         if (!DocConstants.SIGN_REPORT_STATUS_PENDING.equals(report.getStatus())) {
             throw new BizException(RCode.BAD_REQUEST, "仅待审批状态可审批通过, 当前状态: " + report.getStatus());
@@ -111,6 +123,48 @@ public class DocSignReportService {
         report.setStatus(DocConstants.SIGN_REPORT_STATUS_REJECTED);
         mapper.updateById(report);
         log.info("签报已驳回: id={}", id);
+    }
+
+    /**
+     * 更新签报 (仅 DRAFT).
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void update(Long id, DocSignReportCreateDTO dto, Long empId) {
+        DocSignReport report = mapper.selectById(id);
+        if (report == null) {
+            throw new BizException(RCode.NOT_FOUND, "签报不存在: " + id);
+        }
+        if (!DocConstants.SIGN_REPORT_STATUS_DRAFT.equals(report.getStatus())) {
+            throw new BizException(RCode.BAD_REQUEST, "仅草稿状态可更新, 当前状态: " + report.getStatus());
+        }
+        if (!Objects.equals(report.getEmpId(), empId)) {
+            throw new BizException(RCode.FORBIDDEN, "只能更新自己的签报");
+        }
+        report.setTitle(dto.getTitle());
+        if (dto.getReportType() != null) report.setReportType(dto.getReportType());
+        report.setContent(dto.getContent());
+        if (dto.getAttachmentIds() != null) report.setAttachmentIds(dto.getAttachmentIds());
+        mapper.updateById(report);
+        log.info("签报已更新: id={}", id);
+    }
+
+    /**
+     * 删除签报 (软删除, 仅 DRAFT).
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void delete(Long id, Long empId) {
+        DocSignReport report = mapper.selectById(id);
+        if (report == null) {
+            throw new BizException(RCode.NOT_FOUND, "签报不存在: " + id);
+        }
+        if (!DocConstants.SIGN_REPORT_STATUS_DRAFT.equals(report.getStatus())) {
+            throw new BizException(RCode.BAD_REQUEST, "仅草稿状态可删除, 当前状态: " + report.getStatus());
+        }
+        if (!Objects.equals(report.getEmpId(), empId)) {
+            throw new BizException(RCode.FORBIDDEN, "只能删除自己的签报");
+        }
+        mapper.deleteById(id);
+        log.info("签报已删除: id={}", id);
     }
 
     /**
@@ -142,6 +196,7 @@ public class DocSignReportService {
         if (map == null) return null;
         DocSignReportVO vo = new DocSignReportVO();
         vo.setId(toLong(map.get("id")));
+        vo.setReportNo(toStr(map.get("report_no")));
         vo.setTitle(toStr(map.get("title")));
         vo.setReportType(toStr(map.get("report_type")));
         vo.setContent(toStr(map.get("content")));
@@ -172,5 +227,9 @@ public class DocSignReportService {
         if (obj instanceof java.time.LocalDateTime ldt) return ldt;
         if (obj instanceof java.sql.Timestamp ts) return ts.toLocalDateTime();
         try { return java.time.LocalDateTime.parse(obj.toString()); } catch (Exception e) { return null; }
+    }
+
+    private String generateReportNo() {
+        return "SIGN" + System.currentTimeMillis();
     }
 }

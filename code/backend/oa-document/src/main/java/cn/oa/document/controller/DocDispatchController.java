@@ -57,6 +57,14 @@ public class DocDispatchController {
         return R.ok();
     }
 
+    @Operation(summary = "驳回发文")
+    @PostMapping("/{id}/actions/reject")
+    @RequirePermission("document:dispatch:update")
+    public R<Void> reject(@PathVariable Long id) {
+        service.reject(id);
+        return R.ok();
+    }
+
     @Operation(summary = "发布")
     @PostMapping("/{id}/actions/publish")
     @RequirePermission("document:dispatch:update")
