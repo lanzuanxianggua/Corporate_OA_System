@@ -70,6 +70,7 @@
         <hutool.version>5.8.32</hutool.version>
         <knife4j.version>4.5.0</knife4j.version>
         <fastjson2.version>2.0.53</fastjson2.version>
+        <easy-captcha.version>1.6.2</easy-captcha.version>
 
         <!-- 测试 -->
         <junit.version>5.11.3</junit.version>
@@ -285,6 +286,13 @@
                 <groupId>com.github.xiaoymin</groupId>
                 <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
                 <version>${knife4j.version}</version>
+            </dependency>
+
+            <!-- 图形验证码 (easy-captcha) -->
+            <dependency>
+                <groupId>com.github.whvcse</groupId>
+                <artifactId>easy-captcha</artifactId>
+                <version>${easy-captcha.version}</version>
             </dependency>
 
             <!-- 测试 -->
