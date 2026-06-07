@@ -1,7 +1,7 @@
 # Corporate OA System v2 — 设计文档总索引
 
-> 日期: 2026-06-04
-> 状态: **v2 实施阶段（Phase 3: 核心模块开发）**
+> 日期: 2026-06-07
+> 状态: **v2 实施阶段（Phase 3: 核心模块收尾 / Phase 4 外围模块试点）**
 > 维护人: Hermes 主 agent
 > 阅读顺序: **从 §1 开始往下**，每份文档有「依赖关系」一节标前置阅读
 
@@ -148,13 +148,13 @@ docs/v2/
 |------|------|----------|------|
 | **Phase 1** | 写 v2 设计文档（25 份） | 2-3 天 | **已完成** |
 | **Phase 2** | 建项目骨架（删除 v1 旧代码，按 v2 重搭） | 3-5 天 | **已完成** |
-| **Phase 3** | 实施核心模块（HR/Workflow/Admin） | 10-15 天 | **进行中** |
-| **Phase 4** | 实施外围模块（Finance/Document/Meeting/...） | 10-15 天 | 未开始 |
+| **Phase 3** | 实施核心模块（HR/Workflow/Admin） | 10-15 天 | **收尾验证中** |
+| **Phase 4** | 实施外围模块（Finance/Document/Meeting/...） | 10-15 天 | **部分试点实现** |
 | **Phase 5** | E2E 测试 + 性能调优 + 上线 | 5-7 天 | 未开始 |
 
 ---
 
-## 5. 当前进度（2026-06-04）
+## 5. 当前进度（2026-06-07）
 
 - [x] v1 spec 摸底（已读 20 份 spec + 1 份 workflow + 项目说明书）
 - [x] 当前代码摸底（25 模块/65 Controller/77 Service/74 Vue view/40 API/20 mobile page/30+ 表）
@@ -181,10 +181,21 @@ docs/v2/
 - [/] **Phase 3 核心模块实施**
   - [x] oa-hr-leave 骨架（Entity/Mapper/Service/Controller）
   - [x] oa-hr-employee 骨架
-  - [ ] oa-hr-leave 完善（DTO/VO/测试）
-  - [ ] oa-hr-employee 完善
-  - [ ] oa-admin
-  - [ ] 其余 10 个业务模块（空壳）
+  - [x] oa-hr-leave 完善（DTO/VO/单元测试/审批流测试）
+  - [x] 权限/认证错误响应按 API 规范返回 HTTP 401/403/404/422 等状态码
+  - [x] 启动测试日志噪声清理（Druid H2 校验语句、mapper 扫描 WARN 降噪）
+  - [/] oa-hr-employee 完善
+  - [/] oa-admin
+  - [/] 其余外围业务模块试点页面/API 已存在，待按 v2 契约验收收口
+- [/] **Phase 4 外围模块试点**
+  - [x] Finance/Document/Meeting/Message/Task 等模块已有前后端雏形
+  - [ ] 按 v2 API、权限码、DTO/VO、测试规范逐模块验收
+- [/] **工程质量与构建**
+  - [x] 后端核心测试通过：`oa-hr-leave`、`oa-platform-web -am`
+  - [x] 前端登录页清理未实现入口，保留真实登录链路
+  - [x] 前端 TypeScript 输出污染清理，`tsconfig` 禁止源目录 emit
+  - [x] 前端 Element Plus 按需引入、ECharts 模块化导入，生产构建不再出现大 chunk 告警
+  - [ ] 全量后端 `mvn test -DskipITs` 与前端构建需作为每轮收口验证
 
 ---
 
@@ -200,4 +211,3 @@ docs/v2/
 - 后端开发：01→02→03→05-modules/你负责的→06→08
 - 前端开发：01→03→04→05-modules/你负责的→06→08
 - 测试/DevOps：01→02→03→06→07→08
-
