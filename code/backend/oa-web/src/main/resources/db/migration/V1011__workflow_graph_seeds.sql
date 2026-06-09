@@ -1,13 +1,10 @@
 -- V1011: V1010 graph-format workflow seeds with 4-dimensional tiered routing.
 --
--- Three seeds cover the three business types that have a real callback Service
--- on the runtime classpath (trip / overtime / purchase). contract / payment /
--- supply_request are intentionally not seeded here because the corresponding
--- ServiceImpl is in oa-finance / oa-admin modules that are not registered in
--- the parent pom (see backend-real-architecture memory).
+-- These seeds cover the original approval business types that use the current
+-- oa-web runtime callbacks.
 --
 -- The graph format (schemaVersion=2) is parsed by WorkflowServiceImpl.parseNodeConfig
--- and materialized to a flat path by materializeGraphToFlatPath at process start.
+-- and materialized to an executable runtime path at process start.
 -- Each seed demonstrates the 4 routing dimensions:
 --   - amount threshold (purchase)
 --   - hours threshold (overtime)
@@ -139,8 +136,8 @@ VALUES
    }',
    '0', 1, 'system', NOW(), 'system', NOW(), '0');
 
--- Deactivate the legacy flat-array definitions for the same processTypes so the
--- engine uses the new graph-format seeds. (status=1 = inactive per existing code.)
+-- Deactivate non-v2 definitions for the same processTypes so the engine uses
+-- the graph-format seeds. (status=1 = inactive per existing code.)
 UPDATE wf_process_definition
    SET status = '1', update_by = 'system', update_time = NOW()
  WHERE process_type IN ('trip', 'overtime', 'purchase')

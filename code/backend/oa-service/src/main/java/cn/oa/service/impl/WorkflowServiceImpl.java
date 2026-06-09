@@ -412,9 +412,11 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
     public IPage<WfTask> myPendingTasks(Long assigneeId, int pageNum, int pageSize) {
         Page<WfTask> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<WfTask> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(WfTask::getAssigneeId, assigneeId)
-                .eq(WfTask::getStatus, "0")
-                .orderByDesc(WfTask::getCreateTime);
+        if (!isAdminUser(assigneeId)) {
+            wrapper.eq(WfTask::getAssigneeId, assigneeId);
+        }
+        wrapper.eq(WfTask::getStatus, "0")
+               .orderByDesc(WfTask::getCreateTime);
         IPage<WfTask> result = taskMapper.selectPage(page, wrapper);
 
         // fill instance info
@@ -463,6 +465,131 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
 
     @Override
     @Transactional
+    public int repairMissingPendingTasks() {
+        LambdaQueryWrapper<WfProcessInstance> instanceWrapper = new LambdaQueryWrapper<>();
+        instanceWrapper.eq(WfProcessInstance::getStatus, "0")
+                .orderByAsc(WfProcessInstance::getCreateTime);
+        List<WfProcessInstance> instances = instanceMapper.selectList(instanceWrapper);
+        if (instances == null || instances.isEmpty()) {
+            return 0;
+        }
+
+        int repaired = 0;
+        for (WfProcessInstance instance : instances) {
+            if (instance == null || hasPendingTask(instance.getId())) {
+                continue;
+            }
+
+            WfProcessDefinition definition = findActiveDefinition(instance.getBusinessType());
+            if (definition == null || definition.getNodeConfig() == null || definition.getNodeConfig().isBlank()) {
+                log.warn("repairMissingPendingTasks: no active v2 definition for businessType={}, businessId={}",
+                        instance.getBusinessType(), instance.getBusinessId());
+                continue;
+            }
+
+            Map<String, Object> context = repairConditionContext(instance);
+            List<JSONObject> nodes;
+            try {
+                JSONArray materializedNodes = materializeExecutableNodes(definition, null, context);
+                nodes = filterApplicableNodes(materializedNodes, context);
+            } catch (Exception e) {
+                log.warn("repairMissingPendingTasks: cannot materialize v2 definition for businessType={}, businessId={}: {}",
+                        instance.getBusinessType(), instance.getBusinessId(), e.getMessage());
+                continue;
+            }
+            if (nodes == null || nodes.isEmpty()) {
+                log.warn("repairMissingPendingTasks: no executable approval node for businessType={}, businessId={}",
+                        instance.getBusinessType(), instance.getBusinessId());
+                continue;
+            }
+
+            JSONObject node = selectRuntimeNode(nodes, instance.getCurrentNode());
+            if (node == null) {
+                continue;
+            }
+            int currentNode = node.getInt("runtimeIndex", Math.max(0, Optional.ofNullable(instance.getCurrentNode()).orElse(0)));
+
+            WfProcessInstance update = new WfProcessInstance();
+            update.setId(instance.getId());
+            update.setProcessId(definition.getId());
+            update.setProcessVersion(definition.getVersion());
+            update.setSnapshotNodeConfig(definition.getNodeConfig());
+            update.setConditionContext(JSONUtil.toJsonStr(context));
+            update.setCurrentNode(currentNode);
+            instanceMapper.updateById(update);
+
+            instance.setProcessId(definition.getId());
+            instance.setProcessVersion(definition.getVersion());
+            instance.setSnapshotNodeConfig(definition.getNodeConfig());
+            instance.setConditionContext(JSONUtil.toJsonStr(context));
+            instance.setCurrentNode(currentNode);
+            createTaskForNode(instance, node, currentNode);
+            repaired++;
+        }
+
+        if (repaired > 0) {
+            log.info("repairMissingPendingTasks: rebuilt {} missing workflow pending task set(s)", repaired);
+        }
+        return repaired;
+    }
+
+    private boolean hasPendingTask(Long instanceId) {
+        Long count = taskMapper.selectCount(new LambdaQueryWrapper<WfTask>()
+                .eq(WfTask::getInstanceId, instanceId)
+                .eq(WfTask::getStatus, "0"));
+        return count != null && count > 0;
+    }
+
+    private WfProcessDefinition findActiveDefinition(String businessType) {
+        LambdaQueryWrapper<WfProcessDefinition> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(WfProcessDefinition::getProcessType, businessType)
+                .eq(WfProcessDefinition::getStatus, "0")
+                .orderByDesc(WfProcessDefinition::getVersion)
+                .last("LIMIT 1");
+        return this.getOne(wrapper);
+    }
+
+    private Map<String, Object> repairConditionContext(WfProcessInstance instance) {
+        Map<String, Object> context = new LinkedHashMap<>();
+        if (instance.getConditionContext() != null && !instance.getConditionContext().isBlank()) {
+            try {
+                JSONObject parsed = JSONUtil.parseObj(instance.getConditionContext());
+                for (String key : parsed.keySet()) {
+                    context.put(key, parsed.get(key));
+                }
+            } catch (Exception e) {
+                log.warn("repairMissingPendingTasks: invalid conditionContext on instance {}, rebuilding from business data",
+                        instance.getId());
+            }
+        }
+
+        Map<String, Object> rebuilt = buildPreviewContext(
+                instance.getBusinessType(), instance.getBusinessId(), instance.getInitiatorId());
+        rebuilt.forEach(context::putIfAbsent);
+        return context;
+    }
+
+    private JSONObject selectRuntimeNode(List<JSONObject> nodes, Integer currentNode) {
+        if (nodes == null || nodes.isEmpty()) {
+            return null;
+        }
+        int target = Math.max(0, Optional.ofNullable(currentNode).orElse(0));
+        JSONObject fallback = nodes.get(nodes.size() - 1);
+        for (int i = 0; i < nodes.size(); i++) {
+            JSONObject node = nodes.get(i);
+            int runtimeIndex = node.getInt("runtimeIndex", i);
+            if (runtimeIndex == target) {
+                return node;
+            }
+            if (runtimeIndex > target) {
+                return node;
+            }
+        }
+        return fallback;
+    }
+
+    @Override
+    @Transactional
     public void saveDefinition(WfProcessDefinition definition) {
         if (definition.getId() != null) {
             WfProcessDefinition existing = this.getById(definition.getId());
@@ -483,7 +610,7 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
         this.save(definition);
     }
 
-    private void createTaskForNode(WfProcessInstance instance, JSONObject node, int nodeIndex) {
+    private void createTaskForNode(WfProcessInstance instance, JSONObject node, int runtimeIndex) {
         String nodeName = node.getStr("nodeName");
         String nodeType = node.getStr("nodeType");
 
@@ -491,7 +618,7 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
         if ("subprocess".equals(nodeType)) {
             String subProcessKey = node.getStr("subProcessKey");
             if (subProcessKey != null) {
-                createSubprocess(instance, subProcessKey, nodeIndex);
+                createSubprocess(instance, subProcessKey, runtimeIndex);
                 return;
             }
         }
@@ -533,7 +660,7 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
             // Create a logical parent task (placeholder) for grouping
             WfTask parentTask = new WfTask();
             parentTask.setInstanceId(instance.getId());
-            parentTask.setNodeId((long) nodeIndex);
+            parentTask.setNodeId((long) runtimeIndex);
             parentTask.setNodeName(nodeName);
             parentTask.setAssigneeId(allAssigneeIds.get(0));
             parentTask.setStatus("0");
@@ -552,7 +679,7 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
             for (Long assigneeId : allAssigneeIds) {
                 WfTask childTask = new WfTask();
                 childTask.setInstanceId(instance.getId());
-                childTask.setNodeId((long) nodeIndex);
+                childTask.setNodeId((long) runtimeIndex);
                 childTask.setNodeName(nodeName);
                 childTask.setAssigneeId(assigneeId);
                 childTask.setStatus("0");
@@ -582,7 +709,7 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
             // Single approver
             WfTask task = new WfTask();
             task.setInstanceId(instance.getId());
-            task.setNodeId((long) nodeIndex);
+            task.setNodeId((long) runtimeIndex);
             task.setNodeName(nodeName);
             task.setAssigneeId(primaryAssigneeId);
             task.setStatus("0");
@@ -605,8 +732,8 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
     }
 
     /**
-     * Convert either legacy flat node JSON or schemaVersion=2 graph JSON into the
-     * flat approval-node list consumed by the runtime engine.
+     * Convert schemaVersion=2 graph JSON into the executable approval-node list
+     * consumed by the runtime engine.
      */
     private JSONArray materializeExecutableNodes(WfProcessDefinition definition,
                                                  WfProcessInstance instance,
@@ -622,13 +749,13 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
         }
 
         WorkflowGraph graph = parseNodeConfig(nodeConfig);
-        if (graph.isGraph() && graph.valid) {
-            return materializeGraphToFlatPath(graph, conditionContext);
+        if (!graph.isGraph() || !graph.valid) {
+            throw new BusinessException("流程定义必须使用 schemaVersion=2 图配置: " + graph.errors);
         }
-        return JSONUtil.parseArray(nodeConfig);
+        return materializeGraphToRuntimePath(graph, conditionContext);
     }
 
-    private int getLegacyNodeIndex(WfTask task) {
+    private int runtimeIndex(WfTask task) {
         return task.getNodeId() == null ? -1 : task.getNodeId().intValue();
     }
 
@@ -854,11 +981,16 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
     }
 
     private boolean isAdminUser(Long empId) {
+        if (empId == null) {
+            return false;
+        }
         List<SysEmpRole> empRoles = empRoleMapper.selectList(
                 new LambdaQueryWrapper<SysEmpRole>().eq(SysEmpRole::getEmpId, empId));
-        if (empRoles.isEmpty()) return false;
+        if (empRoles == null || empRoles.isEmpty()) return false;
         List<Long> roleIds = empRoles.stream().map(SysEmpRole::getRoleId).collect(Collectors.toList());
+        if (roleIds.isEmpty()) return false;
         List<SysRole> roles = roleMapper.selectBatchIds(roleIds);
+        if (roles == null || roles.isEmpty()) return false;
         return roles.stream().anyMatch(r -> "ADMIN".equalsIgnoreCase(r.getRoleKey()));
     }
 
@@ -1034,7 +1166,7 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
 
         int currentApplicableIndex = -1;
         for (int i = 0; i < applicableNodes.size(); i++) {
-            if (applicableNodes.get(i).getInt("nodeIndex", -1) == getLegacyNodeIndex(task)) {
+            if (applicableNodes.get(i).getInt("runtimeIndex", -1) == runtimeIndex(task)) {
                 currentApplicableIndex = i;
                 break;
             }
@@ -1042,7 +1174,7 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
 
         if (currentApplicableIndex >= 0 && currentApplicableIndex + 1 < applicableNodes.size()) {
             JSONObject nextNode = applicableNodes.get(currentApplicableIndex + 1);
-            int nextIdx = nextNode.getInt("nodeIndex", currentApplicableIndex + 1);
+            int nextIdx = nextNode.getInt("runtimeIndex", currentApplicableIndex + 1);
             instance.setCurrentNode(nextIdx);
             instanceMapper.updateById(instance);
             createTaskForNode(instance, nextNode, nextIdx);
@@ -1073,6 +1205,15 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
         if (instance == null) {
             log.warn("findPendingTask: no instance found for businessType={}, businessId={}", businessType, businessId);
             return null;
+        }
+
+        if (isAdminUser(assigneeId)) {
+            WfTask adminTask = findAnyPendingTask(instance.getId());
+            if (adminTask != null) {
+                log.debug("findPendingTask: admin match taskId={} for businessType={}, businessId={}",
+                        adminTask.getId(), businessType, businessId);
+                return adminTask;
+            }
         }
 
         // 1. Direct match: task assigned to this user
@@ -1139,6 +1280,15 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
         // 5. No matching task found for this user
         log.debug("findPendingTask: no pending task found for businessType={}, businessId={}, assigneeId={}", businessType, businessId, assigneeId);
         return null;
+    }
+
+    private WfTask findAnyPendingTask(Long instanceId) {
+        LambdaQueryWrapper<WfTask> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(WfTask::getInstanceId, instanceId)
+                .eq(WfTask::getStatus, "0")
+                .orderByAsc(WfTask::getCreateTime)
+                .last("LIMIT 1");
+        return taskMapper.selectOne(wrapper);
     }
 
     /**
@@ -1384,7 +1534,7 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
         // Find the target node config
         JSONObject targetNode = null;
         for (JSONObject node : applicableNodes) {
-            if (node.getInt("nodeIndex", -1) == targetNodeIndex) {
+            if (node.getInt("runtimeIndex", -1) == targetNodeIndex) {
                 targetNode = node;
                 break;
             }
@@ -1438,15 +1588,10 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
         Map<String, Object> ctx = buildPreviewContext(businessType, businessId, initiatorId);
         WorkflowGraph graph = parseNodeConfig(definition.getNodeConfig());
         if (!graph.isGraph() || !graph.valid) {
-            // Flat: return as-is
-            try {
-                return JSONUtil.parseArray(definition.getNodeConfig()).toList(JSONObject.class);
-            } catch (Exception e) {
-                return java.util.Collections.emptyList();
-            }
+            return java.util.Collections.emptyList();
         }
-        JSONArray flat = materializeGraphToFlatPath(graph, ctx);
-        return flat.toList(JSONObject.class);
+        JSONArray path = materializeGraphToRuntimePath(graph, ctx);
+        return path.toList(JSONObject.class);
     }
 
     /**
@@ -1498,73 +1643,7 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
         return ctx;
     }
 
-    // --- Graph-based flow support ---
-
-    /**
-     * Detect if node config is graph format (has "nodes" and "edges") vs legacy flat array.
-     */
-    private boolean isGraphFormat(String nodeConfig) {
-        if (nodeConfig == null) return false;
-        String trimmed = nodeConfig.trim();
-        return trimmed.startsWith("{\"nodes\"");
-    }
-
-    /**
-     * Parse graph-format config into a map of nodeId -> node object.
-     */
-    private Map<String, JSONObject> buildNodeMap(JSONObject graphConfig) {
-        JSONArray nodesArr = graphConfig.getJSONArray("nodes");
-        Map<String, JSONObject> map = new LinkedHashMap<>();
-        for (int i = 0; i < nodesArr.size(); i++) {
-            JSONObject node = nodesArr.getJSONObject(i);
-            map.put(node.getStr("nodeId"), node);
-        }
-        return map;
-    }
-
-    /**
-     * Get outgoing edges from a node.
-     */
-    private List<JSONObject> getOutgoingEdges(JSONObject graphConfig, String nodeId) {
-        JSONArray edges = graphConfig.getJSONArray("edges");
-        List<JSONObject> result = new ArrayList<>();
-        for (int i = 0; i < edges.size(); i++) {
-            JSONObject edge = edges.getJSONObject(i);
-            if (nodeId.equals(edge.getStr("sourceId"))) {
-                result.add(edge);
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Evaluate edge condition against the process condition context.
-     */
-    private boolean evaluateEdgeCondition(JSONObject edge, Map<String, Object> ctx) {
-        JSONObject condition = edge.getJSONObject("condition");
-        if (condition == null) return true; // no condition = always match
-        if (ctx == null || ctx.isEmpty()) return false;
-
-        String field = condition.getStr("field");
-        String operator = condition.getStr("operator");
-        Object thresholdObj = condition.get("value");
-        Object rawVal = ctx.get(field);
-        if (rawVal == null || thresholdObj == null) return false;
-
-        double actual = ((Number) rawVal).doubleValue();
-        double threshold = ((Number) thresholdObj).doubleValue();
-        switch (operator) {
-            case "<=": return actual <= threshold;
-            case "<":  return actual < threshold;
-            case ">=": return actual >= threshold;
-            case ">":  return actual > threshold;
-            case "==": return actual == threshold;
-            case "!=": return actual != threshold;
-            default: return false;
-        }
-    }
-
-    private void createSubprocess(WfProcessInstance parentInstance, String subProcessKey, int nodeIndex) {
+    private void createSubprocess(WfProcessInstance parentInstance, String subProcessKey, int runtimeIndex) {
         // Find the subprocess definition        // Find the subprocess definition
         LambdaQueryWrapper<WfProcessDefinition> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(WfProcessDefinition::getProcessType, subProcessKey)
@@ -1616,10 +1695,10 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
         // Find the subprocess node and advance to the next node
         int subprocessNodeIndex = parent.getCurrentNode();
         for (int i = 0; i < applicableNodes.size(); i++) {
-            if (applicableNodes.get(i).getInt("nodeIndex", -1) == subprocessNodeIndex) {
+            if (applicableNodes.get(i).getInt("runtimeIndex", -1) == subprocessNodeIndex) {
                 if (i + 1 < applicableNodes.size()) {
                     JSONObject nextNode = applicableNodes.get(i + 1);
-                    int nextIdx = nextNode.getInt("nodeIndex", i + 1);
+                    int nextIdx = nextNode.getInt("runtimeIndex", i + 1);
                     parent.setCurrentNode(nextIdx);
                     instanceMapper.updateById(parent);
                     createTaskForNode(parent, nextNode, nextIdx);
@@ -1636,16 +1715,14 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
     }
 
     // ====================================================================
-    // V1010: Graph-format workflow definitions (schemaVersion=2).
+    // Graph-format workflow definitions (schemaVersion=2).
     //
     // WorkflowGraph is a parsed view of a graph-format nodeConfig that exposes:
     //   - nodeId -> node object lookup
     //   - outgoing edges per nodeId
     //   - entry (start) and exit (end) nodes
     //
-    // The graph path is opt-in: a definition without schemaVersion=2 is still
-    // treated as a flat JSONArray (legacy). Use parseNodeConfig() as the single
-    // entry point for callers that need graph traversal.
+    // parseNodeConfig is the single entry point. Non-v2 definitions are invalid.
     // ====================================================================
 
     /** Parsed graph view of a graph-format nodeConfig. */
@@ -1690,13 +1767,13 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
      * Walk the graph from the start node following routing rules + edges,
      * collecting every approval node the workflow will visit given the
      * current condition context. Returns a JSONArray of node objects with
-     * {@code nodeIndex} rewritten in visit order (0, 1, 2, ...).
+     * {@code runtimeIndex} set in visit order (0, 1, 2, ...).
      *
      * <p>Stops at the first end node or when the next nodeId is null / cyclic.
      * Gateway nodes are visited but not included in the output (they are
      * routing logic, not approval work).
      */
-    private JSONArray materializeGraphToFlatPath(WorkflowGraph graph, Map<String, Object> ctx) {
+    private JSONArray materializeGraphToRuntimePath(WorkflowGraph graph, Map<String, Object> ctx) {
         JSONArray out = new JSONArray();
         if (graph == null || !graph.valid) return out;
 
@@ -1719,20 +1796,20 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
             String type = current.getStr("nodeType");
 
             if ("approval".equals(type)) {
-                JSONObject flat = new JSONObject();
-                flat.set("nodeIndex", outIndex++);
-                flat.set("nodeId", currentId);
-                flat.set("nodeName", current.getStr("nodeName", current.getStr("name")));
-                flat.set("nodeType", "approval");
-                flat.set("assigneeType", current.getStr("assigneeType"));
-                flat.set("assigneeValue", current.getStr("assigneeValue"));
-                flat.set("multiType", current.getStr("multiType"));
-                flat.set("multiAssigneeIds", current.getJSONArray("multiAssigneeIds"));
-                flat.set("conditions", current.getJSONArray("conditions"));
-                flat.set("ccList", current.getJSONArray("ccList"));
-                flat.set("timeoutHours", current.getInt("timeoutHours", 0));
-                flat.set("timeoutAction", current.getStr("timeoutAction", "notify_only"));
-                out.add(flat);
+                JSONObject pathNode = new JSONObject();
+                pathNode.set("runtimeIndex", outIndex++);
+                pathNode.set("nodeId", currentId);
+                pathNode.set("nodeName", current.getStr("nodeName", current.getStr("name")));
+                pathNode.set("nodeType", "approval");
+                pathNode.set("assigneeType", current.getStr("assigneeType"));
+                pathNode.set("assigneeValue", current.getStr("assigneeValue"));
+                pathNode.set("multiType", current.getStr("multiType"));
+                pathNode.set("multiAssigneeIds", current.getJSONArray("multiAssigneeIds"));
+                pathNode.set("conditions", current.getJSONArray("conditions"));
+                pathNode.set("ccList", current.getJSONArray("ccList"));
+                pathNode.set("timeoutHours", current.getInt("timeoutHours", 0));
+                pathNode.set("timeoutAction", current.getStr("timeoutAction", "notify_only"));
+                out.add(pathNode);
             } else if ("end".equals(type)) {
                 break;
             }
@@ -1743,30 +1820,20 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
     }
 
     /**
-     * Parse a nodeConfig string into a WorkflowGraph. The string may be either
-     * legacy flat JSONArray (returns a graph with schemaVersion=1 and empty
-     * edges/nodes maps) or graph format (schemaVersion=2). Validation is
-     * performed during parsing; check {@link WorkflowGraph#valid} before use.
+     * Parse a schemaVersion=2 nodeConfig string into a WorkflowGraph. Validation
+     * is performed during parsing; check {@link WorkflowGraph#valid} before use.
      */
     public WorkflowGraph parseNodeConfig(String nodeConfig) {
         if (nodeConfig == null || nodeConfig.isBlank()) {
-            return new WorkflowGraph(1, new LinkedHashMap<>(), new LinkedHashMap<>(), new ArrayList<>(),
+            return new WorkflowGraph(2, new LinkedHashMap<>(), new LinkedHashMap<>(), new ArrayList<>(),
                     java.util.Collections.singletonList(new ValidationError("empty", null, "nodeConfig 为空")));
         }
 
         String trimmed = nodeConfig.trim();
-        // Legacy flat array
         if (!trimmed.startsWith("{")) {
-            // Validate parseability
-            try {
-                JSONUtil.parseArray(trimmed);
-            } catch (Exception e) {
-                return new WorkflowGraph(1, new LinkedHashMap<>(), new LinkedHashMap<>(), new ArrayList<>(),
-                        java.util.Collections.singletonList(new ValidationError("parse_error", null, "扁平格式 JSON 解析失败: " + e.getMessage())));
-            }
-            return new WorkflowGraph(1, new LinkedHashMap<>(), new LinkedHashMap<>(), new ArrayList<>(), new ArrayList<>());
+            return new WorkflowGraph(0, new LinkedHashMap<>(), new LinkedHashMap<>(), new ArrayList<>(),
+                    java.util.Collections.singletonList(new ValidationError("schema_v2_required", null, "流程定义必须是 schemaVersion=2 图 JSON")));
         }
-
         // Graph format
         JSONObject config;
         try {
@@ -1775,7 +1842,7 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
             return new WorkflowGraph(2, new LinkedHashMap<>(), new LinkedHashMap<>(), new ArrayList<>(),
                     java.util.Collections.singletonList(new ValidationError("parse_error", null, "图格式 JSON 解析失败: " + e.getMessage())));
         }
-        int schemaVersion = config.getInt("schemaVersion", 2);
+        int schemaVersion = config.getInt("schemaVersion", 0);
         JSONArray nodesArr = config.getJSONArray("nodes");
         JSONArray edgesArr = config.getJSONArray("edges");
 
@@ -1783,6 +1850,10 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
         Map<String, List<JSONObject>> outgoing = new LinkedHashMap<>();
         List<JSONObject> edges = new ArrayList<>();
         List<ValidationError> errors = new ArrayList<>();
+
+        if (schemaVersion != 2) {
+            errors.add(new ValidationError("schema_v2_required", null, "流程定义必须声明 schemaVersion=2"));
+        }
 
         if (nodesArr == null) {
             errors.add(new ValidationError("no_nodes", null, "图格式缺少 nodes 数组"));
@@ -1924,6 +1995,30 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
         return null;
     }
 
+    private boolean evaluateEdgeCondition(JSONObject edge, Map<String, Object> ctx) {
+        JSONObject condition = edge.getJSONObject("condition");
+        if (condition == null) return true;
+        if (ctx == null || ctx.isEmpty()) return false;
+
+        String field = condition.getStr("field");
+        String operator = condition.getStr("operator");
+        Object thresholdObj = condition.get("value");
+        Object rawVal = ctx.get(field);
+        if (rawVal == null || thresholdObj == null) return false;
+
+        double actual = ((Number) rawVal).doubleValue();
+        double threshold = ((Number) thresholdObj).doubleValue();
+        switch (operator) {
+            case "<=": return actual <= threshold;
+            case "<": return actual < threshold;
+            case ">=": return actual >= threshold;
+            case ">": return actual > threshold;
+            case "==": return actual == threshold;
+            case "!=": return actual != threshold;
+            default: return false;
+        }
+    }
+
     /**
      * Evaluate a routing rule against the condition context. The rule format is:
      *   { "when": "context.amount > 1000", "skipTo": "n_finance", "jumpTo": "n_gm" }
@@ -1998,13 +2093,13 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
         return parts;
     }
 
-    /** Resolve a flat field ("amount") or legacy path ("context.amount") in the ctx map. */
+    /** Resolve a direct field ("amount") or context path ("context.amount") in the ctx map. */
     private Object resolveContextPath(String path, Map<String, Object> ctx) {
         if (path == null || ctx == null) return null;
         if (ctx.containsKey(path)) return ctx.get(path);
         if (path.startsWith("context.")) {
-            String flatKey = path.substring("context.".length());
-            if (ctx.containsKey(flatKey)) return ctx.get(flatKey);
+            String contextKey = path.substring("context.".length());
+            if (ctx.containsKey(contextKey)) return ctx.get(contextKey);
         }
         String[] parts = path.split("\\.");
         Object cur = ctx;

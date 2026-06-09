@@ -1,8 +1,6 @@
 package cn.oa.service.impl;
 
-import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
-import cn.hutool.json.JSONUtil;
 import cn.oa.entity.WfProcessDefinition;
 import cn.oa.entity.WfProcessInstance;
 import cn.oa.entity.WfTask;
@@ -100,28 +98,17 @@ public class TaskReminderScheduler {
         WfProcessDefinition definition = workflowService.getById(instance.getProcessId());
         if (definition == null || definition.getNodeConfig() == null) return "notify_only";
 
-        // V1010: support both flat array and graph-format nodeConfig.
         String nodeConfig = definition.getNodeConfig();
         String targetNodeId = task.getNodeId() == null ? null : String.valueOf(task.getNodeId());
-        int legacyNodeIndex = task.getNodeId() == null ? -1 : task.getNodeId().intValue();
+        int runtimeIndex = task.getNodeId() == null ? -1 : task.getNodeId().intValue();
 
-        // Try graph format first
         cn.oa.service.impl.WorkflowServiceImpl.WorkflowGraph graph = workflowService.parseNodeConfig(nodeConfig);
         if (graph.isGraph() && graph.valid) {
-            JSONObject graphNode = findGraphNodeForRuntimeTask(graph, legacyNodeIndex);
+            JSONObject graphNode = findGraphNodeForRuntimeTask(graph, runtimeIndex);
             if (graphNode != null) return graphNode.getStr("timeoutAction", "notify_only");
             String id = targetNodeId;
             if (id != null && graph.nodes.containsKey(id)) return graph.nodes.get(id).getStr("timeoutAction", "notify_only");
             return "notify_only";
-        }
-
-        // Legacy flat array
-        JSONArray nodes = JSONUtil.parseArray(nodeConfig);
-        for (int i = 0; i < nodes.size(); i++) {
-            JSONObject node = nodes.getJSONObject(i);
-            if (node.getInt("nodeIndex", -1) == legacyNodeIndex) {
-                return node.getStr("timeoutAction", "notify_only");
-            }
         }
         return "notify_only";
     }
@@ -205,7 +192,7 @@ public class TaskReminderScheduler {
                 task.getId(), task.getAssigneeId(), newAssigneeId, currentEscalations + 1);
     }
 
-    /** Locate the node config object for a given task. Supports both flat and graph formats. */
+    /** Locate the schemaVersion=2 graph node config object for a given task. */
     private JSONObject findNodeForTask(WfProcessDefinition definition, WfTask task) {
         String nodeConfig = definition.getNodeConfig();
         if (nodeConfig == null) return null;
@@ -216,14 +203,6 @@ public class TaskReminderScheduler {
             JSONObject graphNode = findGraphNodeForRuntimeTask(graph, task.getNodeId() == null ? -1 : task.getNodeId().intValue());
             if (graphNode != null) return graphNode;
             return nodeId == null ? null : graph.nodes.get(nodeId);
-        }
-
-        // Flat format
-        JSONArray nodes = JSONUtil.parseArray(nodeConfig);
-        int legacyIndex = task.getNodeId() == null ? -1 : task.getNodeId().intValue();
-        for (int i = 0; i < nodes.size(); i++) {
-            JSONObject n = nodes.getJSONObject(i);
-            if (n.getInt("nodeIndex", -1) == legacyIndex) return n;
         }
         return null;
     }

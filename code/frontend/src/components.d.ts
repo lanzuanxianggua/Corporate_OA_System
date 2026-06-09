@@ -63,7 +63,6 @@ declare module 'vue' {
     FlowDesigner: typeof import('./components/flow-designer/FlowDesigner.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
-    WorkflowDesigner: typeof import('./components/WorkflowDesigner.vue')['default']
   }
   export interface ComponentCustomProperties {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']

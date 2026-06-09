@@ -40,7 +40,7 @@ public final class RoleLevel {
 
     /**
      * Map a role key (e.g. {@code "DEPT_MANAGER"}) to its numeric level.
-     * Returns {@link #USER} for unknown keys so legacy / custom roles still resolve.
+     * Returns {@link #USER} for unknown keys so custom roles still resolve.
      */
     public static int of(String roleKey) {
         if (roleKey == null) return USER;

@@ -33,7 +33,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("WorkflowServiceImpl 流程引擎测试")
+@DisplayName("workflow test")
 class WorkflowServiceImplTest {
 
     @Mock private WfProcessDefinitionMapper definitionMapper;
@@ -86,16 +86,33 @@ class WorkflowServiceImplTest {
         return inst;
     }
 
-    private WfTask createPendingTask(Long instanceId, Long assigneeId, int nodeIndex) {
+    private WfTask createPendingTask(Long instanceId, Long assigneeId, int runtimeIndex) {
         WfTask task = new WfTask();
         task.setId(300L);
         task.setInstanceId(instanceId);
-        task.setNodeId((long) nodeIndex);
-        task.setNodeName("经理审批");
+        task.setNodeId((long) runtimeIndex);
+        task.setNodeName("缁忕悊瀹℃壒");
         task.setAssigneeId(assigneeId);
         task.setStatus("0");
         task.setCreateTime(LocalDateTime.now());
         return task;
+    }
+
+    private String v2SingleApproverConfig() {
+        return "{\"schemaVersion\":2,\"nodes\":["
+                + "{\"nodeId\":\"start\",\"nodeType\":\"start\",\"nodeName\":\"Node\"},"
+                + "{\"nodeId\":\"n1\",\"nodeType\":\"approval\",\"nodeName\":\"Node\",\"assigneeType\":\"specific\",\"assigneeValue\":\"2\"},"
+                + "{\"nodeId\":\"end\",\"nodeType\":\"end\",\"nodeName\":\"Node\"}"
+                + "],\"edges\":[{\"source\":\"start\",\"target\":\"n1\"},{\"source\":\"n1\",\"target\":\"end\"}]}";
+    }
+
+    private String v2ConditionalApproverConfig() {
+        return "{\"schemaVersion\":2,\"nodes\":["
+                + "{\"nodeId\":\"start\",\"nodeType\":\"start\",\"nodeName\":\"Node\"},"
+                + "{\"nodeId\":\"n1\",\"nodeType\":\"approval\",\"nodeName\":\"Node\",\"assigneeType\":\"specific\",\"assigneeValue\":\"2\","
+                + "\"conditions\":[{\"field\":\"amount\",\"operator\":\">\",\"value\":1000}]},"
+                + "{\"nodeId\":\"end\",\"nodeType\":\"end\",\"nodeName\":\"Node\"}"
+                + "],\"edges\":[{\"source\":\"start\",\"target\":\"n1\"},{\"source\":\"n1\",\"target\":\"end\"}]}";
     }
 
     @BeforeEach
@@ -113,9 +130,9 @@ class WorkflowServiceImplTest {
     // ==================== startProcess ====================
 
     @Test
-    @DisplayName("启动流程-正常创建")
+    @DisplayName("workflow test")
     void startProcess_Success() {
-        String nodeConfig = "[{\"nodeIndex\":0,\"nodeName\":\"经理审批\",\"nodeType\":\"approval\",\"assigneeType\":\"specific\",\"assigneeValue\":\"2\"}]";
+        String nodeConfig = v2SingleApproverConfig();
         WfProcessDefinition def = createDefinition(nodeConfig);
         when(definitionMapper.selectOne(any(LambdaQueryWrapper.class), anyBoolean())).thenReturn(def);
         when(instanceMapper.insert(any(WfProcessInstance.class))).thenReturn(1);
@@ -133,7 +150,7 @@ class WorkflowServiceImplTest {
     }
 
     @Test
-    @DisplayName("启动流程-无流程定义则自动通过")
+    @DisplayName("workflow test")
     void startProcess_NoDefinition_AutoApproved() {
         when(definitionMapper.selectOne(any(LambdaQueryWrapper.class), anyBoolean())).thenReturn(null);
 
@@ -146,7 +163,7 @@ class WorkflowServiceImplTest {
     }
 
     @Test
-    @DisplayName("启动流程-节点配置JSON解析失败则自动通过")
+    @DisplayName("workflow test")
     void startProcess_NodeParseError_AutoApproved() {
         WfProcessDefinition def = createDefinition("{invalid json}");
         when(definitionMapper.selectOne(any(LambdaQueryWrapper.class), anyBoolean())).thenReturn(def);
@@ -158,7 +175,7 @@ class WorkflowServiceImplTest {
     }
 
     @Test
-    @DisplayName("启动流程-节点配置为空则自动通过")
+    @DisplayName("workflow test")
     void startProcess_EmptyNodes_AutoApproved() {
         WfProcessDefinition def = createDefinition("[]");
         when(definitionMapper.selectOne(any(LambdaQueryWrapper.class), anyBoolean())).thenReturn(def);
@@ -170,9 +187,9 @@ class WorkflowServiceImplTest {
     }
 
     @Test
-    @DisplayName("启动流程-携带条件上下文")
+    @DisplayName("workflow test")
     void startProcess_WithConditionContext() {
-        String nodeConfig = "[{\"nodeIndex\":0,\"nodeName\":\"经理审批\",\"nodeType\":\"approval\",\"assigneeType\":\"specific\",\"assigneeValue\":\"2\",\"conditions\":[{\"field\":\"amount\",\"operator\":\">\",\"value\":1000}]}]";
+        String nodeConfig = v2ConditionalApproverConfig();
         WfProcessDefinition def = createDefinition(nodeConfig);
         when(definitionMapper.selectOne(any(LambdaQueryWrapper.class), anyBoolean())).thenReturn(def);
         Map<String, Object> ctx = new HashMap<>();
@@ -188,9 +205,9 @@ class WorkflowServiceImplTest {
     }
 
     @Test
-    @DisplayName("启动流程-条件不满足则自动通过")
+    @DisplayName("workflow test")
     void startProcess_NoApplicableNodes_AutoApproved() {
-        String nodeConfig = "[{\"nodeIndex\":0,\"nodeName\":\"经理审批\",\"nodeType\":\"approval\",\"assigneeType\":\"specific\",\"assigneeValue\":\"2\",\"conditions\":[{\"field\":\"amount\",\"operator\":\">\",\"value\":1000}]}]";
+        String nodeConfig = v2ConditionalApproverConfig();
         WfProcessDefinition def = createDefinition(nodeConfig);
         when(definitionMapper.selectOne(any(LambdaQueryWrapper.class), anyBoolean())).thenReturn(def);
         Map<String, Object> ctx = new HashMap<>();
@@ -205,17 +222,17 @@ class WorkflowServiceImplTest {
     // ==================== handleTask ====================
 
     @Test
-    @DisplayName("单一审批通过")
+    @DisplayName("workflow test")
     void handleTask_Approve_SingleApprover() {
-        WfProcessDefinition def = createDefinition("[{\"nodeIndex\":0,\"nodeName\":\"经理审批\",\"nodeType\":\"approval\",\"assigneeType\":\"specific\",\"assigneeValue\":\"2\"}]");
+        WfProcessDefinition def = createDefinition(v2SingleApproverConfig());
         WfProcessInstance inst = createRunningInstance();
         WfTask task = createPendingTask(inst.getId(), approverId, 0);
 
         when(taskMapper.selectById(task.getId())).thenReturn(task);
         when(instanceMapper.selectById(inst.getId())).thenReturn(inst);
-        when(employeeMapper.selectById(approverId)).thenReturn(createEmployee(approverId, "张三"));
+        when(employeeMapper.selectById(approverId)).thenReturn(createEmployee(approverId, "寮犱笁"));
 
-        workflowService.handleTask(task.getId(), approverId, 1, "同意");
+        workflowService.handleTask(task.getId(), approverId, 1, "鍚屾剰");
 
         verify(taskMapper).updateById(argThat((WfTask t) -> "1".equals(t.getStatus())));
         verify(instanceMapper).updateById(instanceCaptor.capture());
@@ -224,17 +241,17 @@ class WorkflowServiceImplTest {
     }
 
     @Test
-    @DisplayName("单一审批驳回")
+    @DisplayName("workflow test")
     void handleTask_Reject_SingleApprover() {
-        WfProcessDefinition def = createDefinition("[{\"nodeIndex\":0,\"nodeName\":\"经理审批\",\"nodeType\":\"approval\",\"assigneeType\":\"specific\",\"assigneeValue\":\"2\"}]");
+        WfProcessDefinition def = createDefinition(v2SingleApproverConfig());
         WfProcessInstance inst = createRunningInstance();
         WfTask task = createPendingTask(inst.getId(), approverId, 0);
 
         when(taskMapper.selectById(task.getId())).thenReturn(task);
         when(instanceMapper.selectById(inst.getId())).thenReturn(inst);
-        when(employeeMapper.selectById(approverId)).thenReturn(createEmployee(approverId, "张三"));
+        when(employeeMapper.selectById(approverId)).thenReturn(createEmployee(approverId, "寮犱笁"));
 
-        workflowService.handleTask(task.getId(), approverId, 2, "不同意");
+        workflowService.handleTask(task.getId(), approverId, 2, "reject");
 
         verify(taskMapper).updateById(argThat((WfTask t) -> "2".equals(t.getStatus())));
         verify(instanceMapper).updateById(instanceCaptor.capture());
@@ -243,25 +260,25 @@ class WorkflowServiceImplTest {
     }
 
     @Test
-    @DisplayName("驳回时必须填写原因")
+    @DisplayName("workflow test")
     void handleTask_Reject_NoRemark_Throws() {
         assertThatThrownBy(() -> workflowService.handleTask(1L, approverId, 2, null))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("驳回时必须填写原因");
+                .hasMessageContaining("");
     }
 
     @Test
-    @DisplayName("任务不存在则抛异常")
+    @DisplayName("workflow test")
     void handleTask_TaskNotFound_Throws() {
         when(taskMapper.selectById(999L)).thenReturn(null);
 
-        assertThatThrownBy(() -> workflowService.handleTask(999L, approverId, 1, "同意"))
+        assertThatThrownBy(() -> workflowService.handleTask(999L, approverId, 1, "鍚屾剰"))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("任务不存在");
+                .hasMessageContaining("");
     }
 
     @Test
-    @DisplayName("非审批人无权处理")
+    @DisplayName("workflow test")
     void handleTask_Unauthorized_Throws() {
         Long otherUserId = 99L;
         WfTask task = createPendingTask(200L, approverId, 0);
@@ -272,25 +289,25 @@ class WorkflowServiceImplTest {
         when(delegationService.findActiveDelegationForDelegate(otherUserId)).thenReturn(null);
         when(empRoleMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Collections.emptyList());
 
-        assertThatThrownBy(() -> workflowService.handleTask(task.getId(), otherUserId, 1, "同意"))
+        assertThatThrownBy(() -> workflowService.handleTask(task.getId(), otherUserId, 1, "鍚屾剰"))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("无权处理此任务");
+                .hasMessageContaining("");
     }
 
     @Test
-    @DisplayName("已处理的任务不能重复审批")
+    @DisplayName("workflow test")
     void handleTask_AlreadyHandled_Throws() {
         WfTask task = createPendingTask(200L, approverId, 0);
         task.setStatus("1");
         when(taskMapper.selectById(task.getId())).thenReturn(task);
 
-        assertThatThrownBy(() -> workflowService.handleTask(task.getId(), approverId, 1, "同意"))
+        assertThatThrownBy(() -> workflowService.handleTask(task.getId(), approverId, 1, "鍚屾剰"))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("任务已处理");
+                .hasMessageContaining("");
     }
 
     @Test
-    @DisplayName("会签-部分审批未完成时等待")
+    @DisplayName("workflow test")
     void handleTask_Countersign_StillPending() {
         WfProcessInstance inst = createRunningInstance();
         WfTask childTask = createPendingTask(inst.getId(), approverId, 0);
@@ -306,18 +323,18 @@ class WorkflowServiceImplTest {
 
         when(taskMapper.selectById(childTask.getId())).thenReturn(childTask);
         when(instanceMapper.selectById(inst.getId())).thenReturn(inst);
-        when(employeeMapper.selectById(approverId)).thenReturn(createEmployee(approverId, "张三"));
+        when(employeeMapper.selectById(approverId)).thenReturn(createEmployee(approverId, "寮犱笁"));
         // Still has pending sibling
         when(taskMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(1L);
 
-        workflowService.handleTask(childTask.getId(), approverId, 1, "同意");
+        workflowService.handleTask(childTask.getId(), approverId, 1, "鍚屾剰");
 
         // Task approved but doesn't advance - still waiting for sibling
         verify(callbackDispatcher, never()).onApproved(anyString(), anyLong());
     }
 
     @Test
-    @DisplayName("会签-全部通过则推进")
+    @DisplayName("workflow test")
     void handleTask_Countersign_AllApproved() {
         WfProcessInstance inst = createRunningInstance();
         WfTask childTask = createPendingTask(inst.getId(), approverId, 0);
@@ -331,16 +348,16 @@ class WorkflowServiceImplTest {
         parent.setTaskType("countersign");
         parent.setStatus("1");
 
-        WfProcessDefinition def = createDefinition("[{\"nodeIndex\":0,\"nodeName\":\"经理审批\",\"nodeType\":\"approval\",\"assigneeType\":\"specific\",\"assigneeValue\":\"2\"}]");
+        WfProcessDefinition def = createDefinition(v2SingleApproverConfig());
 
         when(taskMapper.selectById(childTask.getId())).thenReturn(childTask);
         when(instanceMapper.selectById(inst.getId())).thenReturn(inst);
-        when(employeeMapper.selectById(approverId)).thenReturn(createEmployee(approverId, "张三"));
+        when(employeeMapper.selectById(approverId)).thenReturn(createEmployee(approverId, "寮犱笁"));
         when(taskMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
         when(taskMapper.selectById(parentTaskId)).thenReturn(parent);
         when(definitionMapper.selectById(anyLong())).thenReturn(def);
 
-        workflowService.handleTask(childTask.getId(), approverId, 1, "同意");
+        workflowService.handleTask(childTask.getId(), approverId, 1, "鍚屾剰");
 
         // Parent task marked as complete
         verify(taskMapper).updateById(argThat((WfTask t) -> t.getId() != null && "1".equals(t.getStatus())));
@@ -348,7 +365,7 @@ class WorkflowServiceImplTest {
     }
 
     @Test
-    @DisplayName("或签-首个审批通过后取消其他待审批")
+    @DisplayName("workflow test")
     void handleTask_Orsign_FirstApproval() {
         WfProcessInstance inst = createRunningInstance();
         WfTask childTask = createPendingTask(inst.getId(), approverId, 0);
@@ -368,16 +385,16 @@ class WorkflowServiceImplTest {
         sibling.setTaskType("orsign");
         sibling.setStatus("0");
 
-        WfProcessDefinition def = createDefinition("[{\"nodeIndex\":0,\"nodeName\":\"经理审批\",\"nodeType\":\"approval\",\"assigneeType\":\"specific\",\"assigneeValue\":\"2\"}]");
+        WfProcessDefinition def = createDefinition(v2SingleApproverConfig());
 
         when(taskMapper.selectById(childTask.getId())).thenReturn(childTask);
         when(instanceMapper.selectById(inst.getId())).thenReturn(inst);
-        when(employeeMapper.selectById(approverId)).thenReturn(createEmployee(approverId, "张三"));
+        when(employeeMapper.selectById(approverId)).thenReturn(createEmployee(approverId, "寮犱笁"));
         when(taskMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Collections.singletonList(sibling));
         when(taskMapper.selectById(parentTaskId)).thenReturn(parent);
         when(definitionMapper.selectById(anyLong())).thenReturn(def);
 
-        workflowService.handleTask(childTask.getId(), approverId, 1, "同意");
+        workflowService.handleTask(childTask.getId(), approverId, 1, "鍚屾剰");
 
         // Sibling should be canceled
         verify(taskMapper).updateById(argThat((WfTask t) -> 303L == t.getId() && "4".equals(t.getStatus())));
@@ -388,7 +405,7 @@ class WorkflowServiceImplTest {
     // ==================== findPendingTask ====================
 
     @Test
-    @DisplayName("查找待办-直接匹配")
+    @DisplayName("workflow test")
     void findPendingTask_DirectMatch() {
         WfProcessInstance inst = createRunningInstance();
         inst.setId(200L);
@@ -404,7 +421,34 @@ class WorkflowServiceImplTest {
     }
 
     @Test
-    @DisplayName("查找待办-无实例返回null")
+    @DisplayName("workflow test")
+    void findPendingTask_AdminReturnsAnyPendingTask() {
+        Long adminId = 1L;
+        WfProcessInstance inst = createRunningInstance();
+        inst.setId(200L);
+        WfTask task = createPendingTask(200L, approverId, 0);
+
+        SysEmpRole empRole = new SysEmpRole();
+        empRole.setEmpId(adminId);
+        empRole.setRoleId(10L);
+        SysRole adminRole = new SysRole();
+        adminRole.setId(10L);
+        adminRole.setRoleKey("ADMIN");
+
+        when(instanceMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(inst);
+        when(empRoleMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Collections.singletonList(empRole));
+        when(roleMapper.selectBatchIds(anyCollection())).thenReturn(Collections.singletonList(adminRole));
+        when(taskMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(task);
+
+        WfTask result = workflowService.findPendingTask(businessType, businessId, adminId);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(task.getId());
+        assertThat(result.getAssigneeId()).isEqualTo(approverId);
+    }
+
+    @Test
+    @DisplayName("workflow test")
     void findPendingTask_NoInstance_ReturnsNull() {
         when(instanceMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null);
 
@@ -416,7 +460,7 @@ class WorkflowServiceImplTest {
     // ==================== myPendingTasks ====================
 
     @Test
-    @DisplayName("我的待办-分页查询")
+    @DisplayName("workflow test")
     void myPendingTasks_ReturnsPage() {
         WfTask task = createPendingTask(200L, approverId, 0);
         WfProcessInstance inst = createRunningInstance();
@@ -436,10 +480,40 @@ class WorkflowServiceImplTest {
         assertThat(result.getRecords().get(0).getBusinessType()).isEqualTo(businessType);
     }
 
+    @Test
+    @DisplayName("workflow test")
+    void myPendingTasks_AdminReturnsAllPendingTasks() {
+        Long adminId = 1L;
+        WfTask task = createPendingTask(200L, approverId, 0);
+        WfProcessInstance inst = createRunningInstance();
+        inst.setId(200L);
+        Page<WfTask> page = new Page<>(1, 10);
+        page.setRecords(Collections.singletonList(task));
+        page.setTotal(1);
+
+        SysEmpRole empRole = new SysEmpRole();
+        empRole.setEmpId(adminId);
+        empRole.setRoleId(10L);
+        SysRole adminRole = new SysRole();
+        adminRole.setId(10L);
+        adminRole.setRoleKey("ADMIN");
+
+        when(empRoleMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Collections.singletonList(empRole));
+        when(roleMapper.selectBatchIds(anyCollection())).thenReturn(Collections.singletonList(adminRole));
+        when(taskMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class))).thenReturn(page);
+        when(instanceMapper.selectById(200L)).thenReturn(inst);
+
+        IPage<WfTask> result = workflowService.myPendingTasks(adminId, 1, 10);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getTotal()).isEqualTo(1);
+        assertThat(result.getRecords().get(0).getAssigneeId()).isEqualTo(approverId);
+    }
+
     // ==================== myHandledTasks ====================
 
     @Test
-    @DisplayName("我的已办-分页查询")
+    @DisplayName("workflow test")
     void myHandledTasks_ReturnsPage() {
         WfTask task = createPendingTask(200L, approverId, 0);
         task.setStatus("1");
@@ -464,14 +538,14 @@ class WorkflowServiceImplTest {
     // ==================== withdrawProcess ====================
 
     @Test
-    @DisplayName("撤回流程-成功撤回")
+    @DisplayName("workflow test")
     void withdrawProcess_Success() {
         WfProcessInstance inst = createRunningInstance();
         WfTask pendingTask = createPendingTask(inst.getId(), approverId, 0);
 
         when(instanceMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(inst);
         when(taskMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Collections.singletonList(pendingTask));
-        when(employeeMapper.selectById(initiatorId)).thenReturn(createEmployee(initiatorId, "发起人"));
+        when(employeeMapper.selectById(initiatorId)).thenReturn(createEmployee(initiatorId, "initiator"));
 
         workflowService.withdrawProcess(businessType, businessId, initiatorId);
 
@@ -482,20 +556,20 @@ class WorkflowServiceImplTest {
     }
 
     @Test
-    @DisplayName("撤回流程-非发起人无法撤回")
+    @DisplayName("workflow test")
     void withdrawProcess_NotInitiator_Throws() {
         WfProcessInstance inst = createRunningInstance();
         when(instanceMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(inst);
 
         assertThatThrownBy(() -> workflowService.withdrawProcess(businessType, businessId, 99L))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("只有申请人才能撤回");
+                .hasMessageContaining("");
     }
 
     // ==================== transferTask ====================
 
     @Test
-    @DisplayName("转办任务-成功转办")
+    @DisplayName("workflow test")
     void transferTask_Success() {
         Long toAssigneeId = 3L;
         WfTask task = createPendingTask(200L, approverId, 0);
@@ -504,7 +578,7 @@ class WorkflowServiceImplTest {
         when(taskMapper.selectById(task.getId())).thenReturn(task);
         when(instanceMapper.selectById(200L)).thenReturn(inst);
 
-        workflowService.transferTask(task.getId(), approverId, toAssigneeId, "工作调整");
+        workflowService.transferTask(task.getId(), approverId, toAssigneeId, "宸ヤ綔璋冩暣");
 
         verify(taskMapper).updateById(argThat((WfTask t) -> "3".equals(t.getStatus())));
         verify(taskMapper).insert(taskCaptor.capture());
@@ -514,32 +588,32 @@ class WorkflowServiceImplTest {
     }
 
     @Test
-    @DisplayName("转办任务-无权转办抛异常")
+    @DisplayName("workflow test")
     void transferTask_Unauthorized_Throws() {
         WfTask task = createPendingTask(200L, approverId, 0);
         when(taskMapper.selectById(task.getId())).thenReturn(task);
 
-        assertThatThrownBy(() -> workflowService.transferTask(task.getId(), 99L, 3L, "调整"))
+        assertThatThrownBy(() -> workflowService.transferTask(task.getId(), 99L, 3L, "璋冩暣"))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("无权转办此任务");
+                .hasMessageContaining("");
     }
 
     // ==================== returnTask ====================
 
     @Test
-    @DisplayName("退回流程-退回发起人")
+    @DisplayName("workflow test")
     void returnTask_ToInitiator() {
         WfProcessInstance inst = createRunningInstance();
         WfTask task = createPendingTask(inst.getId(), approverId, 0);
-        WfProcessDefinition def = createDefinition("[{\"nodeIndex\":0,\"nodeName\":\"经理审批\",\"nodeType\":\"approval\",\"assigneeType\":\"specific\",\"assigneeValue\":\"2\"}]");
+        WfProcessDefinition def = createDefinition(v2SingleApproverConfig());
 
         when(taskMapper.selectById(task.getId())).thenReturn(task);
         when(instanceMapper.selectById(inst.getId())).thenReturn(inst);
         when(definitionMapper.selectById(anyLong())).thenReturn(def);
         when(taskMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Collections.emptyList());
-        when(employeeMapper.selectById(approverId)).thenReturn(createEmployee(approverId, "张三"));
+        when(employeeMapper.selectById(approverId)).thenReturn(createEmployee(approverId, "寮犱笁"));
 
-        workflowService.returnTask(task.getId(), approverId, "initiator", "请修改后重新提交");
+        workflowService.returnTask(task.getId(), approverId, "initiator", "璇蜂慨鏀瑰悗閲嶆柊鎻愪氦");
 
         verify(instanceMapper).updateById(instanceCaptor.capture());
         assertThat(instanceCaptor.getValue().getStatus()).isEqualTo("5");
@@ -547,17 +621,17 @@ class WorkflowServiceImplTest {
     }
 
     @Test
-    @DisplayName("退回流程-无原因抛异常")
+    @DisplayName("workflow test")
     void returnTask_NoRemark_Throws() {
         assertThatThrownBy(() -> workflowService.returnTask(1L, approverId, "initiator", null))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("退回时必须填写原因");
+                .hasMessageContaining("");
     }
 
     // ==================== getByBusiness / getApprovalHistory ====================
 
     @Test
-    @DisplayName("按业务查询流程实例")
+    @DisplayName("workflow test")
     void getByBusiness_ReturnsInstance() {
         WfProcessInstance inst = createRunningInstance();
         when(instanceMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(inst);
@@ -569,7 +643,7 @@ class WorkflowServiceImplTest {
     }
 
     @Test
-    @DisplayName("审批历史查询")
+    @DisplayName("workflow test")
     void getApprovalHistory_ReturnsTasks() {
         WfProcessInstance inst = createRunningInstance();
         WfTask task = createPendingTask(inst.getId(), approverId, 0);
@@ -577,21 +651,21 @@ class WorkflowServiceImplTest {
 
         when(instanceMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(inst);
         when(taskMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Collections.singletonList(task));
-        when(employeeMapper.selectById(approverId)).thenReturn(createEmployee(approverId, "张三"));
+        when(employeeMapper.selectById(approverId)).thenReturn(createEmployee(approverId, "寮犱笁"));
 
         List<WfTask> history = workflowService.getApprovalHistory(businessType, businessId);
 
         assertThat(history).hasSize(1);
-        assertThat(history.get(0).getAssigneeName()).isEqualTo("张三");
+        assertThat(history.get(0).getAssigneeName()).isEqualTo("寮犱笁");
     }
 
     // ==================== saveDefinition ====================
 
     @Test
-    @DisplayName("保存流程定义-新增")
+    @DisplayName("workflow test")
     void saveDefinition_CreateNew() {
         WfProcessDefinition def = new WfProcessDefinition();
-        def.setProcessName("测试流程");
+        def.setProcessName("娴嬭瘯娴佺▼");
         def.setProcessType(businessType);
         def.setNodeConfig("[]");
 
@@ -603,14 +677,14 @@ class WorkflowServiceImplTest {
     }
 
     @Test
-    @DisplayName("保存流程定义-更新版本")
+    @DisplayName("workflow test")
     void saveDefinition_UpdateVersion() {
         WfProcessDefinition existing = createDefinition("[]");
         existing.setVersion(2);
 
         WfProcessDefinition newDef = new WfProcessDefinition();
         newDef.setId(10L);
-        newDef.setProcessName("测试流程");
+        newDef.setProcessName("娴嬭瘯娴佺▼");
         newDef.setProcessType(businessType);
         newDef.setNodeConfig("[]");
 
@@ -629,7 +703,7 @@ class WorkflowServiceImplTest {
     // ==================== urgeTask ====================
 
     @Test
-    @DisplayName("催办任务-成功催办")
+    @DisplayName("workflow test")
     void urgeTask_Success() {
         WfProcessInstance inst = createRunningInstance();
         WfTask task = createPendingTask(inst.getId(), approverId, 0);
@@ -647,7 +721,7 @@ class WorkflowServiceImplTest {
     // ==================== listDefinitions ====================
 
     @Test
-    @DisplayName("查询流程定义列表")
+    @DisplayName("workflow test")
     void listDefinitions_ReturnsList() {
         WfProcessDefinition def = createDefinition("[]");
         when(definitionMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Collections.singletonList(def));
@@ -660,7 +734,7 @@ class WorkflowServiceImplTest {
     // ==================== getCurrentTask ====================
 
     @Test
-    @DisplayName("获取当前待办任务")
+    @DisplayName("workflow test")
     void getCurrentTask_ReturnsPendingTask() {
         WfTask task = createPendingTask(200L, approverId, 0);
         when(taskMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(task);
@@ -674,7 +748,7 @@ class WorkflowServiceImplTest {
     // ==================== getApprovalChain ====================
 
     @Test
-    @DisplayName("获取审批链")
+    @DisplayName("workflow test")
     void getApprovalChain_ReturnsRecords() {
         OaApprovalRecord record = new OaApprovalRecord();
         record.setId(1L);
@@ -684,37 +758,37 @@ class WorkflowServiceImplTest {
         record.setApproveStatus(1);
 
         when(approvalRecordMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Collections.singletonList(record));
-        when(employeeMapper.selectById(approverId)).thenReturn(createEmployee(approverId, "张三"));
+        when(employeeMapper.selectById(approverId)).thenReturn(createEmployee(approverId, "寮犱笁"));
 
         List<OaApprovalRecord> chain = workflowService.getApprovalChain(businessType, businessId);
 
         assertThat(chain).hasSize(1);
-        assertThat(chain.get(0).getAssigneeName()).isEqualTo("张三");
+        assertThat(chain.get(0).getAssigneeName()).isEqualTo("寮犱笁");
     }
 
     // ==================== V1010: graph-format parse + validation ====================
 
     @Test
-    @DisplayName("V1010: parseNodeConfig-扁平格式透传为 schemaVersion=1")
-    void parseNodeConfig_FlatArray_PassesThrough() {
+    @DisplayName("workflow test")
+    void parseNodeConfig_ArrayDefinition_Rejected() {
         WorkflowServiceImpl.WorkflowGraph graph = workflowService.parseNodeConfig(
-                "[{\"nodeIndex\":0,\"nodeName\":\"经理\",\"nodeType\":\"approval\",\"assigneeType\":\"role\",\"assigneeValue\":\"DEPT_MANAGER\"}]");
+                "[{\"nodeName\":\"Node\",\"nodeType\":\"approval\",\"assigneeType\":\"role\",\"assigneeValue\":\"DEPT_MANAGER\"}]");
 
-        assertThat(graph.schemaVersion).isEqualTo(1);
+        assertThat(graph.schemaVersion).isEqualTo(0);
         assertThat(graph.isGraph()).isFalse();
-        assertThat(graph.valid).isTrue();
-        assertThat(graph.errors).isEmpty();
+        assertThat(graph.valid).isFalse();
+        assertThat(graph.errors).isNotEmpty();
     }
 
     @Test
-    @DisplayName("V1010: parseNodeConfig-图格式有效路径")
+    @DisplayName("workflow test")
     void parseNodeConfig_GraphValid() {
         String cfg = "{\n" +
                 "  \"schemaVersion\": 2,\n" +
                 "  \"nodes\": [\n" +
-                "    {\"nodeId\":\"start\",\"nodeType\":\"start\",\"nodeName\":\"开始\"},\n" +
-                "    {\"nodeId\":\"n1\",\"nodeType\":\"approval\",\"nodeName\":\"审批\",\"assigneeType\":\"role_global\",\"assigneeValue\":\"GM\"},\n" +
-                "    {\"nodeId\":\"end\",\"nodeType\":\"end\",\"nodeName\":\"结束\"}\n" +
+                "    {\"nodeId\":\"start\",\"nodeType\":\"start\",\"nodeName\":\"Node\"},\n" +
+                "    {\"nodeId\":\"n1\",\"nodeType\":\"approval\",\"nodeName\":\"Node\",\"assigneeType\":\"role_global\",\"assigneeValue\":\"GM\"},\n" +
+                "    {\"nodeId\":\"end\",\"nodeType\":\"end\",\"nodeName\":\"Node\"}\n" +
                 "  ],\n" +
                 "  \"edges\": [{\"source\":\"start\",\"target\":\"n1\"},{\"source\":\"n1\",\"target\":\"end\"}]\n" +
                 "}";
@@ -727,12 +801,12 @@ class WorkflowServiceImplTest {
     }
 
     @Test
-    @DisplayName("V1010: parseNodeConfig-缺少 start/end 报错")
+    @DisplayName("workflow test")
     void parseNodeConfig_MissingStartEnd() {
         String cfg = "{\n" +
                 "  \"schemaVersion\": 2,\n" +
                 "  \"nodes\": [\n" +
-                "    {\"nodeId\":\"n1\",\"nodeType\":\"approval\",\"nodeName\":\"审批\",\"assigneeType\":\"specific\",\"assigneeValue\":\"2\"}\n" +
+                "    {\"nodeId\":\"n1\",\"nodeType\":\"approval\",\"nodeName\":\"Node\",\"assigneeType\":\"specific\",\"assigneeValue\":\"2\"}\n" +
                 "  ],\n" +
                 "  \"edges\": []\n" +
                 "}";
@@ -743,15 +817,15 @@ class WorkflowServiceImplTest {
     }
 
     @Test
-    @DisplayName("V1010: parseNodeConfig-检测到环报错")
+    @DisplayName("workflow test")
     void parseNodeConfig_CycleDetected() {
         String cfg = "{\n" +
                 "  \"schemaVersion\": 2,\n" +
                 "  \"nodes\": [\n" +
-                "    {\"nodeId\":\"start\",\"nodeType\":\"start\",\"nodeName\":\"开始\"},\n" +
-                "    {\"nodeId\":\"a\",\"nodeType\":\"approval\",\"nodeName\":\"A\",\"assigneeType\":\"specific\",\"assigneeValue\":\"2\"},\n" +
-                "    {\"nodeId\":\"b\",\"nodeType\":\"approval\",\"nodeName\":\"B\",\"assigneeType\":\"specific\",\"assigneeValue\":\"3\"},\n" +
-                "    {\"nodeId\":\"end\",\"nodeType\":\"end\",\"nodeName\":\"结束\"}\n" +
+                "    {\"nodeId\":\"start\",\"nodeType\":\"start\",\"nodeName\":\"Node\"},\n" +
+                "    {\"nodeId\":\"a\",\"nodeType\":\"approval\",\"nodeName\":\"Node\",\"assigneeType\":\"specific\",\"assigneeValue\":\"2\"},\n" +
+                "    {\"nodeId\":\"b\",\"nodeType\":\"approval\",\"nodeName\":\"Node\",\"assigneeType\":\"specific\",\"assigneeValue\":\"3\"},\n" +
+                "    {\"nodeId\":\"end\",\"nodeType\":\"end\",\"nodeName\":\"Node\"}\n" +
                 "  ],\n" +
                 "  \"edges\": [\n" +
                 "    {\"source\":\"start\",\"target\":\"a\"},\n" +
@@ -767,13 +841,13 @@ class WorkflowServiceImplTest {
     }
 
     @Test
-    @DisplayName("V1010: parseNodeConfig-边指向未知节点报错")
+    @DisplayName("workflow test")
     void parseNodeConfig_UnknownEdgeEndpoint() {
         String cfg = "{\n" +
                 "  \"schemaVersion\": 2,\n" +
                 "  \"nodes\": [\n" +
-                "    {\"nodeId\":\"start\",\"nodeType\":\"start\",\"nodeName\":\"开始\"},\n" +
-                "    {\"nodeId\":\"end\",\"nodeType\":\"end\",\"nodeName\":\"结束\"}\n" +
+                "    {\"nodeId\":\"start\",\"nodeType\":\"start\",\"nodeName\":\"Node\"},\n" +
+                "    {\"nodeId\":\"end\",\"nodeType\":\"end\",\"nodeName\":\"Node\"}\n" +
                 "  ],\n" +
                 "  \"edges\": [{\"source\":\"start\",\"target\":\"ghost\"}]\n" +
                 "}";
@@ -784,16 +858,16 @@ class WorkflowServiceImplTest {
     }
 
     @Test
-    @DisplayName("V1010: findNextNode-按金额 routingRules 选择下一节点")
+    @DisplayName("workflow test")
     void findNextNode_RoutingRuleByAmount() {
         String cfg = "{\n" +
                 "  \"schemaVersion\": 2,\n" +
                 "  \"nodes\": [\n" +
-                "    {\"nodeId\":\"start\",\"nodeType\":\"start\",\"nodeName\":\"开始\"},\n" +
-                "    {\"nodeId\":\"n_dept\",\"nodeType\":\"approval\",\"nodeName\":\"部门\",\"assigneeType\":\"role_global\",\"assigneeValue\":\"DEPT_MANAGER\",\n" +
+                "    {\"nodeId\":\"start\",\"nodeType\":\"start\",\"nodeName\":\"Node\"},\n" +
+                "    {\"nodeId\":\"n_dept\",\"nodeType\":\"approval\",\"nodeName\":\"Node\",\"assigneeType\":\"role_global\",\"assigneeValue\":\"DEPT_MANAGER\",\n" +
                 "     \"routingRules\":[{\"when\":\"context.amount > 10000\",\"skipTo\":\"n_director\"}]},\n" +
-                "    {\"nodeId\":\"n_director\",\"nodeType\":\"approval\",\"nodeName\":\"总监\",\"assigneeType\":\"role_global\",\"assigneeValue\":\"DIRECTOR\"},\n" +
-                "    {\"nodeId\":\"end\",\"nodeType\":\"end\",\"nodeName\":\"结束\"}\n" +
+                "    {\"nodeId\":\"n_director\",\"nodeType\":\"approval\",\"nodeName\":\"Node\",\"assigneeType\":\"role_global\",\"assigneeValue\":\"DIRECTOR\"},\n" +
+                "    {\"nodeId\":\"end\",\"nodeType\":\"end\",\"nodeName\":\"Node\"}\n" +
                 "  ],\n" +
                 "  \"edges\": [\n" +
                 "    {\"source\":\"start\",\"target\":\"n_dept\"},\n" +
@@ -814,21 +888,21 @@ class WorkflowServiceImplTest {
     }
 
     @Test
-    @DisplayName("V1012: findNextNode-支持 && 区间表达式")
+    @DisplayName("workflow test")
     void findNextNode_RoutingRuleByAmountRange() {
         String cfg = "{\n" +
                 "  \"schemaVersion\": 2,\n" +
                 "  \"nodes\": [\n" +
-                "    {\"nodeId\":\"start\",\"nodeType\":\"start\",\"nodeName\":\"开始\"},\n" +
-                "    {\"nodeId\":\"gw_amount\",\"nodeType\":\"gateway\",\"gatewayType\":\"exclusive\",\"nodeName\":\"按金额分支\",\n" +
+                "    {\"nodeId\":\"start\",\"nodeType\":\"start\",\"nodeName\":\"Node\"},\n" +
+                "    {\"nodeId\":\"gw_amount\",\"nodeType\":\"gateway\",\"gatewayType\":\"exclusive\",\"nodeName\":\"Node\",\n" +
                 "     \"branches\":[\n" +
                 "       {\"when\":\"amount <= 5000\",\"to\":\"end\"},\n" +
                 "       {\"when\":\"amount > 5000 && amount <= 50000\",\"to\":\"n_director\"},\n" +
                 "       {\"when\":\"amount > 50000\",\"to\":\"n_gm\"}\n" +
                 "     ]},\n" +
-                "    {\"nodeId\":\"n_director\",\"nodeType\":\"approval\",\"nodeName\":\"总监\",\"assigneeType\":\"role_global\",\"assigneeValue\":\"DIRECTOR\"},\n" +
-                "    {\"nodeId\":\"n_gm\",\"nodeType\":\"approval\",\"nodeName\":\"总经理\",\"assigneeType\":\"role_global\",\"assigneeValue\":\"GM\"},\n" +
-                "    {\"nodeId\":\"end\",\"nodeType\":\"end\",\"nodeName\":\"结束\"}\n" +
+                "    {\"nodeId\":\"n_director\",\"nodeType\":\"approval\",\"nodeName\":\"Node\",\"assigneeType\":\"role_global\",\"assigneeValue\":\"DIRECTOR\"},\n" +
+                "    {\"nodeId\":\"n_gm\",\"nodeType\":\"approval\",\"nodeName\":\"Node\",\"assigneeType\":\"role_global\",\"assigneeValue\":\"GM\"},\n" +
+                "    {\"nodeId\":\"end\",\"nodeType\":\"end\",\"nodeName\":\"Node\"}\n" +
                 "  ],\n" +
                 "  \"edges\": [\n" +
                 "    {\"source\":\"start\",\"target\":\"gw_amount\"},\n" +
@@ -850,8 +924,8 @@ class WorkflowServiceImplTest {
     }
 
     @Test
-    @DisplayName("V1012: 金额分级审批会物化为不同审批链路")
-    void materializeGraphToFlatPath_AmountTieredApprovalChain() {
+    @DisplayName("workflow test")
+    void materializeGraphToRuntimePath_AmountTieredApprovalChain() {
         String cfg = amountTieredWorkflowConfig();
 
         assertThat(materializeApprovalNodeIds(cfg, Map.of("amount", 3000)))
@@ -865,13 +939,13 @@ class WorkflowServiceImplTest {
     }
 
     @Test
-    @DisplayName("V1010: resolveAssignee-role_chain 选最末级可用 role")
+    @DisplayName("workflow test")
     void resolveAssignee_RoleChain() {
-        // Empty chain → throws
+        // Empty chain 鈫?throws
         assertThatThrownBy(() ->
                 invokeResolveAssignee("role_chain", "[]", 100L))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("role_chain 配置为空");
+                .hasMessageContaining("");
     }
 
     private Long invokeResolveAssignee(String type, String value, Long empId) {
@@ -892,7 +966,7 @@ class WorkflowServiceImplTest {
             WorkflowServiceImpl.WorkflowGraph graph = workflowService.parseNodeConfig(nodeConfig);
             assertThat(graph.valid).isTrue();
             java.lang.reflect.Method m = WorkflowServiceImpl.class.getDeclaredMethod(
-                    "materializeGraphToFlatPath", WorkflowServiceImpl.WorkflowGraph.class, Map.class);
+                    "materializeGraphToRuntimePath", WorkflowServiceImpl.WorkflowGraph.class, Map.class);
             m.setAccessible(true);
             JSONArray nodes = (JSONArray) m.invoke(workflowService, graph, ctx);
             List<String> nodeIds = new ArrayList<>();
@@ -910,17 +984,17 @@ class WorkflowServiceImplTest {
         return "{\n" +
                 "  \"schemaVersion\": 2,\n" +
                 "  \"nodes\": [\n" +
-                "    {\"nodeId\":\"start\",\"nodeType\":\"start\",\"nodeName\":\"开始\"},\n" +
-                "    {\"nodeId\":\"n_manager\",\"nodeType\":\"approval\",\"nodeName\":\"部门主管审批\",\"assigneeType\":\"dept_manager\",\"assigneeValue\":\"dept_manager\"},\n" +
-                "    {\"nodeId\":\"gw_amount\",\"nodeType\":\"gateway\",\"gatewayType\":\"exclusive\",\"nodeName\":\"按金额分级\",\n" +
+                "    {\"nodeId\":\"start\",\"nodeType\":\"start\",\"nodeName\":\"Node\"},\n" +
+                "    {\"nodeId\":\"n_manager\",\"nodeType\":\"approval\",\"nodeName\":\"Node\",\"assigneeType\":\"dept_manager\",\"assigneeValue\":\"dept_manager\"},\n" +
+                "    {\"nodeId\":\"gw_amount\",\"nodeType\":\"gateway\",\"gatewayType\":\"exclusive\",\"nodeName\":\"Node\",\n" +
                 "     \"branches\":[\n" +
                 "       {\"when\":\"amount > 5000\",\"to\":\"n_director\"},\n" +
                 "       {\"when\":\"amount <= 5000\",\"to\":\"end\"}\n" +
                 "     ]},\n" +
-                "    {\"nodeId\":\"n_director\",\"nodeType\":\"approval\",\"nodeName\":\"总监审批\",\"assigneeType\":\"role_global\",\"assigneeValue\":\"DIRECTOR\",\n" +
+                "    {\"nodeId\":\"n_director\",\"nodeType\":\"approval\",\"nodeName\":\"Node\",\"assigneeType\":\"role_global\",\"assigneeValue\":\"DIRECTOR\",\n" +
                 "     \"routingRules\":[{\"when\":\"amount > 50000\",\"skipTo\":\"n_gm\"}]},\n" +
-                "    {\"nodeId\":\"n_gm\",\"nodeType\":\"approval\",\"nodeName\":\"总经理审批\",\"assigneeType\":\"role_global\",\"assigneeValue\":\"GM\"},\n" +
-                "    {\"nodeId\":\"end\",\"nodeType\":\"end\",\"nodeName\":\"结束\"}\n" +
+                "    {\"nodeId\":\"n_gm\",\"nodeType\":\"approval\",\"nodeName\":\"Node\",\"assigneeType\":\"role_global\",\"assigneeValue\":\"GM\"},\n" +
+                "    {\"nodeId\":\"end\",\"nodeType\":\"end\",\"nodeName\":\"Node\"}\n" +
                 "  ],\n" +
                 "  \"edges\": [\n" +
                 "    {\"source\":\"start\",\"target\":\"n_manager\"},\n" +

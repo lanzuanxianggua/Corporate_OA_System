@@ -555,7 +555,6 @@ export interface WorkflowTask {
   id?: number;
   instanceId?: number;
   processId?: number;
-  nodeIndex?: number;
   nodeName?: string;
   assigneeId?: number;
   assigneeName?: string;

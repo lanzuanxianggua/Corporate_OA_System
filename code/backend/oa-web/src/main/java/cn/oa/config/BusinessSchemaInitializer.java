@@ -13,25 +13,25 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class MissingBusinessSchemaInitializer implements ApplicationRunner {
+public class BusinessSchemaInitializer implements ApplicationRunner {
 
-    private static final String SCRIPT = "db/migration/V992__missing_business_tables.sql";
+    private static final String SCRIPT = "db/business_schema.sql";
 
     private final DataSource dataSource;
 
-    @Value("${oa.schema.init-missing-business-tables:true}")
+    @Value("${oa.schema.init-business-tables:true}")
     private boolean enabled;
 
     @Override
     public void run(ApplicationArguments args) {
         if (!enabled) {
-            log.info("Missing business schema initializer disabled");
+            log.info("Business schema initializer disabled");
             return;
         }
         ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
         populator.setContinueOnError(false);
         populator.addScript(new ClassPathResource(SCRIPT));
         populator.execute(dataSource);
-        log.info("Missing business schema initializer executed: {}", SCRIPT);
+        log.info("Business schema initializer executed: {}", SCRIPT);
     }
 }

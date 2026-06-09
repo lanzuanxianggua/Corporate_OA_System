@@ -60,16 +60,20 @@ public interface WorkflowService extends IService<WfProcessDefinition> {
     cn.oa.service.impl.WorkflowServiceImpl.WorkflowGraph validateDefinition(String nodeConfig);
 
     /**
-     * V1010: parse either legacy flat-array nodeConfig or graph-format
-     * nodeConfig using the same parser as runtime routing.
+     * Parse schemaVersion=2 graph nodeConfig using the same parser as runtime routing.
      */
     cn.oa.service.impl.WorkflowServiceImpl.WorkflowGraph parseNodeConfig(String nodeConfig);
 
     /**
      * V1010: preview the routing path a real business submission would take,
-     * without actually starting a process. Returns the materialized flat-array
-     * node list (same shape as legacy definitions) so the frontend can render
-     * the path highlight.
+     * without actually starting a process. Returns the materialized executable
+     * node list so the frontend can render the path highlight.
      */
     java.util.List<cn.hutool.json.JSONObject> previewPath(String businessType, Long businessId, Long initiatorId);
+
+    /**
+     * Rebuild missing pending tasks for running instances using current
+     * schemaVersion=2 process definitions.
+     */
+    int repairMissingPendingTasks();
 }

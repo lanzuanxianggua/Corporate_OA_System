@@ -37,6 +37,7 @@ public class WorkflowSchemaBootstrapInitializer implements ApplicationRunner {
         createWorkflowTablesIfMissing();
         enforceWorkflowTaskSchema();
         enforceWorkflowDelegationSchema();
+        dropRetiredWorkflowTables();
         log.info("Persistent workflow schema bootstrap completed");
     }
 
@@ -168,6 +169,15 @@ public class WorkflowSchemaBootstrapInitializer implements ApplicationRunner {
         addIndexIfMissing("wf_delegation", "idx_delegate_id", "ALTER TABLE wf_delegation ADD INDEX idx_delegate_id (delegate_id)");
     }
 
+    private void dropRetiredWorkflowTables() {
+        dropTableIfExists("wf_assignee_rule");
+        dropTableIfExists("wf_transition");
+        dropTableIfExists("wf_record");
+        dropTableIfExists("wf_node");
+        dropTableIfExists("wf_instance");
+        dropTableIfExists("wf_definition");
+    }
+
     private void addColumnIfMissing(String table, String column, String ddl) {
         if (!columnExists(table, column)) {
             jdbcTemplate.execute(ddl);
@@ -201,6 +211,13 @@ public class WorkflowSchemaBootstrapInitializer implements ApplicationRunner {
         }
     }
 
+    private void dropTableIfExists(String table) {
+        if (tableExists(table)) {
+            jdbcTemplate.execute("DROP TABLE " + table);
+            log.info("Workflow schema dropped retired table {}", table);
+        }
+    }
+
     private boolean columnExists(String table, String column) {
         Integer count = jdbcTemplate.queryForObject("""
                 SELECT COUNT(*)
@@ -220,6 +237,16 @@ public class WorkflowSchemaBootstrapInitializer implements ApplicationRunner {
                   AND TABLE_NAME = ?
                   AND INDEX_NAME = ?
                 """, Integer.class, table, indexName);
+        return count != null && count > 0;
+    }
+
+    private boolean tableExists(String table) {
+        Integer count = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM INFORMATION_SCHEMA.TABLES
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = ?
+                """, Integer.class, table);
         return count != null && count > 0;
     }
 }

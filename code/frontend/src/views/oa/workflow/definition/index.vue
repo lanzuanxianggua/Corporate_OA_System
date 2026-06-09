@@ -59,13 +59,11 @@
         </el-form-item>
         <el-form-item label="设计模式">
           <el-radio-group v-model="designMode">
-            <el-radio value="simple">简单模式</el-radio>
             <el-radio value="visual">可视化模式</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="审批流程" prop="nodeConfig">
-          <WorkflowDesigner v-if="designMode === 'simple'" ref="designerRef" v-model="form.nodeConfig" :process-type="form.processType" />
-          <FlowDesigner v-else v-model="form.nodeConfig" />
+          <FlowDesigner v-model="form.nodeConfig" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -82,10 +80,9 @@ import { ref, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import type { FormInstance, FormRules } from "element-plus";
 import { getDefinitions, createDefinition, updateDefinition, activateDefinition, validateDefinitionApi } from "@/api/workflow";
-import WorkflowDesigner from "@/components/WorkflowDesigner.vue";
 import FlowDesigner from "@/components/flow-designer/FlowDesigner.vue";
 
-const designMode = ref<"simple" | "visual">("simple");
+const designMode = ref<"visual">("visual");
 
 const loading = ref(false);
 const tableData = ref<any[]>([]);
@@ -105,11 +102,11 @@ const fetchList = async () => {
 const nodeSummary = (nodeConfig: string) => {
   try {
     const parsed = JSON.parse(nodeConfig);
-    if (parsed.nodes && parsed.edges) {
+    if (parsed.schemaVersion === 2 && parsed.nodes && parsed.edges) {
       // Graph format
       return parsed.nodes.filter((n: any) => n.nodeType === "approval").map((n: any) => n.nodeName || n.name).join(" -> ") || "无审批节点";
     }
-    // Legacy flat array
+    return "Invalid v2 graph";
     if (!parsed.length) return "无节点";
     return parsed.map((n: any) => n.nodeName || n.name).join(" -> ");
   } catch {
@@ -122,7 +119,6 @@ const saving = ref(false);
 const isEdit = ref(false);
 const editingId = ref<number | undefined>(undefined);
 const formRef = ref<FormInstance>();
-const designerRef = ref<InstanceType<typeof WorkflowDesigner>>();
 const form = reactive({ processName: "", processKey: "", processType: "", nodeConfig: "" });
 const rules = reactive<FormRules>({
   processName: [{ required: true, message: "请输入流程名称", trigger: "blur" }],
@@ -177,9 +173,6 @@ const handleValidate = async () => {
 const handleSave = async () => {
   if (!formRef.value) return;
   await formRef.value.validate();
-  if (designMode.value === "simple" && designerRef.value) {
-    if (!designerRef.value.validateNodes()) return;
-  }
   saving.value = true;
   try {
     if (isEdit.value && editingId.value) {
