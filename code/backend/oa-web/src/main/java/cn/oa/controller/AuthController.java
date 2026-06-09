@@ -23,6 +23,7 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -55,7 +56,7 @@ public class AuthController {
         return R.ok(Map.of("uuid", result.getUuid(), "img", result.getImg()));
     }
 
-    @PostMapping("/login")
+    @PostMapping({"/login", "/api/auth/login"})
     @Operation(summary = "登录")
     @OperationLog(module = "认证管理", operation = "用户登录")
     public R<LoginVO> login(@RequestBody @Valid LoginDTO dto, HttpServletRequest request) {

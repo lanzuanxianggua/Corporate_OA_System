@@ -128,7 +128,7 @@ public class OvertimeServiceImpl extends BaseApprovalServiceImpl<OaOvertimeMappe
     @Override
     @Transactional
     public void approve(Long overtimeId, Long approverId, Integer status, String remark, Long taskId) {
-        doApprove(overtimeId, approverId, status, remark);
+        doApprove(overtimeId, approverId, status, remark, taskId);
     }
 
     @Override

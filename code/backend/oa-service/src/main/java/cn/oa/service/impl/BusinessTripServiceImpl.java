@@ -94,7 +94,7 @@ public class BusinessTripServiceImpl extends BaseApprovalServiceImpl<OaBusinessT
     @Override
     @Transactional
     public void approve(Long applyId, Long approverId, Integer status, String remark, Long taskId) {
-        doApprove(applyId, approverId, status, remark);
+        doApprove(applyId, approverId, status, remark, taskId);
     }
 
     @Override

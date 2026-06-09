@@ -228,4 +228,26 @@ public class WorkflowController {
         log.info("Delegation cancelled: id={}, empId={}", id, empId);
         return R.ok();
     }
+
+    // ====== V1010: graph-format definition validation + path preview ======
+
+    @PostMapping("/definition/validate")
+    @RequireAdmin
+    @Operation(summary = "校验流程定义 (V1010 图格式)")
+    public R<java.util.List<cn.oa.service.impl.WorkflowServiceImpl.ValidationError>> validateDefinition(
+            @RequestBody WfProcessDefinition definition) {
+        cn.oa.service.impl.WorkflowServiceImpl.WorkflowGraph graph =
+                workflowService.validateDefinition(definition.getNodeConfig());
+        return R.ok(graph.errors);
+    }
+
+    @GetMapping("/definition/preview")
+    @Operation(summary = "预览流程路由路径 (V1010)")
+    public R<java.util.List<cn.hutool.json.JSONObject>> previewDefinition(
+            @RequestParam String businessType,
+            @RequestParam Long businessId,
+            HttpServletRequest request) {
+        Long empId = WebUtil.getEmpId(request);
+        return R.ok(workflowService.previewPath(businessType, businessId, empId));
+    }
 }

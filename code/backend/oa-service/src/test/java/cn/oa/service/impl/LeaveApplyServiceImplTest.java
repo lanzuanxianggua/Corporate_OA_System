@@ -185,15 +185,10 @@ class LeaveApplyServiceImplTest {
     void approve_WithTaskId() {
         Long applyId = 100L;
         Long approverId = 2L;
-        WfTask task = new WfTask();
-        task.setId(300L);
-        task.setNodeName("经理审批");
-
-        when(workflowService.findPendingTask(BusinessType.LEAVE, applyId, approverId)).thenReturn(task);
 
         leaveApplyService.approve(applyId, approverId, 1, "同意", 300L);
 
-        verify(workflowService).handleTask(task.getId(), approverId, 1, "同意");
+        verify(workflowService).handleTask(300L, approverId, 1, "同意");
     }
 
     @Test

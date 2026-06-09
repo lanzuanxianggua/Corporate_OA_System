@@ -82,6 +82,12 @@ class BaseApprovalServiceImplTest {
     private SysEmployeeMapper employeeMapper;
 
     @Mock
+    private SysEmpRoleMapper empRoleMapper;
+
+    @Mock
+    private SysRoleMapper roleMapper;
+
+    @Mock
     private OaApprovalRecordMapper approvalRecordMapper;
 
     @Mock
@@ -177,6 +183,41 @@ class BaseApprovalServiceImplTest {
         BusinessException ex = assertThrows(BusinessException.class,
             () -> testService.doApprove(1L, 200L, 1, "同意"));
         assertTrue(ex.getMessage().contains("未找到"));
+    }
+
+    @Test
+    void doApprove_adminFallback_handlesAnyPendingTaskForBusiness() {
+        Long businessId = 1L;
+        Long adminEmpId = 900L;
+
+        SysEmpRole empRole = new SysEmpRole();
+        empRole.setEmpId(adminEmpId);
+        empRole.setRoleId(10L);
+
+        SysRole adminRole = new SysRole();
+        adminRole.setId(10L);
+        adminRole.setRoleKey("ADMIN");
+
+        WfProcessInstance instance = new WfProcessInstance();
+        instance.setId(20L);
+        instance.setBusinessType("test");
+        instance.setBusinessId(businessId);
+
+        WfTask task = new WfTask();
+        task.setId(30L);
+        task.setInstanceId(instance.getId());
+        task.setAssigneeId(200L);
+        task.setStatus("0");
+
+        when(workflowService.findPendingTask("test", businessId, adminEmpId)).thenReturn(null);
+        when(empRoleMapper.selectList(any())).thenReturn(Collections.singletonList(empRole));
+        when(roleMapper.selectBatchIds(any())).thenReturn(Collections.singletonList(adminRole));
+        when(workflowService.getByBusiness("test", businessId)).thenReturn(instance);
+        when(wfTaskMapper.selectOne(any())).thenReturn(task);
+
+        testService.doApprove(businessId, adminEmpId, 1, "admin approve");
+
+        verify(workflowService).handleTask(30L, adminEmpId, 1, "admin approve");
     }
 
     @Test

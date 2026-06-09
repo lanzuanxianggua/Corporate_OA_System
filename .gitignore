@@ -114,6 +114,13 @@ application-local.properties
 application-local.yml
 application-local.yaml
 
+######################################################################
+# Local Debug / Inspection Tools
+
+_dbinspect/
+MintToken.java
+*.pid
+
 # Uploaded files (user data)
 uploads/
 

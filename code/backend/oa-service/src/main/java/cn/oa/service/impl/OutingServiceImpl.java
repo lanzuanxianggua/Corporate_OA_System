@@ -70,7 +70,7 @@ public class OutingServiceImpl extends BaseApprovalServiceImpl<OaOutingMapper, O
     @Override
     @Transactional
     public void approve(Long applyId, Long approverId, Integer status, String remark, Long taskId) {
-        doApprove(applyId, approverId, status, remark);
+        doApprove(applyId, approverId, status, remark, taskId);
     }
 
     @Override

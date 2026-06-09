@@ -40,18 +40,24 @@ export const useUserStore = defineStore("user", () => {
 
   const hasRole = (role: string) => {
     if (!userInfo.value?.roles) return false;
-    return userInfo.value.roles.some(
-      (r: string) => r === role || r === role.toUpperCase()
-    );
+    const required = role.toUpperCase();
+    return userInfo.value.roles.some((r: string) => r.toUpperCase() === required);
   };
 
   const hasAnyRole = (roles: string[]) => {
     if (!roles?.length) return true;
     if (!userInfo.value?.roles) return false;
+    if (hasRole("ADMIN")) return true;
     return roles.some((role) => hasRole(role));
   };
 
   const isAdmin = () => hasRole("ADMIN");
+
+  const hasPermission = (permission: string) => {
+    if (isAdmin()) return true;
+    const permissions = userInfo.value?.permissions || [];
+    return permissions.includes("*:*:*") || permissions.includes(permission);
+  };
 
   const loginAction = async (username: string, password: string, captchaUuid: string, captchaCode: string) => {
     const res = await loginApi({ username, password, captchaUuid, captchaCode });
@@ -87,5 +93,5 @@ export const useUserStore = defineStore("user", () => {
     router.push("/login");
   };
 
-  return { token, userInfo, hasRole, hasAnyRole, isAdmin, loginAction, logoutAction };
+  return { token, userInfo, hasRole, hasAnyRole, hasPermission, isAdmin, loginAction, logoutAction };
 });

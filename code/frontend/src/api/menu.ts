@@ -5,7 +5,7 @@ export const getMenuTree = () =>
   request.get<unknown, ApiResponse<Menu[]>>("/api/menu/tree");
 
 export const getMenuByRole = (roleId: number) =>
-  request.get<unknown, ApiResponse<Menu[]>>(`/api/menu/role/${roleId}`);
+  request.get<unknown, ApiResponse<number[]>>(`/api/menu/role/${roleId}`);
 
 export const addMenu = (data: Partial<Menu>) =>
   request.post<unknown, ApiResponse<void>>("/api/menu", data);

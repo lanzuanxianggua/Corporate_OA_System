@@ -1,5 +1,7 @@
 package cn.oa.service.impl;
 
+import cn.hutool.json.JSONArray;
+import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import cn.oa.common.exception.BusinessException;
 import cn.oa.entity.*;
@@ -88,8 +90,7 @@ class WorkflowServiceImplTest {
         WfTask task = new WfTask();
         task.setId(300L);
         task.setInstanceId(instanceId);
-        task.setProcessId(10L);
-        task.setNodeIndex(nodeIndex);
+        task.setNodeId((long) nodeIndex);
         task.setNodeName("经理审批");
         task.setAssigneeId(assigneeId);
         task.setStatus("0");
@@ -212,7 +213,6 @@ class WorkflowServiceImplTest {
 
         when(taskMapper.selectById(task.getId())).thenReturn(task);
         when(instanceMapper.selectById(inst.getId())).thenReturn(inst);
-        when(definitionMapper.selectById(anyLong())).thenReturn(def);
         when(employeeMapper.selectById(approverId)).thenReturn(createEmployee(approverId, "张三"));
 
         workflowService.handleTask(task.getId(), approverId, 1, "同意");
@@ -232,7 +232,6 @@ class WorkflowServiceImplTest {
 
         when(taskMapper.selectById(task.getId())).thenReturn(task);
         when(instanceMapper.selectById(inst.getId())).thenReturn(inst);
-        when(definitionMapper.selectById(anyLong())).thenReturn(def);
         when(employeeMapper.selectById(approverId)).thenReturn(createEmployee(approverId, "张三"));
 
         workflowService.handleTask(task.getId(), approverId, 2, "不同意");
@@ -298,11 +297,11 @@ class WorkflowServiceImplTest {
         Long parentTaskId = 301L;
         childTask.setId(302L);
         childTask.setParentTaskId(parentTaskId);
-        childTask.setMultiType("countersign");
+        childTask.setTaskType("countersign");
 
         WfTask parent = createPendingTask(inst.getId(), approverId, 0);
         parent.setId(parentTaskId);
-        parent.setMultiType("countersign");
+        parent.setTaskType("countersign");
         parent.setStatus("1");
 
         when(taskMapper.selectById(childTask.getId())).thenReturn(childTask);
@@ -325,11 +324,11 @@ class WorkflowServiceImplTest {
         Long parentTaskId = 301L;
         childTask.setId(302L);
         childTask.setParentTaskId(parentTaskId);
-        childTask.setMultiType("countersign");
+        childTask.setTaskType("countersign");
 
         WfTask parent = createPendingTask(inst.getId(), approverId, 0);
         parent.setId(parentTaskId);
-        parent.setMultiType("countersign");
+        parent.setTaskType("countersign");
         parent.setStatus("1");
 
         WfProcessDefinition def = createDefinition("[{\"nodeIndex\":0,\"nodeName\":\"经理审批\",\"nodeType\":\"approval\",\"assigneeType\":\"specific\",\"assigneeValue\":\"2\"}]");
@@ -356,17 +355,17 @@ class WorkflowServiceImplTest {
         Long parentTaskId = 301L;
         childTask.setId(302L);
         childTask.setParentTaskId(parentTaskId);
-        childTask.setMultiType("orsign");
+        childTask.setTaskType("orsign");
 
         WfTask parent = createPendingTask(inst.getId(), approverId, 0);
         parent.setId(parentTaskId);
-        parent.setMultiType("orsign");
+        parent.setTaskType("orsign");
         parent.setStatus("1");
 
         WfTask sibling = createPendingTask(inst.getId(), 3L, 0);
         sibling.setId(303L);
         sibling.setParentTaskId(parentTaskId);
-        sibling.setMultiType("orsign");
+        sibling.setTaskType("orsign");
         sibling.setStatus("0");
 
         WfProcessDefinition def = createDefinition("[{\"nodeIndex\":0,\"nodeName\":\"经理审批\",\"nodeType\":\"approval\",\"assigneeType\":\"specific\",\"assigneeValue\":\"2\"}]");
@@ -444,7 +443,7 @@ class WorkflowServiceImplTest {
     void myHandledTasks_ReturnsPage() {
         WfTask task = createPendingTask(200L, approverId, 0);
         task.setStatus("1");
-        task.setActionTime(LocalDateTime.now());
+        task.setCompleteTime(LocalDateTime.now());
         WfProcessInstance inst = createRunningInstance();
         inst.setId(200L);
         task.setInstance(inst);
@@ -691,6 +690,246 @@ class WorkflowServiceImplTest {
 
         assertThat(chain).hasSize(1);
         assertThat(chain.get(0).getAssigneeName()).isEqualTo("张三");
+    }
+
+    // ==================== V1010: graph-format parse + validation ====================
+
+    @Test
+    @DisplayName("V1010: parseNodeConfig-扁平格式透传为 schemaVersion=1")
+    void parseNodeConfig_FlatArray_PassesThrough() {
+        WorkflowServiceImpl.WorkflowGraph graph = workflowService.parseNodeConfig(
+                "[{\"nodeIndex\":0,\"nodeName\":\"经理\",\"nodeType\":\"approval\",\"assigneeType\":\"role\",\"assigneeValue\":\"DEPT_MANAGER\"}]");
+
+        assertThat(graph.schemaVersion).isEqualTo(1);
+        assertThat(graph.isGraph()).isFalse();
+        assertThat(graph.valid).isTrue();
+        assertThat(graph.errors).isEmpty();
+    }
+
+    @Test
+    @DisplayName("V1010: parseNodeConfig-图格式有效路径")
+    void parseNodeConfig_GraphValid() {
+        String cfg = "{\n" +
+                "  \"schemaVersion\": 2,\n" +
+                "  \"nodes\": [\n" +
+                "    {\"nodeId\":\"start\",\"nodeType\":\"start\",\"nodeName\":\"开始\"},\n" +
+                "    {\"nodeId\":\"n1\",\"nodeType\":\"approval\",\"nodeName\":\"审批\",\"assigneeType\":\"role_global\",\"assigneeValue\":\"GM\"},\n" +
+                "    {\"nodeId\":\"end\",\"nodeType\":\"end\",\"nodeName\":\"结束\"}\n" +
+                "  ],\n" +
+                "  \"edges\": [{\"source\":\"start\",\"target\":\"n1\"},{\"source\":\"n1\",\"target\":\"end\"}]\n" +
+                "}";
+        WorkflowServiceImpl.WorkflowGraph graph = workflowService.parseNodeConfig(cfg);
+
+        assertThat(graph.isGraph()).isTrue();
+        assertThat(graph.valid).isTrue();
+        assertThat(graph.nodes).containsKeys("start", "n1", "end");
+        assertThat(graph.outgoing.get("start")).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("V1010: parseNodeConfig-缺少 start/end 报错")
+    void parseNodeConfig_MissingStartEnd() {
+        String cfg = "{\n" +
+                "  \"schemaVersion\": 2,\n" +
+                "  \"nodes\": [\n" +
+                "    {\"nodeId\":\"n1\",\"nodeType\":\"approval\",\"nodeName\":\"审批\",\"assigneeType\":\"specific\",\"assigneeValue\":\"2\"}\n" +
+                "  ],\n" +
+                "  \"edges\": []\n" +
+                "}";
+        WorkflowServiceImpl.WorkflowGraph graph = workflowService.parseNodeConfig(cfg);
+
+        assertThat(graph.valid).isFalse();
+        assertThat(graph.errors).extracting(e -> e.type).contains("no_start", "no_end");
+    }
+
+    @Test
+    @DisplayName("V1010: parseNodeConfig-检测到环报错")
+    void parseNodeConfig_CycleDetected() {
+        String cfg = "{\n" +
+                "  \"schemaVersion\": 2,\n" +
+                "  \"nodes\": [\n" +
+                "    {\"nodeId\":\"start\",\"nodeType\":\"start\",\"nodeName\":\"开始\"},\n" +
+                "    {\"nodeId\":\"a\",\"nodeType\":\"approval\",\"nodeName\":\"A\",\"assigneeType\":\"specific\",\"assigneeValue\":\"2\"},\n" +
+                "    {\"nodeId\":\"b\",\"nodeType\":\"approval\",\"nodeName\":\"B\",\"assigneeType\":\"specific\",\"assigneeValue\":\"3\"},\n" +
+                "    {\"nodeId\":\"end\",\"nodeType\":\"end\",\"nodeName\":\"结束\"}\n" +
+                "  ],\n" +
+                "  \"edges\": [\n" +
+                "    {\"source\":\"start\",\"target\":\"a\"},\n" +
+                "    {\"source\":\"a\",\"target\":\"b\"},\n" +
+                "    {\"source\":\"b\",\"target\":\"a\"},\n" +
+                "    {\"source\":\"b\",\"target\":\"end\"}\n" +
+                "  ]\n" +
+                "}";
+        WorkflowServiceImpl.WorkflowGraph graph = workflowService.parseNodeConfig(cfg);
+
+        assertThat(graph.valid).isFalse();
+        assertThat(graph.errors).extracting(e -> e.type).contains("cycle");
+    }
+
+    @Test
+    @DisplayName("V1010: parseNodeConfig-边指向未知节点报错")
+    void parseNodeConfig_UnknownEdgeEndpoint() {
+        String cfg = "{\n" +
+                "  \"schemaVersion\": 2,\n" +
+                "  \"nodes\": [\n" +
+                "    {\"nodeId\":\"start\",\"nodeType\":\"start\",\"nodeName\":\"开始\"},\n" +
+                "    {\"nodeId\":\"end\",\"nodeType\":\"end\",\"nodeName\":\"结束\"}\n" +
+                "  ],\n" +
+                "  \"edges\": [{\"source\":\"start\",\"target\":\"ghost\"}]\n" +
+                "}";
+        WorkflowServiceImpl.WorkflowGraph graph = workflowService.parseNodeConfig(cfg);
+
+        assertThat(graph.valid).isFalse();
+        assertThat(graph.errors).extracting(e -> e.type).contains("unknown_edge_endpoint");
+    }
+
+    @Test
+    @DisplayName("V1010: findNextNode-按金额 routingRules 选择下一节点")
+    void findNextNode_RoutingRuleByAmount() {
+        String cfg = "{\n" +
+                "  \"schemaVersion\": 2,\n" +
+                "  \"nodes\": [\n" +
+                "    {\"nodeId\":\"start\",\"nodeType\":\"start\",\"nodeName\":\"开始\"},\n" +
+                "    {\"nodeId\":\"n_dept\",\"nodeType\":\"approval\",\"nodeName\":\"部门\",\"assigneeType\":\"role_global\",\"assigneeValue\":\"DEPT_MANAGER\",\n" +
+                "     \"routingRules\":[{\"when\":\"context.amount > 10000\",\"skipTo\":\"n_director\"}]},\n" +
+                "    {\"nodeId\":\"n_director\",\"nodeType\":\"approval\",\"nodeName\":\"总监\",\"assigneeType\":\"role_global\",\"assigneeValue\":\"DIRECTOR\"},\n" +
+                "    {\"nodeId\":\"end\",\"nodeType\":\"end\",\"nodeName\":\"结束\"}\n" +
+                "  ],\n" +
+                "  \"edges\": [\n" +
+                "    {\"source\":\"start\",\"target\":\"n_dept\"},\n" +
+                "    {\"source\":\"n_dept\",\"target\":\"end\"},\n" +
+                "    {\"source\":\"n_director\",\"target\":\"end\"}\n" +
+                "  ]\n" +
+                "}";
+        WorkflowServiceImpl.WorkflowGraph graph = workflowService.parseNodeConfig(cfg);
+        assertThat(graph.valid).isTrue();
+
+        Map<String, Object> ctxSmall = new HashMap<>();
+        ctxSmall.put("amount", 500.0);
+        assertThat(workflowService.findNextNode(graph, "n_dept", ctxSmall)).isEqualTo("end");
+
+        Map<String, Object> ctxBig = new HashMap<>();
+        ctxBig.put("amount", 50000.0);
+        assertThat(workflowService.findNextNode(graph, "n_dept", ctxBig)).isEqualTo("n_director");
+    }
+
+    @Test
+    @DisplayName("V1012: findNextNode-支持 && 区间表达式")
+    void findNextNode_RoutingRuleByAmountRange() {
+        String cfg = "{\n" +
+                "  \"schemaVersion\": 2,\n" +
+                "  \"nodes\": [\n" +
+                "    {\"nodeId\":\"start\",\"nodeType\":\"start\",\"nodeName\":\"开始\"},\n" +
+                "    {\"nodeId\":\"gw_amount\",\"nodeType\":\"gateway\",\"gatewayType\":\"exclusive\",\"nodeName\":\"按金额分支\",\n" +
+                "     \"branches\":[\n" +
+                "       {\"when\":\"amount <= 5000\",\"to\":\"end\"},\n" +
+                "       {\"when\":\"amount > 5000 && amount <= 50000\",\"to\":\"n_director\"},\n" +
+                "       {\"when\":\"amount > 50000\",\"to\":\"n_gm\"}\n" +
+                "     ]},\n" +
+                "    {\"nodeId\":\"n_director\",\"nodeType\":\"approval\",\"nodeName\":\"总监\",\"assigneeType\":\"role_global\",\"assigneeValue\":\"DIRECTOR\"},\n" +
+                "    {\"nodeId\":\"n_gm\",\"nodeType\":\"approval\",\"nodeName\":\"总经理\",\"assigneeType\":\"role_global\",\"assigneeValue\":\"GM\"},\n" +
+                "    {\"nodeId\":\"end\",\"nodeType\":\"end\",\"nodeName\":\"结束\"}\n" +
+                "  ],\n" +
+                "  \"edges\": [\n" +
+                "    {\"source\":\"start\",\"target\":\"gw_amount\"},\n" +
+                "    {\"source\":\"gw_amount\",\"target\":\"end\"},\n" +
+                "    {\"source\":\"n_director\",\"target\":\"end\"},\n" +
+                "    {\"source\":\"n_gm\",\"target\":\"end\"}\n" +
+                "  ]\n" +
+                "}";
+        WorkflowServiceImpl.WorkflowGraph graph = workflowService.parseNodeConfig(cfg);
+        assertThat(graph.valid).isTrue();
+
+        Map<String, Object> ctxMid = new HashMap<>();
+        ctxMid.put("amount", 10000.0);
+        assertThat(workflowService.findNextNode(graph, "gw_amount", ctxMid)).isEqualTo("n_director");
+
+        Map<String, Object> ctxHigh = new HashMap<>();
+        ctxHigh.put("amount", 60000.0);
+        assertThat(workflowService.findNextNode(graph, "gw_amount", ctxHigh)).isEqualTo("n_gm");
+    }
+
+    @Test
+    @DisplayName("V1012: 金额分级审批会物化为不同审批链路")
+    void materializeGraphToFlatPath_AmountTieredApprovalChain() {
+        String cfg = amountTieredWorkflowConfig();
+
+        assertThat(materializeApprovalNodeIds(cfg, Map.of("amount", 3000)))
+                .containsExactly("n_manager");
+
+        assertThat(materializeApprovalNodeIds(cfg, Map.of("amount", 10000)))
+                .containsExactly("n_manager", "n_director");
+
+        assertThat(materializeApprovalNodeIds(cfg, Map.of("amount", 60000)))
+                .containsExactly("n_manager", "n_director", "n_gm");
+    }
+
+    @Test
+    @DisplayName("V1010: resolveAssignee-role_chain 选最末级可用 role")
+    void resolveAssignee_RoleChain() {
+        // Empty chain → throws
+        assertThatThrownBy(() ->
+                invokeResolveAssignee("role_chain", "[]", 100L))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("role_chain 配置为空");
+    }
+
+    private Long invokeResolveAssignee(String type, String value, Long empId) {
+        try {
+            java.lang.reflect.Method m = WorkflowServiceImpl.class.getDeclaredMethod(
+                    "resolveAssignee", String.class, String.class, Long.class);
+            m.setAccessible(true);
+            return (Long) m.invoke(workflowService, type, value, empId);
+        } catch (Exception e) {
+            if (e.getCause() instanceof BusinessException) throw (BusinessException) e.getCause();
+            if (e.getCause() instanceof RuntimeException) throw (RuntimeException) e.getCause();
+            throw new RuntimeException(e);
+        }
+    }
+
+    private List<String> materializeApprovalNodeIds(String nodeConfig, Map<String, Object> ctx) {
+        try {
+            WorkflowServiceImpl.WorkflowGraph graph = workflowService.parseNodeConfig(nodeConfig);
+            assertThat(graph.valid).isTrue();
+            java.lang.reflect.Method m = WorkflowServiceImpl.class.getDeclaredMethod(
+                    "materializeGraphToFlatPath", WorkflowServiceImpl.WorkflowGraph.class, Map.class);
+            m.setAccessible(true);
+            JSONArray nodes = (JSONArray) m.invoke(workflowService, graph, ctx);
+            List<String> nodeIds = new ArrayList<>();
+            for (Object obj : nodes) {
+                nodeIds.add(((JSONObject) obj).getStr("nodeId"));
+            }
+            return nodeIds;
+        } catch (Exception e) {
+            if (e.getCause() instanceof RuntimeException) throw (RuntimeException) e.getCause();
+            throw new RuntimeException(e);
+        }
+    }
+
+    private String amountTieredWorkflowConfig() {
+        return "{\n" +
+                "  \"schemaVersion\": 2,\n" +
+                "  \"nodes\": [\n" +
+                "    {\"nodeId\":\"start\",\"nodeType\":\"start\",\"nodeName\":\"开始\"},\n" +
+                "    {\"nodeId\":\"n_manager\",\"nodeType\":\"approval\",\"nodeName\":\"部门主管审批\",\"assigneeType\":\"dept_manager\",\"assigneeValue\":\"dept_manager\"},\n" +
+                "    {\"nodeId\":\"gw_amount\",\"nodeType\":\"gateway\",\"gatewayType\":\"exclusive\",\"nodeName\":\"按金额分级\",\n" +
+                "     \"branches\":[\n" +
+                "       {\"when\":\"amount > 5000\",\"to\":\"n_director\"},\n" +
+                "       {\"when\":\"amount <= 5000\",\"to\":\"end\"}\n" +
+                "     ]},\n" +
+                "    {\"nodeId\":\"n_director\",\"nodeType\":\"approval\",\"nodeName\":\"总监审批\",\"assigneeType\":\"role_global\",\"assigneeValue\":\"DIRECTOR\",\n" +
+                "     \"routingRules\":[{\"when\":\"amount > 50000\",\"skipTo\":\"n_gm\"}]},\n" +
+                "    {\"nodeId\":\"n_gm\",\"nodeType\":\"approval\",\"nodeName\":\"总经理审批\",\"assigneeType\":\"role_global\",\"assigneeValue\":\"GM\"},\n" +
+                "    {\"nodeId\":\"end\",\"nodeType\":\"end\",\"nodeName\":\"结束\"}\n" +
+                "  ],\n" +
+                "  \"edges\": [\n" +
+                "    {\"source\":\"start\",\"target\":\"n_manager\"},\n" +
+                "    {\"source\":\"n_manager\",\"target\":\"gw_amount\"},\n" +
+                "    {\"source\":\"gw_amount\",\"target\":\"end\"},\n" +
+                "    {\"source\":\"n_director\",\"target\":\"end\"},\n" +
+                "    {\"source\":\"n_gm\",\"target\":\"end\"}\n" +
+                "  ]\n" +
+                "}";
     }
 
     // ==================== helpers ====================

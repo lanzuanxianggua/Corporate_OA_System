@@ -6,6 +6,7 @@ import cn.oa.common.constant.BusinessType;
 import cn.oa.service.*;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -16,25 +17,25 @@ import java.util.function.BiConsumer;
 @Slf4j
 public class WorkflowCallbackDispatcher implements WorkflowCallback {
 
-    @Autowired private LeaveApplyService leaveApplyService;
     @Autowired private BusinessTripService businessTripService;
-    @Autowired private OutingService outingService;
-    @Autowired private PurchaseService purchaseService;
-    @Autowired private ExpenseService expenseService;
     @Autowired private OvertimeService overtimeService;
-    @Autowired private LoanService loanService;
+    @Autowired private PurchaseService purchaseService;
+    @Lazy @Autowired private LeaveApplyService leaveApplyService;
+    @Lazy @Autowired private OutingService outingService;
+    @Lazy @Autowired private ExpenseService expenseService;
+    @Lazy @Autowired private LoanService loanService;
 
     private final Map<String, BiConsumer<Long, Integer>> handlers = new HashMap<>();
 
     @PostConstruct
     public void init() {
-        handlers.put(BusinessType.LEAVE, (id, s) -> leaveApplyService.updateStatus(id, s));
-        handlers.put(BusinessType.TRIP, (id, s) -> businessTripService.updateStatus(id, s));
-        handlers.put(BusinessType.OUTING, (id, s) -> outingService.updateStatus(id, s));
-        handlers.put(BusinessType.PURCHASE, (id, s) -> purchaseService.updateStatus(id, s));
-        handlers.put(BusinessType.EXPENSE, (id, s) -> expenseService.updateStatus(id, s));
-        handlers.put(BusinessType.OVERTIME, (id, s) -> overtimeService.updateStatus(id, s));
-        handlers.put(BusinessType.LOAN, (id, s) -> loanService.updateStatus(id, s));
+        handlers.put(BusinessType.LEAVE,          (id, s) -> leaveApplyService.updateStatus(id, s));
+        handlers.put(BusinessType.TRIP,           (id, s) -> businessTripService.updateStatus(id, s));
+        handlers.put(BusinessType.OUTING,         (id, s) -> outingService.updateStatus(id, s));
+        handlers.put(BusinessType.EXPENSE,        (id, s) -> expenseService.updateStatus(id, s));
+        handlers.put(BusinessType.OVERTIME,       (id, s) -> overtimeService.updateStatus(id, s));
+        handlers.put(BusinessType.PURCHASE,       (id, s) -> purchaseService.updateStatus(id, s));
+        handlers.put(BusinessType.LOAN,           (id, s) -> loanService.updateStatus(id, s));
     }
 
     @Override

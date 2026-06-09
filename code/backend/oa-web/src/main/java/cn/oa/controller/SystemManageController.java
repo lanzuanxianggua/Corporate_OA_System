@@ -48,6 +48,9 @@ public class SystemManageController {
     private SysRoleMenuMapper roleMenuMapper;
 
     @Autowired
+    private SysMenuMapper menuMapper;
+
+    @Autowired
     private OaLoginLogMapper loginLogMapper;
 
     @GetMapping("/user")
@@ -312,6 +315,12 @@ public class SystemManageController {
     @Operation(summary = "获取角色菜单ID列表")
     public R<List<Long>> roleMenuIds(@RequestBody @Valid IdQueryDTO dto) {
         Long roleId = dto.getEffectiveId();
+        SysRole role = roleMapper.selectById(roleId);
+        if (role != null && "ADMIN".equalsIgnoreCase(role.getRoleKey())) {
+            List<SysMenu> menus = menuMapper.selectList(
+                    new LambdaQueryWrapper<SysMenu>().eq(SysMenu::getStatus, "0"));
+            return R.ok(menus.stream().map(SysMenu::getId).collect(Collectors.toList()));
+        }
         List<SysRoleMenu> roleMenus = roleMenuMapper.selectList(
                 new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getRoleId, roleId));
         List<Long> menuIds = roleMenus.stream().map(SysRoleMenu::getMenuId).collect(Collectors.toList());

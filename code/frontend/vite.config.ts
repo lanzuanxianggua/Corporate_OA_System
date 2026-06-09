@@ -29,7 +29,6 @@ export default defineConfig({
     port: 8848,
     host: "0.0.0.0",
     proxy: {
-      "/login": { target: "http://localhost:8080", changeOrigin: true },
       "/logout": { target: "http://localhost:8080", changeOrigin: true },
       "/refresh-token": { target: "http://localhost:8080", changeOrigin: true },
       "/get-async-routes": {

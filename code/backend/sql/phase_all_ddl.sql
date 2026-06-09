@@ -300,18 +300,25 @@ CREATE TABLE wf_process_instance (
 -- ---------------------------------------------
 DROP TABLE IF EXISTS wf_task;
 CREATE TABLE wf_task (
-    id           BIGINT       PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
-    instance_id  BIGINT       NOT NULL COMMENT '流程实例ID',
-    process_id   BIGINT       DEFAULT NULL COMMENT '流程定义ID',
-    node_index   INT          DEFAULT 0 COMMENT '节点序号',
-    node_name    VARCHAR(100) DEFAULT '' COMMENT '节点名称',
-    assignee_id  BIGINT       DEFAULT NULL COMMENT '审批人ID',
-    status       CHAR(1)      DEFAULT '0' COMMENT '状态（0待审批 1已通过 2已驳回 3已转办）',
-    action_time  DATETIME     DEFAULT NULL COMMENT '审批时间',
-    remark       VARCHAR(500) DEFAULT NULL COMMENT '审批意见',
-    create_time  DATETIME     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    id               BIGINT       PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    instance_id      BIGINT       NOT NULL COMMENT '流程实例ID',
+    node_id          BIGINT       DEFAULT NULL COMMENT '节点ID',
+    node_name        VARCHAR(100) DEFAULT NULL COMMENT '节点名称',
+    assignee_id      BIGINT       NOT NULL COMMENT '审批人ID',
+    task_type        VARCHAR(20)  NOT NULL DEFAULT 'TODO' COMMENT '任务类型',
+    parent_task_id   BIGINT       DEFAULT NULL COMMENT '父任务ID',
+    status           VARCHAR(20)  NOT NULL DEFAULT '0' COMMENT '状态：0待审批 1通过 2驳回 3转办 4撤回 5退回',
+    opinion          VARCHAR(500) DEFAULT NULL COMMENT '审批意见',
+    signature        VARCHAR(200) DEFAULT NULL COMMENT '电子签名',
+    due_time         DATETIME     DEFAULT NULL COMMENT '截止时间',
+    complete_time    DATETIME     DEFAULT NULL COMMENT '完成时间',
+    remind_count     INT          NOT NULL DEFAULT 0 COMMENT '催办次数',
+    escalation_count INT          NOT NULL DEFAULT 0 COMMENT '升级次数',
+    create_time      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     INDEX idx_instance_id (instance_id),
     INDEX idx_assignee_id (assignee_id),
+    INDEX idx_node_id (node_id),
+    INDEX idx_due_time (due_time),
     INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='工作流任务表';
 

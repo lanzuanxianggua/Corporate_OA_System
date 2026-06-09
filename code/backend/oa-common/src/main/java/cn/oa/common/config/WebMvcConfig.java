@@ -20,12 +20,13 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(rateLimitInterceptor)
-                .addPathPatterns("/login");
+                .addPathPatterns("/login", "/api/auth/login");
 
         registry.addInterceptor(authInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns(
                         "/login",
+                        "/api/auth/login",
                         "/refresh-token",
                         "/api/auth/captcha",
                         "/error",
@@ -42,8 +43,11 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addMapping("/**")
                 .allowedOriginPatterns(
                         "http://localhost:8848",
+                        "http://127.0.0.1:8848",
                         "http://localhost:5173",
-                        "http://localhost:3000"
+                        "http://127.0.0.1:5173",
+                        "http://localhost:3000",
+                        "http://127.0.0.1:3000"
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")

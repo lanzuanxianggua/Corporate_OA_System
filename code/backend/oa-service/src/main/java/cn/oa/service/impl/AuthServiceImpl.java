@@ -11,7 +11,9 @@ import cn.oa.vo.LoginVO;
 import cn.oa.mapper.OaLoginLogMapper;
 import cn.oa.mapper.SysEmpRoleMapper;
 import cn.oa.mapper.SysEmployeeMapper;
+import cn.oa.mapper.SysMenuMapper;
 import cn.oa.mapper.SysRoleMapper;
+import cn.oa.mapper.SysRoleMenuMapper;
 import cn.oa.service.AuthService;
 import cn.oa.service.OnlineUserService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -39,6 +41,12 @@ public class AuthServiceImpl implements AuthService {
 
     @Autowired
     private SysRoleMapper roleMapper;
+
+    @Autowired
+    private SysMenuMapper menuMapper;
+
+    @Autowired
+    private SysRoleMenuMapper roleMenuMapper;
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
@@ -87,12 +95,13 @@ public class AuthServiceImpl implements AuthService {
         empRoleWrapper.eq(SysEmpRole::getEmpId, employee.getId());
         List<SysEmpRole> empRoles = empRoleMapper.selectList(empRoleWrapper);
 
+        List<SysRole> roles = new ArrayList<>();
         List<String> roleKeys = new ArrayList<>();
         if (!empRoles.isEmpty()) {
             List<Long> roleIds = empRoles.stream()
                     .map(SysEmpRole::getRoleId)
                     .collect(Collectors.toList());
-            List<SysRole> roles = roleMapper.selectBatchIds(roleIds);
+            roles = roleMapper.selectBatchIds(roleIds);
             roleKeys = roles.stream()
                     .map(SysRole::getRoleKey)
                     .collect(Collectors.toList());
@@ -126,7 +135,7 @@ public class AuthServiceImpl implements AuthService {
         vo.setNickname(employee.getEmpName());
         vo.setAvatar(employee.getAvatar() != null ? employee.getAvatar() : "");
         vo.setRoles(roleKeys);
-        vo.setPermissions(List.of("*:*:*"));
+        vo.setPermissions(resolvePermissions(roles, roleKeys));
         return vo;
     }
 
@@ -186,5 +195,47 @@ public class AuthServiceImpl implements AuthService {
         log.setMessage(message);
         log.setLoginTime(LocalDateTime.now());
         loginLogMapper.insert(log);
+    }
+
+    private List<String> resolvePermissions(List<SysRole> roles, List<String> roleKeys) {
+        if (roleKeys != null && roleKeys.stream().anyMatch(r -> "ADMIN".equalsIgnoreCase(r))) {
+            return List.of("*:*:*");
+        }
+        if (roles == null || roles.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Long> roleIds = roles.stream()
+                .map(SysRole::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        if (roleIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<SysRoleMenu> roleMenus = roleMenuMapper.selectList(
+                new LambdaQueryWrapper<SysRoleMenu>().in(SysRoleMenu::getRoleId, roleIds));
+        if (roleMenus == null || roleMenus.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Long> menuIds = roleMenus.stream()
+                .map(SysRoleMenu::getMenuId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        if (menuIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<SysMenu> menus = menuMapper.selectBatchIds(menuIds);
+        if (menus == null || menus.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return menus.stream()
+                .filter(menu -> menu.getPerms() != null && !menu.getPerms().isBlank())
+                .map(SysMenu::getPerms)
+                .distinct()
+                .collect(Collectors.toList());
     }
 }

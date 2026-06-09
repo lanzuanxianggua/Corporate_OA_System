@@ -10,6 +10,17 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
+/**
+ * 工作流任务实体。
+ *
+ * <p>字段对齐 DB 实际 schema (oa_system.wf_task)，V1013 迁移后：
+ * <ul>
+ *   <li>新增: node_id / task_type / opinion / signature / due_time / complete_time / parent_task_id</li>
+ *   <li>废弃: process_id / node_index / action_time / remark / last_remind_time（已 DROP）</li>
+ *   <li>status 从 CHAR(1) 改为 VARCHAR(20)，保持数字编码: 0待审批 1已通过 2已驳回 3已转办 4已取消 5已退回</li>
+ * </ul>
+ * exist=false 字段为 VO 展示字段，不影响 SQL。
+ */
 @Data
 @TableName("wf_task")
 public class WfTask {
@@ -19,22 +30,40 @@ public class WfTask {
 
     private Long instanceId;
 
-    private Long processId;
-
-    private Integer nodeIndex;
+    private Long nodeId;
 
     private String nodeName;
 
     private Long assigneeId;
 
-    /** 0-pending 1-approved 2-rejected 3-transferred 4-canceled 5-returned */
+    /** TODO / COUNTERSIGN / PRE_ADD_SIGN / POST_ADD_SIGN */
+    private String taskType = "TODO";
+
+    private Long parentTaskId;
+
+    /** 0待审批 / 1已通过 / 2已驳回 / 3已转办 / 4已取消 / 5已退回 */
     private String status = "0";
 
+    private String opinion;
+
+    private String signature;
+
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime actionTime;
+    private LocalDateTime dueTime;
 
-    private String remark;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime completeTime;
 
+    private Integer remindCount = 0;
+
+    /** V1010: number of times this task has been auto-escalated due to timeout.
+     *  Used by TaskReminderScheduler to cap escalation at 3 to prevent infinite loops. */
+    private Integer escalationCount = 0;
+
+    @TableField(fill = FieldFill.INSERT)
+    private LocalDateTime createTime;
+
+    // ───── VO 显示字段 (非 DB) ─────
     @TableField(exist = false)
     private String actionSource;
 
@@ -45,37 +74,14 @@ public class WfTask {
     private String transferReason;
 
     @TableField(exist = false)
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime deadline;
-
-    private Integer remindCount;
-
-    private LocalDateTime lastRemindTime;
-
-    /** Parent task ID for countersign/orsign */
-    @TableField(exist = false)
-    private Long parentTaskId;
-
-    /** countersign / orsign / null */
-    @TableField(exist = false)
-    private String multiType;
-
-    @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createTime;
-
-    /** 业务标题（非数据库字段） */
-    @TableField(exist = false)
     private String businessTitle;
 
-    /** 业务类型（非数据库字段） */
     @TableField(exist = false)
     private String businessType;
 
-    /** 流程实例（非数据库字段） */
     @TableField(exist = false)
     private WfProcessInstance instance;
 
-    /** 审批人姓名（非数据库字段） */
     @TableField(exist = false)
     private String assigneeName;
 }

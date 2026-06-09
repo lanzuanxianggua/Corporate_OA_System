@@ -29,6 +29,8 @@ public class OaNotice {
 
     private Integer status = 0;
 
+    private String isTop = "0";
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 

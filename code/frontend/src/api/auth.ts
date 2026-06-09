@@ -2,7 +2,7 @@ import request from "@/utils/request";
 import type { ApiResponse, LoginDTO, LoginVO } from "@/types/api";
 
 export const login = (data: LoginDTO) => {
-  return request.post<unknown, ApiResponse<LoginVO>>("/login", data);
+  return request.post<unknown, ApiResponse<LoginVO>>("/api/auth/login", data);
 };
 
 export const getCaptcha = () => {

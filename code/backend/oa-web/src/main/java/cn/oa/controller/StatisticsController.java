@@ -7,8 +7,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 @Slf4j
@@ -25,8 +27,9 @@ public class StatisticsController {
     @Operation(summary = "获取仪表盘统计数据")
     public R<Map<String, Object>> dashboard(
             @RequestParam(defaultValue = "today") String period,
-            @RequestParam(required = false) Integer year) {
-        Map<String, Object> data = statisticsService.getDashboardStats(period, year);
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        Map<String, Object> data = statisticsService.getDashboardStats(period, year, date);
         return R.ok(data);
     }
 }

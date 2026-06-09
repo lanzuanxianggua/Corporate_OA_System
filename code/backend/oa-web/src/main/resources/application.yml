@@ -2,8 +2,6 @@ server:
   port: 8080
 
 spring:
-  profiles:
-    active: local
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Shanghai
@@ -11,6 +9,15 @@ spring:
     multipart:
       max-file-size: 50MB
       max-request-size: 50MB
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/oa_system?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=utf8
+    username: oa_v2
+    password: oa_v2
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 0
 
 mybatis-plus:
   mapper-locations: classpath*:mapper/**/*.xml
@@ -32,14 +39,13 @@ springdoc:
       paths-to-match: /api/**
 
 oa:
+  schema:
+    bootstrap-workflow-tables: true
   upload:
     path: uploads
 
 jwt:
-  # IMPORTANT: JWT_SECRET must be set via environment variable — no default provided.
-  # Example: export JWT_SECRET=your-strong-random-secret-at-least-32-chars
-  # Application will fail to start if JWT_SECRET is not set.
-  secret: "${JWT_SECRET}"
+  secret: "oa-system-jwt-secret-please-replace-in-production-32chars"
 
 logging:
   level:

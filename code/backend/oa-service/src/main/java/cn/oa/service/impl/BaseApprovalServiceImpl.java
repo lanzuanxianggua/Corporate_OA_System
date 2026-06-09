@@ -2,10 +2,15 @@ package cn.oa.service.impl;
 
 import cn.oa.common.exception.BusinessException;
 import cn.oa.entity.OaApprovalRecord;
+import cn.oa.entity.SysEmpRole;
 import cn.oa.entity.SysEmployee;
+import cn.oa.entity.SysRole;
+import cn.oa.entity.WfProcessInstance;
 import cn.oa.entity.WfTask;
 import cn.oa.mapper.OaApprovalRecordMapper;
+import cn.oa.mapper.SysEmpRoleMapper;
 import cn.oa.mapper.SysEmployeeMapper;
+import cn.oa.mapper.SysRoleMapper;
 import cn.oa.service.DelegationService;
 import cn.oa.service.WorkflowService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -55,6 +60,12 @@ public abstract class BaseApprovalServiceImpl<M extends BaseMapper<T>, T>
 
     @Autowired
     protected SysEmployeeMapper employeeMapper;
+
+    @Autowired
+    protected SysEmpRoleMapper empRoleMapper;
+
+    @Autowired
+    protected SysRoleMapper roleMapper;
 
     @Autowired
     protected OaApprovalRecordMapper approvalRecordMapper;
@@ -117,15 +128,60 @@ public abstract class BaseApprovalServiceImpl<M extends BaseMapper<T>, T>
      */
     @Transactional
     public void doApprove(Long id, Long approverId, Integer status, String remark) {
-        log.debug("doApprove: businessType={}, id={}, approverId={}, status={}", getBusinessType(), id, approverId, status);
+        doApprove(id, approverId, status, remark, null);
+    }
+
+    @Transactional
+    public void doApprove(Long id, Long approverId, Integer status, String remark, Long taskId) {
+        log.debug("doApprove: businessType={}, id={}, approverId={}, status={}, taskId={}",
+                getBusinessType(), id, approverId, status, taskId);
+
+        if (taskId != null) {
+            workflowService.handleTask(taskId, approverId, status, remark);
+            return;
+        }
 
         WfTask task = workflowService.findPendingTask(getBusinessType(), id, approverId);
+        if (task == null && isAdminUser(approverId)) {
+            task = findAnyPendingTaskForBusiness(id);
+        }
+
         if (task != null) {
             workflowService.handleTask(task.getId(), approverId, status, remark);
         } else {
             log.warn("doApprove: no pending task found for businessType={}, id={}, approverId={}", getBusinessType(), id, approverId);
             throw new BusinessException("未找到待审批的任务");
         }
+    }
+
+    private WfTask findAnyPendingTaskForBusiness(Long businessId) {
+        WfProcessInstance instance = workflowService.getByBusiness(getBusinessType(), businessId);
+        if (instance == null) return null;
+
+        LambdaQueryWrapper<WfTask> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(WfTask::getInstanceId, instance.getId())
+                .eq(WfTask::getStatus, "0")
+                .orderByAsc(WfTask::getCreateTime)
+                .last("LIMIT 1");
+        return wfTaskMapper.selectOne(wrapper);
+    }
+
+    private boolean isAdminUser(Long empId) {
+        if (empId == null) return false;
+        if (empRoleMapper == null || roleMapper == null) return false;
+
+        List<SysEmpRole> empRoles = empRoleMapper.selectList(
+                new LambdaQueryWrapper<SysEmpRole>().eq(SysEmpRole::getEmpId, empId));
+        if (empRoles == null || empRoles.isEmpty()) return false;
+
+        List<Long> roleIds = empRoles.stream()
+                .map(SysEmpRole::getRoleId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        if (roleIds.isEmpty()) return false;
+
+        List<SysRole> roles = roleMapper.selectBatchIds(roleIds);
+        return roles != null && roles.stream().anyMatch(role -> "ADMIN".equalsIgnoreCase(role.getRoleKey()));
     }
 
     // ====== updateStatus ======

@@ -1,8 +1,8 @@
 package cn.oa.service;
 
 import java.util.Map;
-import java.util.List;
+import java.time.LocalDate;
 
 public interface StatisticsService {
-    Map<String, Object> getDashboardStats(String period, Integer year);
+    Map<String, Object> getDashboardStats(String period, Integer year, LocalDate date);
 }

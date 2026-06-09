@@ -184,7 +184,9 @@ const openPermDialog = async (row: any) => {
   // Load current role's menus
   try {
     const res: any = await getMenuByRole(row.id);
-    checkedMenuIds.value = (res.data || []).map((m: any) => m.id);
+    checkedMenuIds.value = (res.data || []).map((item: any) =>
+      typeof item === "object" ? Number(item.id) : Number(item)
+    );
   } catch {
     checkedMenuIds.value = [];
   }

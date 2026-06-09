@@ -101,7 +101,7 @@ public class LoanServiceImpl extends BaseApprovalServiceImpl<OaLoanMapper, OaLoa
     @Override
     @Transactional
     public void approve(Long loanId, Long approverId, Integer status, String remark, Long taskId) {
-        doApprove(loanId, approverId, status, remark);
+        doApprove(loanId, approverId, status, remark, taskId);
     }
 
     @Override

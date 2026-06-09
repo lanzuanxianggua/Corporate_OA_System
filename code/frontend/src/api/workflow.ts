@@ -57,3 +57,10 @@ export const getMyDelegations = () =>
 
 export const cancelDelegation = (id: number) =>
   request.post<unknown, ApiResponse<void>>(`/api/workflow/delegation/cancel/${id}`);
+
+// V1010: graph-format validation + path preview
+export const validateDefinitionApi = (data: { nodeConfig: string }) =>
+  request.post<unknown, ApiResponse<any[]>>("/api/workflow/definition/validate", data);
+
+export const previewDefinition = (params: { businessType: string; businessId: number }) =>
+  request.get<unknown, ApiResponse<any[]>>("/api/workflow/definition/preview", { params });

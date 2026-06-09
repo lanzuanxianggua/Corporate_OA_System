@@ -10,6 +10,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -24,13 +25,13 @@ public class DelegationServiceImpl extends ServiceImpl<WfDelegationMapper, WfDel
             throw new BusinessException("不能将审批委托给自己");
         }
         // 验证委托时间
-        if (delegation.getStartTime() == null || delegation.getEndTime() == null) {
+        if (delegation.getStartDate() == null || delegation.getEndDate() == null) {
             throw new BusinessException("委托开始时间和结束时间不能为空");
         }
-        if (delegation.getStartTime().isAfter(delegation.getEndTime())) {
+        if (delegation.getStartDate().isAfter(delegation.getEndDate())) {
             throw new BusinessException("委托开始时间不能晚于结束时间");
         }
-        delegation.setStatus("0");
+        delegation.setStatus("ACTIVE");
         delegation.setCreateTime(LocalDateTime.now());
         this.save(delegation);
         log.info("Delegation set: delegatorId={}, delegateToId={}", delegation.getDelegatorId(), delegation.getDelegateToId());
@@ -48,7 +49,7 @@ public class DelegationServiceImpl extends ServiceImpl<WfDelegationMapper, WfDel
     public void cancelDelegation(Long id, Long delegatorId) {
         WfDelegation delegation = this.getById(id);
         if (delegation != null && delegation.getDelegatorId().equals(delegatorId)) {
-            delegation.setStatus("1");
+            delegation.setStatus("CANCELLED");
             this.updateById(delegation);
             log.info("Delegation cancelled: id={}, delegatorId={}", id, delegatorId);
         }
@@ -58,9 +59,9 @@ public class DelegationServiceImpl extends ServiceImpl<WfDelegationMapper, WfDel
     public Long resolveDelegate(Long delegatorId) {
         LambdaQueryWrapper<WfDelegation> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(WfDelegation::getDelegatorId, delegatorId)
-                .eq(WfDelegation::getStatus, "0")
-                .le(WfDelegation::getStartTime, LocalDateTime.now())
-                .ge(WfDelegation::getEndTime, LocalDateTime.now())
+                .eq(WfDelegation::getStatus, "ACTIVE")
+                .le(WfDelegation::getStartDate, LocalDate.now())
+                .ge(WfDelegation::getEndDate, LocalDate.now())
                 .last("LIMIT 1");
         WfDelegation delegation = this.getOne(wrapper);
         return delegation != null ? delegation.getDelegateToId() : null;
@@ -70,9 +71,9 @@ public class DelegationServiceImpl extends ServiceImpl<WfDelegationMapper, WfDel
     public WfDelegation findActiveDelegationForDelegate(Long delegateToId) {
         LambdaQueryWrapper<WfDelegation> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(WfDelegation::getDelegateToId, delegateToId)
-                .eq(WfDelegation::getStatus, "0")
-                .le(WfDelegation::getStartTime, LocalDateTime.now())
-                .ge(WfDelegation::getEndTime, LocalDateTime.now())
+                .eq(WfDelegation::getStatus, "ACTIVE")
+                .le(WfDelegation::getStartDate, LocalDate.now())
+                .ge(WfDelegation::getEndDate, LocalDate.now())
                 .last("LIMIT 1");
         return this.getOne(wrapper);
     }
@@ -85,9 +86,9 @@ public class DelegationServiceImpl extends ServiceImpl<WfDelegationMapper, WfDel
         LambdaQueryWrapper<WfDelegation> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(WfDelegation::getDelegatorId, delegatorId)
                 .eq(WfDelegation::getDelegateToId, delegateToId)
-                .eq(WfDelegation::getStatus, "0")
-                .le(WfDelegation::getStartTime, LocalDateTime.now())
-                .ge(WfDelegation::getEndTime, LocalDateTime.now())
+                .eq(WfDelegation::getStatus, "ACTIVE")
+                .le(WfDelegation::getStartDate, LocalDate.now())
+                .ge(WfDelegation::getEndDate, LocalDate.now())
                 .last("LIMIT 1");
         return this.getOne(wrapper);
     }

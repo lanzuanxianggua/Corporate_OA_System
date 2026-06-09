@@ -1,8 +1,10 @@
 package cn.oa.service.impl;
 
 import cn.oa.entity.SysMenu;
+import cn.oa.entity.SysRole;
 import cn.oa.entity.SysRoleMenu;
 import cn.oa.mapper.SysMenuMapper;
+import cn.oa.mapper.SysRoleMapper;
 import cn.oa.mapper.SysRoleMenuMapper;
 import cn.oa.service.MenuService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -21,6 +23,9 @@ public class MenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impleme
     @Autowired
     private SysRoleMenuMapper roleMenuMapper;
 
+    @Autowired
+    private SysRoleMapper roleMapper;
+
     @Override
     public List<SysMenu> getMenuTree() {
         LambdaQueryWrapper<SysMenu> wrapper = new LambdaQueryWrapper<>();
@@ -30,6 +35,9 @@ public class MenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impleme
 
     @Override
     public List<Long> getMenuIdsByRoleId(Long roleId) {
+        if (isAdminRole(roleId)) {
+            return getAllActiveMenuIds();
+        }
         LambdaQueryWrapper<SysRoleMenu> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SysRoleMenu::getRoleId, roleId);
         List<SysRoleMenu> list = roleMenuMapper.selectList(wrapper);
@@ -43,13 +51,29 @@ public class MenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impleme
         wrapper.eq(SysRoleMenu::getRoleId, roleId);
         roleMenuMapper.delete(wrapper);
 
-        if (menuIds != null && !menuIds.isEmpty()) {
-            for (Long menuId : menuIds) {
+        List<Long> effectiveMenuIds = isAdminRole(roleId) ? getAllActiveMenuIds() : menuIds;
+        if (effectiveMenuIds != null && !effectiveMenuIds.isEmpty()) {
+            for (Long menuId : effectiveMenuIds.stream().distinct().collect(Collectors.toList())) {
                 SysRoleMenu rm = new SysRoleMenu();
                 rm.setRoleId(roleId);
                 rm.setMenuId(menuId);
                 roleMenuMapper.insert(rm);
             }
         }
+    }
+
+    private boolean isAdminRole(Long roleId) {
+        if (roleId == null) return false;
+        SysRole role = roleMapper.selectById(roleId);
+        return role != null && "ADMIN".equalsIgnoreCase(role.getRoleKey());
+    }
+
+    private List<Long> getAllActiveMenuIds() {
+        LambdaQueryWrapper<SysMenu> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysMenu::getStatus, "0")
+                .orderByAsc(SysMenu::getOrderNum);
+        return this.list(wrapper).stream()
+                .map(SysMenu::getId)
+                .collect(Collectors.toList());
     }
 }

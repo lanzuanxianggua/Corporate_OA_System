@@ -47,18 +47,24 @@ public class StatisticsServiceImpl implements StatisticsService {
     }
 
     @Override
-    public Map<String, Object> getDashboardStats(String period, Integer year) {
+    public Map<String, Object> getDashboardStats(String period, Integer year, LocalDate date) {
         // 尝试从缓存获取
         String cacheKey = "cache:stats:dashboard:" + (period == null ? "today" : period)
-                + ":" + (year != null ? year : LocalDate.now().getYear());
-        @SuppressWarnings("unchecked")
-        Map<String, Object> cached = redisService.getJson(cacheKey, Map.class);
-        if (cached != null) {
-            log.debug("仪表盘数据命中缓存: {}", cacheKey);
-            return cached;
+                + ":" + (year != null ? year : LocalDate.now().getYear())
+                + ":" + (date != null ? date : LocalDate.now());
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> cached = redisService.getJson(cacheKey, Map.class);
+            if (cached != null) {
+                log.debug("仪表盘数据命中缓存: {}", cacheKey);
+                return cached;
+            }
+        } catch (Exception e) {
+            log.warn("仪表盘缓存读取失败，删除缓存后重新计算: {}", cacheKey, e);
+            redisService.delete(cacheKey);
         }
 
-        Map<String, Object> result = doGetDashboardStats(period, year);
+        Map<String, Object> result = doGetDashboardStats(period, year, date);
 
         // 缓存5分钟，避免频繁查询
         redisService.set(cacheKey, result, 5, TimeUnit.MINUTES);
@@ -68,7 +74,7 @@ public class StatisticsServiceImpl implements StatisticsService {
     /**
      * 实际计算仪表盘数据（无缓存）
      */
-    private Map<String, Object> doGetDashboardStats(String period, Integer year) {
+    private Map<String, Object> doGetDashboardStats(String period, Integer year, LocalDate selectedDate) {
         Map<String, Object> result = new LinkedHashMap<>();
 
         // 1. 员工总数
@@ -77,7 +83,7 @@ public class StatisticsServiceImpl implements StatisticsService {
         result.put("employeeTotal", employeeTotal);
 
         // 2. 计算日期范围
-        LocalDate today = LocalDate.now();
+        LocalDate today = selectedDate != null ? selectedDate : LocalDate.now();
         LocalDate startDate;
         LocalDate endDate = today;
         switch (period == null ? "today" : period) {
@@ -269,6 +275,10 @@ public class StatisticsServiceImpl implements StatisticsService {
         List<Map<String, Object>> attendanceRanking = buildAttendanceRanking(startDate, endDate);
         result.put("attendanceRanking", attendanceRanking);
 
+        // 10. 缺勤排行榜
+        List<Map<String, Object>> absenceRanking = buildAbsenceRanking(startDate, endDate);
+        result.put("absenceRanking", absenceRanking);
+
         return result;
     }
 
@@ -298,7 +308,7 @@ public class StatisticsServiceImpl implements StatisticsService {
             }
         }
         ranking.sort((a, b) -> Long.compare((Long) b.get("lateCount"), (Long) a.get("lateCount")));
-        return ranking.size() > 10 ? ranking.subList(0, 10) : ranking;
+        return limitRanking(ranking);
     }
 
     private List<Map<String, Object>> buildAttendanceRanking(LocalDate startDate, LocalDate endDate) {
@@ -333,6 +343,75 @@ public class StatisticsServiceImpl implements StatisticsService {
             ranking.add(item);
         }
         ranking.sort((a, b) -> Double.compare((Double) b.get("rate"), (Double) a.get("rate")));
-        return ranking.size() > 10 ? ranking.subList(0, 10) : ranking;
+        return limitRanking(ranking);
+    }
+
+    private List<Map<String, Object>> buildAbsenceRanking(LocalDate startDate, LocalDate endDate) {
+        int requiredWorkdays = countWorkdays(startDate, endDate);
+        if (requiredWorkdays <= 0) return Collections.emptyList();
+
+        List<SysEmployee> employees = employeeMapper.selectList(
+            new LambdaQueryWrapper<SysEmployee>().eq(SysEmployee::getStatus, 1));
+        if (employees.isEmpty()) return Collections.emptyList();
+
+        Map<Long, Long> clockedDaysMap = attendanceMapper.selectList(
+                new LambdaQueryWrapper<OaAttendance>()
+                    .between(OaAttendance::getWorkDate, startDate, endDate)
+                    .isNotNull(OaAttendance::getClockIn))
+            .stream()
+            .filter(a -> a.getEmpId() != null && a.getWorkDate() != null)
+            .collect(Collectors.groupingBy(
+                OaAttendance::getEmpId,
+                Collectors.mapping(OaAttendance::getWorkDate, Collectors.collectingAndThen(Collectors.toSet(), Set::size))))
+            .entrySet()
+            .stream()
+            .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().longValue()));
+
+        Map<Long, Set<LocalDate>> approvedLeaveDatesMap = new HashMap<>();
+        List<OaLeaveApply> approvedLeaves = leaveApplyMapper.selectList(
+            new LambdaQueryWrapper<OaLeaveApply>()
+                .eq(OaLeaveApply::getStatus, 1)
+                .le(OaLeaveApply::getStartTime, endDate.atTime(23, 59, 59))
+                .ge(OaLeaveApply::getEndTime, startDate.atTime(0, 0, 0)));
+        for (OaLeaveApply leave : approvedLeaves) {
+            if (leave.getEmpId() == null || leave.getStartTime() == null || leave.getEndTime() == null) continue;
+
+            LocalDate leaveStart = leave.getStartTime().toLocalDate().isBefore(startDate)
+                ? startDate : leave.getStartTime().toLocalDate();
+            LocalDate leaveEnd = leave.getEndTime().toLocalDate().isAfter(endDate)
+                ? endDate : leave.getEndTime().toLocalDate();
+
+            Set<LocalDate> leaveDates = approvedLeaveDatesMap.computeIfAbsent(leave.getEmpId(), key -> new HashSet<>());
+            for (LocalDate date = leaveStart; !date.isAfter(leaveEnd); date = date.plusDays(1)) {
+                DayOfWeek dow = date.getDayOfWeek();
+                if (dow != DayOfWeek.SATURDAY && dow != DayOfWeek.SUNDAY) {
+                    leaveDates.add(date);
+                }
+            }
+        }
+
+        List<Map<String, Object>> ranking = new ArrayList<>();
+        for (SysEmployee employee : employees) {
+            Long empId = employee.getId();
+            long clockedDays = clockedDaysMap.getOrDefault(empId, 0L);
+            long approvedLeaveDays = approvedLeaveDatesMap.getOrDefault(empId, Collections.emptySet()).size();
+            long absentCount = Math.max(0, requiredWorkdays - clockedDays - approvedLeaveDays);
+            if (absentCount <= 0) continue;
+
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("empName", employee.getEmpName());
+            item.put("absentCount", absentCount);
+            item.put("requiredDays", requiredWorkdays);
+            item.put("clockedDays", clockedDays);
+            item.put("approvedLeaveDays", approvedLeaveDays);
+            ranking.add(item);
+        }
+
+        ranking.sort((a, b) -> Long.compare((Long) b.get("absentCount"), (Long) a.get("absentCount")));
+        return limitRanking(ranking);
+    }
+
+    private List<Map<String, Object>> limitRanking(List<Map<String, Object>> ranking) {
+        return ranking.size() > 10 ? new ArrayList<>(ranking.subList(0, 10)) : new ArrayList<>(ranking);
     }
 }

@@ -70,6 +70,7 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button :loading="validating" @click="handleValidate">校验 (V1010)</el-button>
         <el-button type="primary" :loading="saving" @click="handleSave">确定</el-button>
       </template>
     </el-dialog>
@@ -78,9 +79,9 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import type { FormInstance, FormRules } from "element-plus";
-import { getDefinitions, createDefinition, updateDefinition, activateDefinition } from "@/api/workflow";
+import { getDefinitions, createDefinition, updateDefinition, activateDefinition, validateDefinitionApi } from "@/api/workflow";
 import WorkflowDesigner from "@/components/WorkflowDesigner.vue";
 import FlowDesigner from "@/components/flow-designer/FlowDesigner.vue";
 
@@ -106,11 +107,11 @@ const nodeSummary = (nodeConfig: string) => {
     const parsed = JSON.parse(nodeConfig);
     if (parsed.nodes && parsed.edges) {
       // Graph format
-      return parsed.nodes.filter((n: any) => n.nodeType === "approval").map((n: any) => n.name).join(" -> ") || "无审批节点";
+      return parsed.nodes.filter((n: any) => n.nodeType === "approval").map((n: any) => n.nodeName || n.name).join(" -> ") || "无审批节点";
     }
     // Legacy flat array
     if (!parsed.length) return "无节点";
-    return parsed.map((n: any) => n.nodeName).join(" -> ");
+    return parsed.map((n: any) => n.nodeName || n.name).join(" -> ");
   } catch {
     return "配置错误";
   }
@@ -147,6 +148,30 @@ const openDialog = (row?: any) => {
     formRef.value?.resetFields();
   }
   dialogVisible.value = true;
+};
+
+const validating = ref(false);
+
+const handleValidate = async () => {
+  if (!form.nodeConfig) {
+    ElMessage.warning("请先配置审批流程");
+    return;
+  }
+  validating.value = true;
+  try {
+    const res: any = await validateDefinitionApi({ nodeConfig: form.nodeConfig });
+    const errors: any[] = res.data || [];
+    if (errors.length === 0) {
+      ElMessage.success("校验通过");
+    } else {
+      const messages = errors.map((e) => `[${e.type}] ${e.nodeId || ""} ${e.message}`).join("\n");
+      ElMessageBox.alert(messages, "校验未通过", { type: "warning" });
+    }
+  } catch {
+    ElMessage.error("校验失败");
+  } finally {
+    validating.value = false;
+  }
 };
 
 const handleSave = async () => {

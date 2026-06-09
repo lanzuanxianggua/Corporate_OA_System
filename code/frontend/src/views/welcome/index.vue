@@ -1,131 +1,153 @@
 <template>
-  <div>
-    <!-- 问候区域 -->
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold text-[#303133] mb-2">
-        {{ greeting }}，{{ userStore.userInfo?.empName || "用户" }}
-      </h1>
-      <p class="text-sm text-[#909399]">{{ currentDate }}</p>
+  <section class="oa-analytics-page">
+    <header class="oa-page-header">
+      <div>
+        <div class="oa-eyebrow">Home</div>
+        <h1 class="oa-page-title">{{ greeting }}，{{ userStore.userInfo?.empName || "用户" }}</h1>
+        <p class="oa-page-subtitle">{{ currentDate }}</p>
+      </div>
+      <div class="oa-header-actions">
+        <el-button type="primary" :icon="DocumentAdd" @click="router.push('/oa/leave/apply')">
+          请假申请
+        </el-button>
+        <el-button :icon="Calendar" @click="router.push('/oa/schedule/index')">
+          我的日程
+        </el-button>
+      </div>
+    </header>
+
+    <div class="oa-stat-grid">
+      <article v-for="item in statsCards" :key="item.label" class="oa-stat-card">
+        <div class="oa-stat-icon" :style="{ color: item.color, backgroundColor: item.bgColor }">
+          <el-icon :size="22"><component :is="item.icon" /></el-icon>
+        </div>
+        <div>
+          <div class="oa-stat-label">{{ item.label }}</div>
+          <div class="oa-stat-value">{{ item.value }}</div>
+          <div class="oa-stat-note">{{ item.note }}</div>
+        </div>
+      </article>
     </div>
 
-    <!-- 统计卡片 -->
-    <el-row :gutter="20" class="mb-5">
-      <el-col v-for="item in statsCards" :key="item.label" :span="6">
-        <div class="bg-white rounded-lg p-5 flex items-center gap-4" style="box-shadow:0 2px 12px rgba(0,0,0,.06)">
-          <div class="w-14 h-14 rounded-lg flex items-center justify-center" :style="{ backgroundColor: item.bgColor }">
-            <el-icon :size="24" :color="item.color"><component :is="item.icon" /></el-icon>
+    <div class="oa-grid">
+      <article class="oa-panel oa-col-6">
+        <div class="oa-panel-header">
+          <div>
+            <h2 class="oa-panel-title">今日考勤</h2>
+            <p class="oa-panel-subtitle">展示当天上下班打卡与考勤状态</p>
           </div>
-          <div class="flex flex-col">
-            <span class="text-2xl font-bold text-[#303133]">{{ item.value }}</span>
-            <span class="text-sm text-[#909399] mt-1">{{ item.label }}</span>
+          <el-tag :type="statusTagType" effect="light">{{ statusText }}</el-tag>
+        </div>
+
+        <div v-if="todayAtt" class="oa-micro-grid">
+          <div class="oa-kpi-box">
+            <div class="oa-kpi-label">上班打卡</div>
+            <div class="oa-kpi-value">{{ formatClock(todayAtt.clockIn) }}</div>
+            <div class="oa-kpi-note">{{ todayAtt.clockIn ? "已记录" : "未打卡" }}</div>
+          </div>
+          <div class="oa-kpi-box">
+            <div class="oa-kpi-label">下班打卡</div>
+            <div class="oa-kpi-value">{{ formatClock(todayAtt.clockOut) }}</div>
+            <div class="oa-kpi-note">{{ todayAtt.clockOut ? "已记录" : "未打卡" }}</div>
+          </div>
+          <div class="oa-kpi-box">
+            <div class="oa-kpi-label">考勤状态</div>
+            <div class="oa-kpi-value">{{ statusText }}</div>
+            <div class="oa-kpi-note">按系统规则计算</div>
+          </div>
+          <div class="oa-kpi-box">
+            <div class="oa-kpi-label">工作台入口</div>
+            <div class="oa-kpi-value">OA</div>
+            <div class="oa-kpi-note">日常办公汇总</div>
           </div>
         </div>
-      </el-col>
-    </el-row>
+        <el-empty v-else description="今日暂无考勤记录" :image-size="64" />
+      </article>
 
-    <!-- 今日考勤状态 + 快捷入口 -->
-    <el-row :gutter="20" class="mb-5">
-      <el-col :span="12">
-        <el-card class="h-full">
-          <template #header><span class="font-medium">今日考勤</span></template>
-          <div v-if="todayAtt" class="flex items-center justify-around">
-            <div class="text-center">
-              <div class="text-xs text-[#909399] mb-2">上班打卡</div>
-              <div class="text-lg font-bold" :class="todayAtt.clockIn ? 'text-[#67C23A]' : 'text-[#909399]'">
-                {{ todayAtt.clockIn ? todayAtt.clockIn.substring(11, 16) : "未打卡" }}
-              </div>
-            </div>
-            <el-divider direction="vertical" style="height:50px" />
-            <div class="text-center">
-              <div class="text-xs text-[#909399] mb-2">下班打卡</div>
-              <div class="text-lg font-bold" :class="todayAtt.clockOut ? 'text-[#67C23A]' : 'text-[#909399]'">
-                {{ todayAtt.clockOut ? todayAtt.clockOut.substring(11, 16) : "未打卡" }}
-              </div>
-            </div>
-            <el-divider direction="vertical" style="height:50px" />
-            <div class="text-center">
-              <div class="text-xs text-[#909399] mb-2">考勤状态</div>
-              <el-tag :type="statusTagType" size="large">{{ statusText }}</el-tag>
-            </div>
+      <article class="oa-panel oa-col-6">
+        <div class="oa-panel-header">
+          <div>
+            <h2 class="oa-panel-title">快捷入口</h2>
+            <p class="oa-panel-subtitle">常用办公功能聚合</p>
           </div>
-          <el-empty v-else description="今日暂无考勤记录" :image-size="50" />
-        </el-card>
-      </el-col>
-      <el-col :span="12">
-        <el-card class="h-full">
-          <template #header><span class="font-medium">快捷入口</span></template>
-          <div class="grid grid-cols-4 gap-4">
-            <div v-for="item in quickEntries" :key="item.label"
-              class="flex flex-col items-center gap-2 py-3 cursor-pointer rounded-lg hover:bg-[#f5f7fa] transition-colors"
-              @click="$router.push(item.path)">
-              <el-icon :size="28" :color="item.color"><component :is="item.icon" /></el-icon>
-              <span class="text-xs text-[#606266]">{{ item.label }}</span>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </div>
+        <div class="oa-action-grid">
+          <button
+            v-for="item in quickEntries"
+            :key="item.label"
+            type="button"
+            class="oa-action-tile"
+            @click="router.push(item.path)"
+          >
+            <el-icon :size="20" :color="item.color"><component :is="item.icon" /></el-icon>
+            <span>{{ item.label }}</span>
+          </button>
+        </div>
+      </article>
 
-    <!-- 本月个人统计 -->
-    <el-row :gutter="20" class="mb-5">
-      <el-col :span="8">
-        <el-card class="h-full">
-          <template #header><span class="font-medium">本月出勤概览</span></template>
-          <div class="grid grid-cols-2 gap-4 text-center">
-            <div class="p-3 bg-[#f0f9ff] rounded-lg">
-              <div class="text-2xl font-bold text-[#409EFF]">{{ monthStats.normalDays }}</div>
-              <div class="text-xs text-[#909399] mt-1">正常出勤</div>
-            </div>
-            <div class="p-3 bg-[#fff7e6] rounded-lg">
-              <div class="text-2xl font-bold text-[#E6A23C]">{{ monthStats.lateDays }}</div>
-              <div class="text-xs text-[#909399] mt-1">迟到</div>
-            </div>
-            <div class="p-3 bg-[#fef0f0] rounded-lg">
-              <div class="text-2xl font-bold text-[#F56C6C]">{{ monthStats.earlyLeaveDays }}</div>
-              <div class="text-xs text-[#909399] mt-1">早退</div>
-            </div>
-            <div class="p-3 bg-[#f9f0ff] rounded-lg">
-              <div class="text-2xl font-bold text-[#9254de]">{{ monthStats.absentDays }}</div>
-              <div class="text-xs text-[#909399] mt-1">缺勤</div>
-            </div>
+      <article class="oa-panel oa-col-4">
+        <div class="oa-panel-header">
+          <div>
+            <h2 class="oa-panel-title">本月出勤概览</h2>
+            <p class="oa-panel-subtitle">个人出勤状态统计</p>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="16">
-        <el-card class="h-full">
-          <template #header>
-            <div class="flex justify-between items-center">
-              <span class="font-medium">最近公告</span>
-              <el-button type="primary" link @click="$router.push('/oa/notice/list')">查看更多</el-button>
-            </div>
-          </template>
-          <div v-if="noticeList.length > 0">
-            <div v-for="item in noticeList" :key="item.id"
-              class="py-3 border-b border-[#ebeef5] last:border-b-0 cursor-pointer hover:text-[#409EFF]"
-              @click="handleViewNotice(item)">
-              <div class="text-sm font-medium text-[#303133] flex items-center gap-2 mb-1">
+        </div>
+        <div class="oa-micro-grid month-grid">
+          <div v-for="item in monthCards" :key="item.label" class="oa-kpi-box">
+            <div class="oa-kpi-label">{{ item.label }}</div>
+            <div class="oa-kpi-value" :style="{ color: item.color }">{{ item.value }}</div>
+            <div class="oa-kpi-note">{{ item.note }}</div>
+          </div>
+        </div>
+      </article>
+
+      <article class="oa-panel oa-col-8">
+        <div class="oa-panel-header">
+          <div>
+            <h2 class="oa-panel-title">最近公告</h2>
+            <p class="oa-panel-subtitle">公告与通知动态</p>
+          </div>
+          <el-button type="primary" link @click="router.push('/oa/notice/list')">查看更多</el-button>
+        </div>
+        <div v-if="noticeList.length">
+          <div v-for="item in noticeList" :key="item.id" class="oa-list-item notice-item" @click="handleViewNotice(item)">
+            <div>
+              <div class="notice-title">
                 {{ item.title }}
                 <el-tag v-if="item.noticeType === 1" type="danger" size="small">公告</el-tag>
+                <el-tag v-else type="info" size="small">通知</el-tag>
               </div>
-              <div class="text-xs text-[#909399]">{{ item.createTime }}</div>
+              <div class="notice-time">{{ item.createTime }}</div>
             </div>
           </div>
-          <el-empty v-else description="暂无公告" :image-size="50" />
-        </el-card>
-      </el-col>
-    </el-row>
+        </div>
+        <el-empty v-else description="暂无公告" :image-size="64" />
+      </article>
+    </div>
 
     <el-dialog v-model="noticeDialogVisible" :title="currentNotice?.title" width="600px">
-      <div class="mb-4 text-sm text-[#909399]">{{ currentNotice?.createTime }}</div>
+      <div class="notice-time">{{ currentNotice?.createTime }}</div>
       <el-divider />
-      <div class="text-sm text-[#303133] leading-6">{{ currentNotice?.content }}</div>
+      <div class="notice-content">{{ currentNotice?.content }}</div>
     </el-dialog>
-  </div>
+  </section>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
+import type { Component } from "vue";
+import { useRouter } from "vue-router";
 import dayjs from "dayjs";
+import {
+  Bell,
+  Calendar,
+  ChatDotRound,
+  CircleCheck,
+  Clock,
+  Document,
+  DocumentAdd,
+  Message
+} from "@element-plus/icons-vue";
 import { useUserStore } from "@/store/user";
 import { getTodayAttendance } from "@/api/attendance";
 import { getNoticePage } from "@/api/notice";
@@ -135,60 +157,111 @@ import { getLeavePage } from "@/api/leave";
 import { getPersonalAttendanceSummary } from "@/api/report";
 import type { Attendance, Notice } from "@/types/api";
 
-const userStore = useUserStore();
+interface StatCard {
+  label: string;
+  value: number;
+  note: string;
+  icon: Component;
+  color: string;
+  bgColor: string;
+}
 
-const greeting = computed(() => {
-  const h = new Date().getHours();
-  if (h < 12) return "早上好";
-  if (h < 18) return "下午好";
-  return "晚上好";
-});
-const currentDate = computed(() => dayjs().format("YYYY年MM月DD日 dddd"));
+const router = useRouter();
+const userStore = useUserStore();
 
 const dashboardData = reactive({ clockedIn: 0, leaveTotal: 0, unreadMessage: 0, todaySchedule: 0 });
 const todayAtt = ref<Attendance | null>(null);
 const monthStats = reactive({ normalDays: 0, lateDays: 0, earlyLeaveDays: 0, absentDays: 0 });
-
-const statusText = computed(() => {
-  if (!todayAtt.value) return "未打卡";
-  const s = todayAtt.value.status;
-  if (s === 0) return "正常";
-  if (s === 1) return "迟到";
-  if (s === 2) return "早退";
-  if (s === 3) return "缺勤";
-  return "未知";
-});
-const statusTagType = computed(() => {
-  if (!todayAtt.value) return "info";
-  const s = todayAtt.value.status;
-  if (s === 0) return "success";
-  if (s === 1) return "warning";
-  if (s === 2) return "danger";
-  return "info";
-});
-
-const statsCards = computed(() => [
-  { label: "今日出勤", value: dashboardData.clockedIn, icon: "CircleCheck", color: "#409EFF", bgColor: "#e6f7ff" },
-  { label: "待审请假", value: dashboardData.leaveTotal, icon: "Document", color: "#E6A23C", bgColor: "#fff7e6" },
-  { label: "未读消息", value: dashboardData.unreadMessage, icon: "Message", color: "#F56C6C", bgColor: "#fef0f0" },
-  { label: "今日日程", value: dashboardData.todaySchedule, icon: "Clock", color: "#9254de", bgColor: "#f9f0ff" }
-]);
-
-const quickEntries = [
-  { label: "请假申请", icon: "DocumentAdd", color: "#409EFF", path: "/oa/leave/apply" },
-  { label: "公告通知", icon: "Bell", color: "#E6A23C", path: "/oa/notice/list" },
-  { label: "消息中心", icon: "ChatDotRound", color: "#9254de", path: "/oa/message/list" },
-  { label: "我的日程", icon: "Calendar", color: "#67C23A", path: "/oa/schedule/index" }
-];
-
 const noticeList = ref<Notice[]>([]);
 const noticeDialogVisible = ref(false);
 const currentNotice = ref<Notice | null>(null);
 
-const handleViewNotice = async (item: Notice) => {
+const weekNames = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+
+const greeting = computed(() => {
+  const hour = new Date().getHours();
+  if (hour < 12) return "早上好";
+  if (hour < 18) return "下午好";
+  return "晚上好";
+});
+
+const currentDate = computed(() => `${dayjs().format("YYYY年MM月DD日")} ${weekNames[new Date().getDay()]}`);
+
+const statusText = computed(() => {
+  const status = todayAtt.value?.status;
+  if (status === 0) return "正常";
+  if (status === 1) return "迟到";
+  if (status === 2) return "早退";
+  if (status === 3) return "缺勤";
+  if (status === 4) return "请假";
+  return "未打卡";
+});
+
+const statusTagType = computed(() => {
+  const status = todayAtt.value?.status;
+  if (status === 0) return "success";
+  if (status === 1) return "warning";
+  if (status === 2 || status === 3) return "danger";
+  return "info";
+});
+
+const statsCards = computed<StatCard[]>(() => [
+  {
+    label: "今日出勤",
+    value: dashboardData.clockedIn,
+    note: dashboardData.clockedIn ? "已完成上班打卡" : "等待打卡记录",
+    icon: CircleCheck,
+    color: "#2563eb",
+    bgColor: "#eff6ff"
+  },
+  {
+    label: "待审请假",
+    value: dashboardData.leaveTotal,
+    note: "当前待处理申请",
+    icon: Document,
+    color: "#d97706",
+    bgColor: "#fff7ed"
+  },
+  {
+    label: "未读消息",
+    value: dashboardData.unreadMessage,
+    note: "消息中心未读",
+    icon: Message,
+    color: "#dc2626",
+    bgColor: "#fef2f2"
+  },
+  {
+    label: "今日日程",
+    value: dashboardData.todaySchedule,
+    note: "当天计划事项",
+    icon: Clock,
+    color: "#7c3aed",
+    bgColor: "#f5f3ff"
+  }
+]);
+
+const quickEntries = [
+  { label: "请假申请", icon: DocumentAdd, color: "#2563eb", path: "/oa/leave/apply" },
+  { label: "公告通知", icon: Bell, color: "#d97706", path: "/oa/notice/list" },
+  { label: "消息中心", icon: ChatDotRound, color: "#7c3aed", path: "/oa/message/list" },
+  { label: "我的日程", icon: Calendar, color: "#059669", path: "/oa/schedule/index" }
+];
+
+const monthCards = computed(() => [
+  { label: "正常出勤", value: monthStats.normalDays, note: "按天统计", color: "#2563eb" },
+  { label: "迟到", value: monthStats.lateDays, note: "异常次数", color: "#d97706" },
+  { label: "早退", value: monthStats.earlyLeaveDays, note: "异常次数", color: "#dc2626" },
+  { label: "缺勤", value: monthStats.absentDays, note: "异常天数", color: "#7c3aed" }
+]);
+
+function formatClock(value?: string) {
+  return value ? value.substring(11, 16) : "--:--";
+}
+
+function handleViewNotice(item: Notice) {
   currentNotice.value = item;
   noticeDialogVisible.value = true;
-};
+}
 
 onMounted(async () => {
   try {
@@ -198,35 +271,76 @@ onMounted(async () => {
       dashboardData.clockedIn = res.data.clockIn ? 1 : 0;
     }
   } catch {}
+
   try {
     const res = await getLeavePage({ pageNum: 1, pageSize: 1, status: 0 } as any);
     if (res.data?.total !== undefined) dashboardData.leaveTotal = res.data.total;
   } catch {}
+
   try {
     const res = await getUnreadCount();
     if (res.data !== undefined) dashboardData.unreadMessage = res.data;
   } catch {}
+
   try {
     const today = dayjs().format("YYYY-MM-DD");
     const res = await getSchedulePage({ pageNum: 1, pageSize: 100 });
     if (res.data?.list) {
-      dashboardData.todaySchedule = res.data.list.filter((s) =>
-        (s.startTime || "").startsWith(today)
-      ).length;
+      dashboardData.todaySchedule = res.data.list.filter((item) => (item.startTime || "").startsWith(today)).length;
     }
   } catch {}
+
   try {
     const res = await getPersonalAttendanceSummary(dayjs().format("YYYY-MM"));
     if (res.data) {
-      monthStats.normalDays = (res.data as any).normalDays || 0;
-      monthStats.lateDays = (res.data as any).lateDays || 0;
-      monthStats.earlyLeaveDays = (res.data as any).earlyLeaveDays || 0;
-      monthStats.absentDays = (res.data as any).absentDays || 0;
+      monthStats.normalDays = Number(res.data.normalDays) || 0;
+      monthStats.lateDays = Number(res.data.lateDays) || 0;
+      monthStats.earlyLeaveDays = Number(res.data.earlyLeaveDays) || 0;
+      monthStats.absentDays = Number(res.data.absentDays) || 0;
     }
   } catch {}
+
   try {
     const res = await getNoticePage({ pageNum: 1, pageSize: 5 });
     if (res.data?.list) noticeList.value = res.data.list;
   } catch {}
 });
 </script>
+
+<style scoped>
+.month-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.notice-item {
+  cursor: pointer;
+}
+
+.notice-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--oa-text);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.notice-time {
+  margin-top: 4px;
+  color: var(--oa-subtle);
+  font-size: 12px;
+}
+
+.notice-content {
+  color: #374151;
+  font-size: 14px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 768px) {
+  .month-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
