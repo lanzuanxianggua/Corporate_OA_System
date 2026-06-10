@@ -3,6 +3,7 @@ package cn.oa.controller;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.PageParamUtil;
 import cn.oa.entity.OaOperationLog;
 import cn.oa.service.OperationLogService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,6 +30,6 @@ public class OperationLogController {
             @RequestParam(required = false) String module,
             @RequestParam(required = false) String startTime,
             @RequestParam(required = false) String endTime) {
-        return R.ok(operationLogService.pageList(pageNum, pageSize, module, startTime, endTime));
+        return R.ok(operationLogService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), module, startTime, endTime));
     }
 }

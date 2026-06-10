@@ -1,18 +1,17 @@
-<template>
+﻿<template>
   <div class="h-full">
     <el-card shadow="never">
       <!-- 搜索栏 -->
       <template #header>
         <div class="flex items-center justify-between">
-          <span class="text-base font-semibold text-[#303133]">公告通知</span>
+          <span class="text-base font-semibold text-[var(--oa-text)]">公告通知</span>
           <el-input
             v-model="searchKey"
             placeholder="搜索公告标题"
             :prefix-icon="Search"
             clearable
             style="width: 280px"
-            @input="handleSearch"
-          />
+            @input="handleSearch" />
         </div>
       </template>
 
@@ -22,28 +21,27 @@
           <div
             v-for="item in noticeList"
             :key="item.id"
-            class="relative px-4 py-3 mb-2 rounded-lg cursor-pointer border border-transparent hover:bg-[#f5f7fa] hover:border-[#e4e7ed] transition-all duration-200"
+            class="relative px-4 py-3 mb-2 rounded-lg cursor-pointer border border-transparent hover:bg-[var(--oa-bg)] hover:border-[var(--oa-border)] transition-all duration-200"
             @click="openDetail(item)"
           >
             <div class="flex items-start gap-3">
               <!-- 未读标记 -->
               <span
                 v-if="!item.isRead"
-                class="shrink-0 w-2 h-2 mt-2 rounded-full bg-[#409EFF]"
-              />
+                class="shrink-0 w-2 h-2 mt-2 rounded-full bg-[var(--oa-primary)]" />
               <span v-else class="shrink-0 w-2 mt-2" />
 
               <div class="flex-1 min-w-0">
-                <div class="text-[14px] font-bold text-[#303133] leading-6 mb-1">
+                <div class="text-[14px] font-bold text-[var(--oa-text)] leading-6 mb-1">
                   {{ item.title }}
                 </div>
-                <div class="text-[13px] text-[#909399] leading-5 line-clamp-2">
+                <div class="text-[13px] text-[var(--oa-subtle)] leading-5 line-clamp-2">
                   {{ stripHtml(item.content).substring(0, 100) }}
                 </div>
               </div>
             </div>
 
-            <div class="flex items-center gap-3 mt-2 ml-5 text-xs text-[#c0c4cc]">
+            <div class="flex items-center gap-3 mt-2 ml-5 text-xs text-[var(--oa-subtle)]">
               <span>{{ item.publisher || "系统" }}</span>
               <span>{{ formatTime(item.createTime) }}</span>
               <el-tag
@@ -72,16 +70,12 @@
 
         <!-- 分页 -->
         <div class="mt-4 flex justify-end">
-          <el-pagination
+          <OaPagination
             v-model:current-page="pageNum"
             v-model:page-size="pageSize"
             :total="total"
             :page-sizes="[10, 20, 50]"
-            layout="total, sizes, prev, pager, next"
-            background
-            small
-            @change="fetchList"
-          />
+            @change="fetchList" />
         </div>
       </div>
     </el-card>
@@ -94,11 +88,11 @@
       destroy-on-close
     >
       <template v-if="currentNotice">
-        <div class="text-center text-lg font-bold text-[#303133] mb-3">
+        <div class="text-center text-lg font-bold text-[var(--oa-text)] mb-3">
           {{ currentNotice.title }}
         </div>
 
-        <div class="flex items-center justify-center gap-4 text-sm text-[#909399] mb-4">
+        <div class="flex items-center justify-center gap-4 text-sm text-[var(--oa-subtle)] mb-4">
           <span>{{ currentNotice.publisher || "系统" }}</span>
           <span>{{ formatTime(currentNotice.createTime) }}</span>
           <el-tag
@@ -120,7 +114,7 @@
 
         <el-divider />
 
-        <div class="text-[#303133] leading-7 whitespace-pre-wrap break-words">
+        <div class="text-[var(--oa-text)] leading-7 whitespace-pre-wrap break-words">
           {{ stripHtml(currentNotice.content) }}
         </div>
       </template>

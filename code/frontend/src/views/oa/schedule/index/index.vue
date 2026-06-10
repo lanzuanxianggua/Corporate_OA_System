@@ -1,20 +1,20 @@
 <template>
   <div>
     <el-row :gutter="20">
-      <el-col :span="14">
+      <el-col :xs="24" :md="14">
         <el-card>
           <template #header><span class="font-medium">月历</span></template>
           <el-calendar v-model="selectedDate">
             <template #date-cell="{ data }">
               <div class="relative">
                 {{ data.day.split("-")[2] }}
-                <span v-if="hasSchedule(data.day)" class="absolute bottom-0 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[#409EFF] rounded-full"></span>
+                <span v-if="hasSchedule(data.day)" class="absolute bottom-0 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[var(--oa-primary)] rounded-full"></span>
               </div>
             </template>
           </el-calendar>
         </el-card>
       </el-col>
-      <el-col :span="10">
+      <el-col :xs="24" :md="10">
         <el-card>
           <template #header>
             <div class="flex justify-between items-center">
@@ -26,7 +26,7 @@
             <el-timeline>
               <el-timeline-item v-for="item in daySchedules" :key="item.id" :timestamp="formatTime(item.startTime ?? '') + ' - ' + formatTime(item.endTime ?? '')" placement="top">
                 <div class="font-medium">{{ item.title }}</div>
-                <div v-if="item.description" class="text-sm text-[#909399] mt-1">{{ item.description }}</div>
+                <div v-if="item.description" class="text-sm text-[var(--oa-subtle)] mt-1">{{ item.description }}</div>
               </el-timeline-item>
             </el-timeline>
           </div>

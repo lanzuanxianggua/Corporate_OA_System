@@ -4,6 +4,7 @@ import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.PageParamUtil;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.SysEmployee;
 import cn.oa.entity.dto.ChangePasswordDTO;
@@ -46,7 +47,7 @@ public class EmployeeController {
                                            @RequestParam(required = false) String empName,
                                            @RequestParam(required = false) Long deptId,
                                            @RequestParam(required = false) Integer status) {
-        IPage<SysEmployee> page = employeeService.pageList(pageNum, pageSize, empName, deptId, status);
+        IPage<SysEmployee> page = employeeService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), empName, deptId, status);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 

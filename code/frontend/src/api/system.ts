@@ -7,7 +7,13 @@ export const getUserPage = (params: {
   username?: string;
   status?: number;
 }) => {
-  return request.post<unknown, ApiResponse<PageResult<UserVO>>>("/user", params);
+  return request.get<unknown, ApiResponse<PageResult<UserVO>>>("/user", {
+    params: {
+      ...params,
+      pageNum: params.page,
+      page: undefined
+    }
+  });
 };
 
 export const getAllRoles = () => {
@@ -31,7 +37,7 @@ export const getRoleByUserId = (userId: number) => {
 };
 
 export const getRolePage = (params?: Partial<Role> & { page?: number; pageSize?: number }) => {
-  return request.post<unknown, ApiResponse<PageResult<Role>>>("/role", params || {});
+  return request.get<unknown, ApiResponse<PageResult<Role>>>("/role", { params });
 };
 
 export const addRole = (data: Partial<Role>) => {
@@ -47,11 +53,11 @@ export const deleteRole = (id: number) => {
 };
 
 export const getMenuList = () => {
-  return request.post<unknown, ApiResponse<Menu[]>>("/menu", {});
+  return request.get<unknown, ApiResponse<Menu[]>>("/menu");
 };
 
 export const getDeptList = () => {
-  return request.post<unknown, ApiResponse<Dept[]>>("/dept", {});
+  return request.get<unknown, ApiResponse<Dept[]>>("/dept");
 };
 
 export const getMine = () => {

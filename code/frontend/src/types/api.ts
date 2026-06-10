@@ -242,10 +242,10 @@ export interface Todo {
   id?: number;
   empId?: number;
   title?: string;
-  todoType?: number;
+  todoType?: string | number;
   businessId?: number;
   businessType?: string;
-  status?: number;
+  status?: number | string;
   doneTime?: string;
   createTime?: string;
 }
@@ -555,12 +555,19 @@ export interface WorkflowTask {
   id?: number;
   instanceId?: number;
   processId?: number;
+  processName?: string;
   nodeName?: string;
+  taskName?: string;
+  taskType?: string;
   assigneeId?: number;
   assigneeName?: string;
+  applicant?: string;
   status?: string;
   actionTime?: string;
+  completeTime?: string;
   remark?: string;
+  opinion?: string;
+  updateTime?: string;
   actionSource?: string;
   transferFromId?: number;
   transferReason?: string;
@@ -664,10 +671,17 @@ export interface AlertLog {
   id?: number;
   ruleId?: number;
   ruleName?: string;
+  alertLevel?: number | string;
   metricValue?: number;
   threshold?: number;
   level?: string | number;
+  alertContent?: string;
   message?: string;
+  handleStatus?: number | string;
+  handleRemark?: string;
+  handler?: string;
+  alertTime?: string;
+  handleTime?: string;
   status?: number;
   createTime?: string;
 }

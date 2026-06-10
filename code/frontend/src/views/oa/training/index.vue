@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <div class="h-full">
     <el-card shadow="never">
       <template #header>
         <div class="flex items-center justify-between">
-          <span class="text-base font-semibold text-[#303133]">培训管理</span>
+          <span class="text-base font-semibold text-[var(--oa-text)]">培训管理</span>
           <div class="flex gap-2">
             <el-button type="primary" @click="openCourse">新增课程</el-button>
             <el-button type="success" @click="openPlan">新增计划</el-button>

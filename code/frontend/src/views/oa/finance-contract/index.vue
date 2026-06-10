@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <div class="h-full">
     <el-card shadow="never">
       <template #header>
         <div class="flex items-center justify-between">
-          <span class="text-base font-semibold text-[#303133]">财务合同与付款</span>
+          <span class="text-base font-semibold text-[var(--oa-text)]">财务合同与付款</span>
           <div class="flex gap-2">
             <el-button type="primary" @click="openContract">新增合同</el-button>
             <el-button type="success" @click="openPayment">新增付款</el-button>

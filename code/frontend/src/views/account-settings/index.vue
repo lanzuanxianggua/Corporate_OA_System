@@ -1,13 +1,13 @@
-<template>
+﻿<template>
   <div>
     <el-tabs v-model="activeTab">
       <el-tab-pane label="基本信息" name="info">
-        <div class="flex items-center gap-4 mb-6 p-6 bg-white rounded-lg" style="box-shadow:0 2px 12px rgba(0,0,0,.06)">
-          <el-avatar :size="64" class="bg-[#409EFF]">
+        <div class="flex items-center gap-4 mb-6 p-6 bg-[var(--oa-surface)] rounded-lg" style="box-shadow:0 2px 12px rgba(0,0,0,.06)">
+          <el-avatar :size="64" class="bg-[var(--oa-primary)]">
             {{ mineData?.empName?.charAt(0) || "U" }}
           </el-avatar>
           <div>
-            <h3 class="text-lg font-medium text-[#303133]">{{ mineData?.empName }}</h3>
+            <h3 class="text-lg font-medium text-[var(--oa-text)]">{{ mineData?.empName }}</h3>
             <div class="mt-1">
               <el-tag v-for="role in mineData?.roles" :key="role" size="small" class="mr-1">{{ role }}</el-tag>
             </div>

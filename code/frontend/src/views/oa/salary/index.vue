@@ -1,8 +1,8 @@
-<template>
+﻿<template>
   <div class="h-full">
     <el-card shadow="never">
       <template #header>
-        <span class="text-base font-semibold text-[#303133]">薪资管理</span>
+        <span class="text-base font-semibold text-[var(--oa-text)]">薪资管理</span>
       </template>
 
       <el-tabs v-model="activeTab">
@@ -11,7 +11,7 @@
             <el-button type="primary" @click="openStructDialog()">新增薪资项</el-button>
           </div>
 
-          <el-table :data="structList" v-loading="structLoading" stripe :header-cell-style="{ background: '#f5f7fa', color: '#606266' }">
+          <el-table :data="structList" v-loading="structLoading" stripe max-height="calc(100vh - 340px)" :header-cell-style="{ background: 'var(--oa-surface-soft)', color: 'var(--oa-muted)' }">
             <el-table-column prop="empId" label="员工ID" width="80" align="center" />
             <el-table-column prop="empName" label="员工姓名" min-width="100" />
             <el-table-column prop="baseSalary" label="基本工资" min-width="110" align="right">
@@ -38,14 +38,22 @@
               </template>
             </el-table-column>
           </el-table>
+
+          <OaPagination
+            v-model:current-page="structPageNum"
+            v-model:page-size="structPageSize"
+            :total="structTotal"
+            :page-sizes="[10, 20, 50]"
+            @change="fetchStructList"
+          />
         </el-tab-pane>
 
         <el-tab-pane label="薪资记录" name="record">
           <div class="mb-4">
-            <el-date-picker v-model="recordMonth" type="month" placeholder="选择月份" value-format="YYYY-MM" @change="fetchRecordList" />
+            <el-date-picker v-model="recordMonth" type="month" placeholder="选择月份" value-format="YYYY-MM" @change="handleRecordMonthChange" />
           </div>
 
-          <el-table :data="recordList" v-loading="recordLoading" stripe :header-cell-style="{ background: '#f5f7fa', color: '#606266' }">
+          <el-table :data="recordList" v-loading="recordLoading" stripe max-height="calc(100vh - 340px)" :header-cell-style="{ background: 'var(--oa-surface-soft)', color: 'var(--oa-muted)' }">
             <el-table-column prop="empName" label="员工" min-width="100" />
             <el-table-column prop="salaryMonth" label="月份" width="80" align="center" />
             <el-table-column prop="baseSalary" label="基本工资" min-width="100" align="right">
@@ -69,6 +77,14 @@
               </template>
             </el-table-column>
           </el-table>
+
+          <OaPagination
+            v-model:current-page="recordPageNum"
+            v-model:page-size="recordPageSize"
+            :total="recordTotal"
+            :page-sizes="[10, 20, 50]"
+            @change="fetchRecordList"
+          />
         </el-tab-pane>
       </el-tabs>
     </el-card>
@@ -130,12 +146,16 @@ const fetchEmployeeList = async () => {
 // --- 薪资结构 ---
 const structLoading = ref(false);
 const structList = ref<any[]>([]);
+const structPageNum = ref(1);
+const structPageSize = ref(10);
+const structTotal = ref(0);
 
 const fetchStructList = async () => {
   structLoading.value = true;
   try {
-    const res: any = await getStructurePage({ pageNum: 1, pageSize: 100 });
+    const res: any = await getStructurePage({ pageNum: structPageNum.value, pageSize: structPageSize.value });
     structList.value = res.data?.list || [];
+    structTotal.value = res.data?.total || 0;
   } finally {
     structLoading.value = false;
   }
@@ -181,15 +201,24 @@ const handleSaveStruct = async () => {
 const recordLoading = ref(false);
 const recordList = ref<any[]>([]);
 const recordMonth = ref("");
+const recordPageNum = ref(1);
+const recordPageSize = ref(10);
+const recordTotal = ref(0);
 
 const fetchRecordList = async () => {
   recordLoading.value = true;
   try {
-    const res: any = await getRecordPage({ pageNum: 1, pageSize: 100, salaryMonth: recordMonth.value || undefined });
+    const res: any = await getRecordPage({ pageNum: recordPageNum.value, pageSize: recordPageSize.value, salaryMonth: recordMonth.value || undefined });
     recordList.value = res.data?.list || [];
+    recordTotal.value = res.data?.total || 0;
   } finally {
     recordLoading.value = false;
   }
+};
+
+const handleRecordMonthChange = () => {
+  recordPageNum.value = 1;
+  fetchRecordList();
 };
 
 onMounted(() => { fetchStructList(); fetchRecordList(); fetchEmployeeList(); });

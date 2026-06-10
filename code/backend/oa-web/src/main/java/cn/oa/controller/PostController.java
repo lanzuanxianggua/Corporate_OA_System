@@ -3,6 +3,7 @@ package cn.oa.controller;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.PageParamUtil;
 import cn.oa.entity.SysPost;
 import cn.oa.service.PostService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -30,7 +31,7 @@ public class PostController {
                                        @RequestParam int pageSize,
                                        @RequestParam(required = false) String postName,
                                        @RequestParam(required = false) String postCode) {
-        IPage<SysPost> page = postService.pageList(pageNum, pageSize, postName, postCode);
+        IPage<SysPost> page = postService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), postName, postCode);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 

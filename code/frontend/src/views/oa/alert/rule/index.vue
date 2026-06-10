@@ -1,14 +1,14 @@
-<template>
+﻿<template>
   <div class="h-full">
     <el-card shadow="never">
       <template #header>
         <div class="flex items-center justify-between">
-          <span class="text-base font-semibold text-[#303133]">预警规则</span>
+          <span class="text-base font-semibold text-[var(--oa-text)]">预警规则</span>
           <el-button type="primary" @click="openDialog()">新增规则</el-button>
         </div>
       </template>
 
-      <el-table :data="tableData" v-loading="loading" stripe :header-cell-style="{ background: '#f5f7fa', color: '#606266' }">
+      <el-table :data="tableData" v-loading="loading" stripe :header-cell-style="{ background: 'var(--oa-surface-soft)', color: 'var(--oa-muted)' }">
         <el-table-column prop="ruleName" label="规则名称" min-width="150" />
         <el-table-column prop="ruleType" label="规则类型" width="100" />
         <el-table-column prop="condition" label="触发条件" min-width="150" show-overflow-tooltip />
@@ -37,7 +37,7 @@
       </el-table>
 
       <div class="mt-4 flex justify-end">
-        <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total" :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next" background @change="fetchList" />
+        <OaPagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total" :page-sizes="[10, 20, 50]" @change="fetchList" />
       </div>
     </el-card>
 

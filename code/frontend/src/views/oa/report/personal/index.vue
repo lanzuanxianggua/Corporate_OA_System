@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <section class="oa-analytics-page">
     <header class="oa-page-header">
       <div>
@@ -21,8 +21,7 @@
           format="YYYY年MM月"
           value-format="YYYY-MM"
           :clearable="false"
-          @change="fetchAllData"
-        />
+          @change="fetchAllData" />
         <el-date-picker
           v-if="period === 'year'"
           v-model="year"
@@ -31,8 +30,7 @@
           format="YYYY年"
           value-format="YYYY"
           :clearable="false"
-          @change="fetchAllData"
-        />
+          @change="fetchAllData" />
       </div>
     </header>
 
@@ -97,13 +95,16 @@
 import { nextTick, onMounted, onUnmounted, reactive, ref } from "vue";
 import type { Component } from "vue";
 import dayjs from "dayjs";
-import * as echarts from "echarts";
+import * as echarts from "@/utils/echarts";
 import { CircleCheck, CircleClose, Timer, WarningFilled } from "@element-plus/icons-vue";
 import {
   axisStyle,
   axisTooltip,
+  chartBorderColor,
   chartGrid,
+  chartMutedColor,
   chartPalette,
+  chartTextColor,
   chartTextStyle,
   createGradient,
   emptyChartOption,
@@ -254,15 +255,15 @@ async function initLeaveChart(queryMonth: string) {
       textStyle: chartTextStyle(),
       color: chartPalette,
       tooltip: itemTooltip("{b}<br/>{c} 次 ({d}%)"),
-      legend: { bottom: 0, icon: "circle", itemWidth: 8, itemHeight: 8, textStyle: { color: "#6b7280" } },
+      legend: { bottom: 0, icon: "circle", itemWidth: 8, itemHeight: 8, textStyle: { color: chartMutedColor() } },
       series: [
         {
           type: "pie",
           radius: ["48%", "70%"],
           center: ["50%", "44%"],
           padAngle: 3,
-          itemStyle: { borderColor: "#fff", borderWidth: 4, borderRadius: 8 },
-          label: { color: "#374151", fontWeight: 650 },
+          itemStyle: { borderColor: chartBorderColor(), borderWidth: 4, borderRadius: 8 },
+          label: { color: chartTextColor(), fontWeight: 650 },
           data
         }
       ]
@@ -284,7 +285,7 @@ async function initCompareChart(queryMonth: string) {
       textStyle: chartTextStyle(),
       color: ["#2563eb", "#94a3b8"],
       tooltip: axisTooltip(),
-      legend: { top: 0, right: 0, textStyle: { color: "#6b7280" } },
+      legend: { top: 0, right: 0, textStyle: { color: chartMutedColor() } },
       grid: chartGrid(42),
       xAxis: { type: "category", data: ["正常出勤", "迟到", "缺勤"], ...axisStyle() },
       yAxis: { type: "value", minInterval: 1, ...axisStyle() },
@@ -333,13 +334,13 @@ async function initRateChart(queryMonth: string) {
           max: 100,
           radius: "88%",
           progress: { show: true, width: 16, roundCap: true, itemStyle: { color: "#2563eb" } },
-          axisLine: { lineStyle: { width: 16, color: [[1, "#e5e7eb"]] } },
+          axisLine: { lineStyle: { width: 16, color: [[1, chartBorderColor()]] } },
           axisTick: { show: false },
           splitLine: { show: false },
           axisLabel: { show: false },
           pointer: { show: false },
-          detail: { valueAnimation: true, formatter: "{value}%", fontSize: 30, fontWeight: 760, color: "#111827" },
-          title: { offsetCenter: [0, "34%"], color: "#6b7280", fontSize: 13 },
+          detail: { valueAnimation: true, formatter: "{value}%", fontSize: 30, fontWeight: 760, color: chartTextColor() },
+          title: { offsetCenter: [0, "34%"], color: chartMutedColor(), fontSize: 13 },
           data: [{ value: rate, name: "出勤率" }]
         }
       ]
@@ -353,13 +354,19 @@ function handleResize() {
   charts.forEach((chart) => chart.resize());
 }
 
+function handleThemeChange() {
+  fetchAllData();
+}
+
 onMounted(() => {
   fetchAllData();
   window.addEventListener("resize", handleResize);
+  window.addEventListener("oa-theme-change", handleThemeChange);
 });
 
 onUnmounted(() => {
   destroyCharts();
   window.removeEventListener("resize", handleResize);
+  window.removeEventListener("oa-theme-change", handleThemeChange);
 });
 </script>

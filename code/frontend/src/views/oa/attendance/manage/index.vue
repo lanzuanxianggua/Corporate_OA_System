@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div>
     <div class="flex items-center gap-3 mb-4 flex-wrap">
       <el-input v-model="searchName" placeholder="搜索员工姓名" clearable class="w-48" @keyup.enter="fetchData" />
@@ -38,9 +38,9 @@
       </el-table>
 
       <div class="flex justify-end mt-4">
-        <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total"
-          :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next" @size-change="handleSizeChange"
-          @current-change="fetchData" />
+        <OaPagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total"
+          :page-sizes="[10, 20, 50]"
+          @change="fetchData" />
       </div>
     </el-card>
   </div>

@@ -130,6 +130,12 @@ public class WorkflowSchemaBootstrapInitializer implements ApplicationRunner {
         addIndexIfMissing("wf_task", "idx_node_id", "ALTER TABLE wf_task ADD INDEX idx_node_id (node_id)");
         addIndexIfMissing("wf_task", "idx_due_time", "ALTER TABLE wf_task ADD INDEX idx_due_time (due_time)");
         addIndexIfMissing("wf_task", "idx_status", "ALTER TABLE wf_task ADD INDEX idx_status (status)");
+        addIndexIfMissing("wf_task", "idx_assignee_status_create", "ALTER TABLE wf_task ADD INDEX idx_assignee_status_create (assignee_id, status, create_time)");
+        addIndexIfMissing("wf_task", "idx_assignee_status_complete", "ALTER TABLE wf_task ADD INDEX idx_assignee_status_complete (assignee_id, status, complete_time)");
+
+        if (tableExists("oa_approval_record")) {
+            addIndexIfMissing("oa_approval_record", "idx_approver_task", "ALTER TABLE oa_approval_record ADD INDEX idx_approver_task (approver_id, task_id)");
+        }
     }
 
     private void enforceWorkflowDelegationSchema() {

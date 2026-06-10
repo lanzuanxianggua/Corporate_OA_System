@@ -1,14 +1,14 @@
-<template>
+﻿<template>
   <div class="h-full">
     <el-card shadow="never">
       <template #header>
         <div class="flex items-center justify-between">
-          <span class="text-base font-semibold text-[#303133]">会议管理</span>
+          <span class="text-base font-semibold text-[var(--oa-text)]">会议管理</span>
           <el-button type="primary" @click="openDialog()">发起会议</el-button>
         </div>
       </template>
 
-      <el-table :data="tableData" v-loading="loading" stripe :header-cell-style="{ background: '#f5f7fa', color: '#606266' }">
+      <el-table :data="tableData" v-loading="loading" stripe :header-cell-style="{ background: 'var(--oa-surface-soft)', color: 'var(--oa-muted)' }">
         <el-table-column prop="title" label="会议主题" min-width="150" show-overflow-tooltip />
         <el-table-column prop="roomName" label="会议室" width="100" />
         <el-table-column label="开始时间" min-width="140">
@@ -29,7 +29,7 @@
         <el-table-column label="操作" width="80" align="center">
           <template #default="{ row }">
             <el-button v-if="row.status === '0'" type="danger" link size="small" @click="handleCancel(row)">取消</el-button>
-            <span v-else class="text-[#c0c4cc] text-xs">-</span>
+            <span v-else class="text-[var(--oa-subtle)] text-xs">-</span>
           </template>
         </el-table-column>
         <template #empty>
@@ -38,7 +38,7 @@
       </el-table>
 
       <div class="mt-4 flex justify-end">
-        <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total" :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next" background @change="fetchList" />
+        <OaPagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total" :page-sizes="[10, 20, 50]" @change="fetchList" />
       </div>
     </el-card>
 

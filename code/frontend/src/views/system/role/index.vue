@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div>
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-3">
@@ -52,7 +52,7 @@
     <!-- Permission assignment dialog -->
     <el-dialog v-model="permDialogVisible" title="分配权限" width="550px" :close-on-click-modal="false">
       <div class="mb-3">
-        <span class="text-[#606266]">角色：</span>
+        <span class="text-[var(--oa-muted)]">角色：</span>
         <span class="font-medium">{{ permDialogRoleName }}</span>
       </div>
       <el-tree
@@ -63,9 +63,8 @@
         :default-checked-keys="checkedMenuIds"
         :props="{ label: 'menuName', children: 'children' }"
         :check-strictly="false"
-        default-expand-all
-      />
-      <div v-if="menuTree.length === 0" class="text-center py-4 text-[#909399]">加载菜单中...</div>
+        default-expand-all />
+      <div v-if="menuTree.length === 0" class="text-center py-4 text-[var(--oa-subtle)]">加载菜单中...</div>
       <template #footer>
         <el-button @click="permDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="permSaving" @click="handlePermSave">确定</el-button>

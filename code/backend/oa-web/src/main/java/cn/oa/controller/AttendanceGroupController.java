@@ -3,6 +3,7 @@ package cn.oa.controller;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.PageParamUtil;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaAttendanceGroup;
 import cn.oa.entity.dto.EmpIdsDTO;
@@ -30,7 +31,7 @@ public class AttendanceGroupController {
     public R<PageResult<OaAttendanceGroup>> page(@RequestParam int pageNum,
                                                   @RequestParam int pageSize,
                                                   @RequestParam(required = false) String groupName) {
-        IPage<OaAttendanceGroup> page = attendanceGroupService.pageList(pageNum, pageSize, groupName);
+        IPage<OaAttendanceGroup> page = attendanceGroupService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), groupName);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 

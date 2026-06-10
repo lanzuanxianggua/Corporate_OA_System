@@ -16,19 +16,28 @@ export const formatDate = (time?: string | null) => {
   return time.replace("T", " ").substring(0, 10);
 };
 
+export const normalizeStatus = (status?: number | string | null): number => {
+  if (status === null || status === undefined || status === "") return -1;
+  const value = Number(status);
+  return Number.isNaN(value) ? -1 : value;
+};
+
+export const isPendingStatus = (status?: number | string | null): boolean => {
+  return normalizeStatus(status) === 0;
+};
 /**
  * Map an approval status code to its Chinese label.
  * 0=pending, 1=approved, 2=rejected, 3=withdrawn
  */
-export const formatStatusText = (status?: number): string => {
-  return STATUS_MAP[status ?? -1] || "未知";
+export const formatStatusText = (status?: number | string | null): string => {
+  return STATUS_MAP[normalizeStatus(status)] || "未知";
 };
 
 /**
  * Map an approval status code to an Element Plus tag type.
  */
-export const formatStatusTagType = (status?: number): string => {
-  return STATUS_TAG_TYPE[status ?? -1] || "info";
+export const formatStatusTagType = (status?: number | string | null): string => {
+  return STATUS_TAG_TYPE[normalizeStatus(status)] || "info";
 };
 
 /**

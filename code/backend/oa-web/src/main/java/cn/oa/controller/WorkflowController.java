@@ -5,6 +5,7 @@ import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.annotation.RequireRole;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.PageParamUtil;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaApprovalRecord;
 import cn.oa.entity.WfCcRecord;
@@ -76,7 +77,7 @@ public class WorkflowController {
                                                @RequestParam int pageSize,
                                                HttpServletRequest request) {
         Long empId = WebUtil.getEmpId(request);
-        IPage<WfTask> page = workflowService.myPendingTasks(empId, pageNum, pageSize);
+        IPage<WfTask> page = workflowService.myPendingTasks(empId, PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize));
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 
@@ -86,7 +87,7 @@ public class WorkflowController {
                                                 @RequestParam int pageSize,
                                                 HttpServletRequest request) {
         Long empId = WebUtil.getEmpId(request);
-        IPage<WfTask> page = workflowService.myHandledTasks(empId, pageNum, pageSize);
+        IPage<WfTask> page = workflowService.myHandledTasks(empId, PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize));
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 
@@ -101,7 +102,7 @@ public class WorkflowController {
     }
 
     @PostMapping("/definition/activate")
-    @RequireRole({"DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"})
+    @RequireRole({"ADMIN", "DEPT_MANAGER", "TEAM_LEAD", "DIRECTOR", "GM"})
     @Operation(summary = "激活/停用流程定义")
     @OperationLog(module = "工作流管理", operation = "激活/停用流程定义")
     public R<Void> activateDefinition(@RequestBody @Valid ActivateDefinitionDTO dto) {
@@ -183,7 +184,7 @@ public class WorkflowController {
     @Operation(summary = "我的抄送")
     public R<PageResult<WfCcRecord>> myCcRecords(@RequestParam int pageNum, @RequestParam int pageSize, HttpServletRequest request) {
         Long empId = WebUtil.getEmpId(request);
-        Page<WfCcRecord> page = new Page<>(pageNum, pageSize);
+        Page<WfCcRecord> page = new Page<>(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize));
         LambdaQueryWrapper<WfCcRecord> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(WfCcRecord::getCcEmpId, empId).orderByDesc(WfCcRecord::getCreateTime);
         IPage<WfCcRecord> result = ccRecordMapper.selectPage(page, wrapper);

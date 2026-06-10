@@ -332,7 +332,7 @@ onMounted(async () => {
 }
 
 .notice-content {
-  color: #374151;
+  color: var(--oa-text-soft);
   font-size: 14px;
   line-height: 1.75;
   white-space: pre-wrap;

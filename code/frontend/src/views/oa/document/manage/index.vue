@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div>
     <div class="flex items-center justify-between mb-4">
       <el-input v-model="keyword" placeholder="搜索文档名称" clearable class="w-64" prefix-icon="Search" @input="fetchData" />
@@ -28,14 +28,14 @@
         </el-table-column>
       </el-table>
       <div class="flex justify-end mt-4">
-        <el-pagination v-model:current-page="page" v-model:page-size="pageSize" :total="total" layout="total, prev, pager, next" @current-change="fetchData" />
+        <OaPagination v-model:current-page="page" v-model:page-size="pageSize" :total="total" @change="fetchData"  :page-sizes="[10, 20, 50]" />
       </div>
     </el-card>
 
     <el-dialog v-model="uploadDialogVisible" title="上传文档" width="500px">
       <el-upload :auto-upload="false" :limit="1" :on-change="(f: any) => selectedFile = f.raw" drag>
-        <el-icon :size="48" class="text-[#909399]"><UploadFilled /></el-icon>
-        <div class="text-sm text-[#606266]">将文件拖到此处，或点击上传</div>
+        <el-icon :size="48" class="text-[var(--oa-subtle)]"><UploadFilled /></el-icon>
+        <div class="text-sm text-[var(--oa-muted)]">将文件拖到此处，或点击上传</div>
       </el-upload>
       <template #footer>
         <el-button @click="uploadDialogVisible = false">取消</el-button>

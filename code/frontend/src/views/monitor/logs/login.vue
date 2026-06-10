@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div>
     <div class="flex items-center gap-3 mb-4">
       <el-input v-model="searchUsername" placeholder="搜索用户名" clearable class="w-48" />
@@ -21,7 +21,7 @@
         <el-table-column label="登录时间" prop="loginTime" width="180" />
       </el-table>
       <div class="flex justify-end mt-4">
-        <el-pagination v-model:current-page="page" v-model:page-size="pageSize" :total="total" layout="total, prev, pager, next" @current-change="fetchData" />
+        <OaPagination v-model:current-page="page" v-model:page-size="pageSize" :total="total" @current-change="fetchData" />
       </div>
     </el-card>
   </div>

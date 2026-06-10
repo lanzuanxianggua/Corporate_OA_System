@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div>
     <div class="mb-4">
       <span class="text-lg font-medium">消息中心</span>
@@ -14,8 +14,8 @@
         <div
           v-for="item in messages"
           :key="item.id"
-          class="p-4 rounded-lg border border-[#ebeef5] transition-colors cursor-pointer"
-          :class="item.isRead ? 'bg-white' : 'bg-[#ecf5ff]'"
+          class="p-4 rounded-lg border border-[var(--oa-border)] transition-colors cursor-pointer"
+          :class="item.isRead ? 'bg-[var(--oa-surface)]' : 'bg-[var(--oa-primary-soft)]'"
           @click="openDetail(item)"
         >
           <div class="flex items-start gap-3">
@@ -24,12 +24,12 @@
             </el-avatar>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-1">
-                <span class="font-medium text-sm text-[#303133]">{{ item.senderName || "系统" }}</span>
+                <span class="font-medium text-sm text-[var(--oa-text)]">{{ item.senderName || "系统" }}</span>
                 <el-tag v-if="!item.isRead" type="danger" size="small">未读</el-tag>
-                <span class="text-xs text-[#909399]">{{ formatTime(item.createTime) }}</span>
+                <span class="text-xs text-[var(--oa-subtle)]">{{ formatTime(item.createTime) }}</span>
               </div>
-              <div class="text-sm text-[#606266] font-medium">{{ item.title }}</div>
-              <div class="text-sm text-[#909399] truncate">{{ item.content }}</div>
+              <div class="text-sm text-[var(--oa-muted)] font-medium">{{ item.title }}</div>
+              <div class="text-sm text-[var(--oa-subtle)] truncate">{{ item.content }}</div>
             </div>
             <el-button v-if="!item.isRead" type="primary" link size="small" @click.stop="handleRead(item)">
               标记已读
@@ -40,15 +40,15 @@
       <el-empty v-else description="暂无消息" />
 
       <div class="flex justify-end mt-4">
-        <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total"
-          :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next" @size-change="fetchMessages"
-          @current-change="fetchMessages" />
+        <OaPagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total"
+          :page-sizes="[10, 20, 50]"
+          @change="fetchMessages" />
       </div>
     </el-card>
 
     <el-dialog v-model="dialogVisible" :title="currentMsg?.title || '消息详情'" width="500px">
-      <div class="text-sm text-[#606266] leading-6">{{ currentMsg?.content }}</div>
-      <div class="mt-4 text-xs text-[#909399]">{{ currentMsg?.senderName || "系统" }} · {{ formatTime(currentMsg?.createTime) }}</div>
+      <div class="text-sm text-[var(--oa-muted)] leading-6">{{ currentMsg?.content }}</div>
+      <div class="mt-4 text-xs text-[var(--oa-subtle)]">{{ currentMsg?.senderName || "系统" }} · {{ formatTime(currentMsg?.createTime) }}</div>
     </el-dialog>
   </div>
 </template>

@@ -3,6 +3,7 @@ package cn.oa.controller;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.PageParamUtil;
 import cn.oa.entity.OaBudget;
 import cn.oa.service.BudgetService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -29,7 +30,7 @@ public class BudgetController {
                                           @RequestParam int pageSize,
                                           @RequestParam(required = false) Long deptId,
                                           @RequestParam(required = false) Integer budgetYear) {
-        IPage<OaBudget> page = budgetService.pageList(pageNum, pageSize, deptId, budgetYear);
+        IPage<OaBudget> page = budgetService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), deptId, budgetYear);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 

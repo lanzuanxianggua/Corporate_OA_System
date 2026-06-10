@@ -1,7 +1,7 @@
-<template>
+﻿<template>
   <div>
     <!-- Search bar -->
-    <div class="flex items-center gap-3 mb-4 flex-wrap">
+    <div class="oa-mobile-toolbar flex items-center gap-3 mb-4 flex-wrap">
       <el-input v-model="searchName" placeholder="搜索员工姓名/工号" clearable class="w-56" :prefix-icon="Search" @keyup.enter="handleSearch" @clear="handleSearch" />
       <el-select v-model="searchDeptId" placeholder="部门" clearable class="w-44">
         <el-option v-for="d in deptOptions" :key="d.id" :label="d.deptName" :value="d.id!" />
@@ -20,7 +20,7 @@
     </div>
 
     <el-card>
-      <el-table :data="userList" v-loading="loading" stripe style="width: 100%" @selection-change="handleSelectionChange">
+      <el-table class="oa-desktop-table" :data="userList" v-loading="loading" stripe style="width: 100%" @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="50" align="center" />
         <el-table-column label="工号" prop="empCode" width="120" />
         <el-table-column label="姓名" min-width="120">
@@ -63,8 +63,59 @@
           <el-empty description="暂无员工数据" />
         </template>
       </el-table>
+
+      <div v-loading="loading" class="oa-mobile-list">
+        <el-empty v-if="!userList.length" description="暂无员工数据" :image-size="72" />
+        <div v-else class="oa-mobile-card-list">
+          <article v-for="row in userList" :key="row.id || row.empCode" class="oa-mobile-card">
+            <div class="oa-mobile-card-main">
+              <div class="oa-mobile-card-title">
+                <span class="flex items-center gap-2 min-w-0">
+                  <el-avatar :size="30" :src="row.avatar || undefined">
+                    {{ row.empName?.charAt(0) || '' }}
+                  </el-avatar>
+                  <span>{{ row.empName || '-' }}</span>
+                </span>
+                <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">
+                  {{ row.status === 1 ? "启用" : "禁用" }}
+                </el-tag>
+              </div>
+              <div class="oa-mobile-card-subtitle">{{ row.empCode || '-' }}</div>
+              <div class="oa-mobile-card-meta">
+                <div class="oa-mobile-meta-row">
+                  <span>部门</span>
+                  <span>{{ getDeptName(row.deptId) }}</span>
+                </div>
+                <div class="oa-mobile-meta-row">
+                  <span>手机号</span>
+                  <span>{{ row.phone || '-' }}</span>
+                </div>
+                <div class="oa-mobile-meta-row">
+                  <span>邮箱</span>
+                  <span>{{ row.email || '-' }}</span>
+                </div>
+                <div class="oa-mobile-meta-row">
+                  <span>角色</span>
+                  <span>
+                    <template v-if="employeeRoles(row).length">
+                      <el-tag v-for="role in employeeRoles(row)" :key="role.id" size="small" class="mr-1">{{ role.roleName }}</el-tag>
+                    </template>
+                    <el-tag v-else size="small" type="info">未分配</el-tag>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="oa-mobile-card-actions">
+              <el-button type="primary" plain @click="openDialog(row)">编辑</el-button>
+              <el-button type="warning" plain @click="openRoleDialog(row)">角色</el-button>
+              <el-button type="danger" plain :disabled="!row.id" @click="row.id && handleDelete(row.id)">删除</el-button>
+            </div>
+          </article>
+        </div>
+      </div>
+
       <div class="flex justify-end mt-4">
-        <el-pagination v-model:current-page="page" v-model:page-size="pageSize" :total="total" :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next" background @change="fetchData" />
+        <OaPagination v-model:current-page="page" v-model:page-size="pageSize" :total="total" :page-sizes="[10, 20, 50]" @change="fetchData" />
       </div>
     </el-card>
 
@@ -84,8 +135,7 @@
             check-strictly
             clearable
             placeholder="选择部门"
-            style="width: 100%"
-          />
+            style="width: 100%" />
         </el-form-item>
         <el-form-item label="角色">
           <el-select v-model="editRoleIds" multiple placeholder="请选择角色" class="w-full">
@@ -105,7 +155,7 @@
     <!-- Role assignment dialog -->
     <el-dialog v-model="roleDialogVisible" title="角色分配" width="450px" :close-on-click-modal="false">
       <div class="mb-3">
-        <span class="text-[#606266]">员工：</span>
+        <span class="text-[var(--oa-muted)]">员工：</span>
         <span class="font-medium">{{ roleDialogEmpName }}</span>
       </div>
       <el-checkbox-group v-model="roleDialogRoleIds">
@@ -205,6 +255,8 @@ const getDeptName = (deptId: number | undefined) => {
   if (!deptId) return "-";
   return deptOptions.value.find((d: any) => d.id === deptId)?.deptName || "-";
 };
+
+const employeeRoles = (row: Employee) => ((row as any).roles || []) as Role[];
 
 const fetchRoles = async () => {
   try {

@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <div class="h-full">
     <el-card shadow="never">
       <template #header>
         <div class="flex items-center justify-between">
-          <span class="text-base font-semibold text-[#303133]">参数配置</span>
+          <span class="text-base font-semibold text-[var(--oa-text)]">参数配置</span>
           <el-button type="primary" @click="openDialog()">新增参数</el-button>
         </div>
       </template>
@@ -18,7 +18,7 @@
         </el-input>
       </div>
 
-      <el-table :data="tableData" v-loading="loading" stripe :header-cell-style="{ background: '#f5f7fa', color: '#606266' }">
+      <el-table :data="tableData" v-loading="loading" stripe :header-cell-style="{ background: 'var(--oa-surface-soft)', color: 'var(--oa-muted)' }">
         <el-table-column prop="configName" label="参数名称" min-width="150" />
         <el-table-column prop="configKey" label="参数键名" min-width="150" />
         <el-table-column prop="configValue" label="参数值" min-width="120" show-overflow-tooltip />
@@ -36,7 +36,7 @@
       </el-table>
 
       <div class="mt-4 flex justify-end">
-        <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total" :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next" background @change="fetchList" />
+        <OaPagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total" :page-sizes="[10, 20, 50]" @change="fetchList" />
       </div>
     </el-card>
 

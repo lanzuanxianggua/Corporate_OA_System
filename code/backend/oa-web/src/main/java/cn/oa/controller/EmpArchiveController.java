@@ -3,6 +3,7 @@ package cn.oa.controller;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.PageParamUtil;
 import cn.oa.entity.OaEmpArchive;
 import cn.oa.service.EmpArchiveService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -55,7 +56,7 @@ public class EmpArchiveController {
     public R<PageResult<OaEmpArchive>> page(@RequestParam int pageNum,
                                               @RequestParam int pageSize,
                                               @RequestParam(required = false) String searchKey) {
-        IPage<OaEmpArchive> page = empArchiveService.pageWithEmpInfo(pageNum, pageSize, searchKey);
+        IPage<OaEmpArchive> page = empArchiveService.pageWithEmpInfo(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), searchKey);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 }

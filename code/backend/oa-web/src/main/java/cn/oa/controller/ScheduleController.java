@@ -4,6 +4,7 @@ import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.PageParamUtil;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaSchedule;
 import cn.oa.entity.dto.ScheduleDTO;
@@ -46,7 +47,7 @@ public class ScheduleController {
         if (empId == null || !empId.equals(currentEmpId)) {
             empId = currentEmpId;
         }
-        IPage<OaSchedule> page = scheduleService.pageList(pageNum, pageSize, empId);
+        IPage<OaSchedule> page = scheduleService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), empId);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 

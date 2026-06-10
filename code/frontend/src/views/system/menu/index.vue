@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <div class="h-full">
     <el-card shadow="never">
       <template #header>
         <div class="flex items-center justify-between">
-          <span class="text-base font-semibold text-[#303133]">菜单权限</span>
+          <span class="text-base font-semibold text-[var(--oa-text)]">菜单权限</span>
           <div class="flex items-center gap-3">
             <el-button @click="toggleExpandAll">{{ isAllExpanded ? "全部折叠" : "全部展开" }}</el-button>
             <el-button type="primary" @click="openDialog()">新增菜单</el-button>
@@ -22,7 +22,7 @@
         row-key="id"
         :tree-props="{ children: 'children' }"
         :default-expand-all="isAllExpanded"
-        :header-cell-style="{ background: '#f5f7fa', color: '#606266' }"
+        :header-cell-style="{ background: 'var(--oa-surface-soft)', color: 'var(--oa-muted)' }"
       >
         <el-table-column prop="name" label="菜单名称" min-width="180" />
         <el-table-column prop="path" label="路由路径" min-width="150" show-overflow-tooltip />
@@ -64,8 +64,7 @@
             check-strictly
             clearable
             placeholder="无（顶级菜单）"
-            style="width: 100%"
-          />
+            style="width: 100%" />
         </el-form-item>
         <el-form-item label="菜单类型" prop="type">
           <el-radio-group v-model="form.type">

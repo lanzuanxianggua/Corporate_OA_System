@@ -2,6 +2,7 @@ package cn.oa.controller;
 
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.PageParamUtil;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaTodo;
 import cn.oa.service.TodoService;
@@ -35,7 +36,7 @@ public class TodoController {
                                        @RequestParam(required = false) Integer status,
                                        HttpServletRequest request) {
         Long empId = WebUtil.getEmpId(request);
-        IPage<OaTodo> page = todoService.myTodos(empId, status, pageNum, pageSize);
+        IPage<OaTodo> page = todoService.myTodos(empId, status, PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize));
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 

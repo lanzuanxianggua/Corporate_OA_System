@@ -1,13 +1,13 @@
 <template>
   <div class="h-full">
     <el-row :gutter="20" class="h-full">
-      <el-col :span="12">
+      <el-col :xs="24" :md="12">
         <el-card shadow="never" class="h-full">
           <template #header>
-            <span class="text-base font-semibold text-[#303133]">资产借用记录</span>
+            <span class="text-base font-semibold text-[var(--oa-text)]">资产借用记录</span>
           </template>
 
-          <el-table :data="tableData" v-loading="loading" stripe style="width: 100%" size="small" :header-cell-style="{ background: '#f5f7fa', color: '#606266' }">
+          <el-table :data="tableData" v-loading="loading" stripe style="width: 100%" size="small" :header-cell-style="{ background: 'var(--oa-surface-soft)', color: 'var(--oa-muted)' }">
             <el-table-column prop="assetName" label="资产名称" min-width="100" />
             <el-table-column prop="borrower" label="借用人" width="80" />
             <el-table-column prop="borrowTime" label="借用时间" min-width="120">
@@ -21,15 +21,15 @@
           </el-table>
 
           <div class="mt-4 flex justify-end">
-            <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total" :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next" background small @change="fetchList" />
+            <OaPagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total" :page-sizes="[10, 20, 50]" @change="fetchList" />
           </div>
         </el-card>
       </el-col>
 
-      <el-col :span="12">
+      <el-col :xs="24" :md="12">
         <el-card shadow="never">
           <template #header>
-            <span class="text-base font-semibold text-[#303133]">申请借用</span>
+            <span class="text-base font-semibold text-[var(--oa-text)]">申请借用</span>
           </template>
 
           <el-form ref="formRef" :model="form" :rules="rules" label-width="90px" class="max-w-[460px]">

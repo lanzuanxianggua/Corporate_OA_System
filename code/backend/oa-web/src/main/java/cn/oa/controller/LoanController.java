@@ -3,6 +3,7 @@ package cn.oa.controller;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.PageParamUtil;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaLoan;
 import cn.oa.entity.SysEmployee;
@@ -68,7 +69,7 @@ public class LoanController {
                                        @RequestParam int pageSize,
                                        @RequestParam(required = false) Long empId,
                                        @RequestParam(required = false) Integer status) {
-        IPage<OaLoan> page = loanService.pageList(pageNum, pageSize, empId, status);
+        IPage<OaLoan> page = loanService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), empId, status);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 

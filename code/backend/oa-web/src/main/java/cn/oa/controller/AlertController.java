@@ -3,6 +3,7 @@ package cn.oa.controller;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.PageParamUtil;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.RptAlertLog;
 import cn.oa.entity.RptAlertRule;
@@ -17,6 +18,12 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -36,7 +43,7 @@ public class AlertController {
     public R<PageResult<RptAlertRule>> rulePage(@RequestParam int pageNum,
                                                   @RequestParam int pageSize,
                                                   @RequestParam(required = false) String ruleType) {
-        IPage<RptAlertRule> page = alertRuleService.pageList(pageNum, pageSize, ruleType);
+        IPage<RptAlertRule> page = alertRuleService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), ruleType);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 
@@ -73,12 +80,30 @@ public class AlertController {
     @GetMapping("/log/page")
     @RequireAdmin
     @Operation(summary = "分页查询预警日志")
-    public R<PageResult<RptAlertLog>> logPage(@RequestParam int pageNum,
-                                                @RequestParam int pageSize,
-                                                @RequestParam(required = false) Long ruleId,
-                                                @RequestParam(required = false) Character handleStatus) {
-        IPage<RptAlertLog> page = alertLogService.pageList(pageNum, pageSize, ruleId, handleStatus);
-        return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
+    public R<PageResult<Map<String, Object>>> logPage(@RequestParam int pageNum,
+                                                       @RequestParam int pageSize,
+                                                       @RequestParam(required = false) Long ruleId,
+                                                       @RequestParam(required = false) Character handleStatus) {
+        IPage<RptAlertLog> page = alertLogService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), ruleId, handleStatus);
+        Map<Long, RptAlertRule> ruleMap = page.getRecords().stream()
+                .map(RptAlertLog::getRuleId)
+                .filter(id -> id != null)
+                .distinct()
+                .collect(Collectors.collectingAndThen(Collectors.toList(), ids -> {
+                    if (ids.isEmpty()) {
+                        return Map.of();
+                    }
+                    List<RptAlertRule> rules = alertRuleService.listByIds(ids);
+                    if (rules == null || rules.isEmpty()) {
+                        return Map.of();
+                    }
+                    return rules.stream()
+                            .collect(Collectors.toMap(RptAlertRule::getId, Function.identity(), (a, b) -> a));
+                }));
+        List<Map<String, Object>> records = page.getRecords().stream()
+                .map(log -> toAlertLogView(log, ruleMap.get(log.getRuleId())))
+                .collect(Collectors.toList());
+        return R.ok(PageResult.of(page.getTotal(), records));
     }
 
     @PostMapping("/log/handle/{id}")
@@ -90,5 +115,33 @@ public class AlertController {
         alertLogService.handle(id, String.valueOf(empId), dto.getHandleRemark());
         log.info("Alert log handled: id={}, handler={}", id, empId);
         return R.ok();
+    }
+
+    private Map<String, Object> toAlertLogView(RptAlertLog log, RptAlertRule rule) {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("id", log.getId());
+        item.put("ruleId", log.getRuleId());
+        item.put("ruleName", rule != null ? rule.getRuleName() : "-");
+        item.put("alertLevel", charToInt(log.getAlertLevel()));
+        item.put("level", charToInt(log.getAlertLevel()));
+        item.put("metricValue", log.getMetricValue());
+        item.put("threshold", log.getThreshold());
+        item.put("alertContent", log.getAlertContent());
+        item.put("notifyStatus", charToInt(log.getNotifyStatus()));
+        item.put("handleStatus", charToInt(log.getHandleStatus()));
+        item.put("status", charToInt(log.getHandleStatus()));
+        item.put("handler", log.getHandler());
+        item.put("handleRemark", log.getHandleRemark());
+        item.put("alertTime", log.getAlertTime());
+        item.put("createTime", log.getAlertTime());
+        item.put("handleTime", log.getHandleTime());
+        return item;
+    }
+
+    private int charToInt(Character value) {
+        if (value == null || !Character.isDigit(value)) {
+            return 0;
+        }
+        return Character.digit(value, 10);
     }
 }

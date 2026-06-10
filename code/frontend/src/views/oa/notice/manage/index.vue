@@ -1,10 +1,10 @@
-<template>
+﻿<template>
   <div class="h-full">
     <el-card shadow="never">
       <!-- 顶部操作栏 -->
       <template #header>
         <div class="flex items-center justify-between">
-          <span class="text-base font-semibold text-[#303133]">公告管理</span>
+          <span class="text-base font-semibold text-[var(--oa-text)]">公告管理</span>
           <div class="flex items-center gap-3">
             <el-input
               v-model="searchKey"
@@ -12,8 +12,7 @@
               :prefix-icon="Search"
               clearable
               style="width: 240px"
-              @input="handleSearch"
-            />
+              @input="handleSearch" />
             <el-button type="primary" :icon="Plus" @click="openDialog()">
               发布公告
             </el-button>
@@ -27,7 +26,7 @@
         v-loading="loading"
         stripe
         style="width: 100%"
-        :header-cell-style="{ background: '#f5f7fa', color: '#606266' }"
+        :header-cell-style="{ background: 'var(--oa-surface-soft)', color: 'var(--oa-muted)' }"
       >
         <el-table-column prop="title" label="标题" min-width="200" show-overflow-tooltip />
         <el-table-column label="发布人" width="100">
@@ -66,15 +65,12 @@
 
         <!-- Pagination -->
         <div class="mt-4 flex justify-end">
-          <el-pagination
+          <OaPagination
             v-model:current-page="pageNum"
             v-model:page-size="pageSize"
             :total="total"
             :page-sizes="[10, 20, 50]"
-            layout="total, sizes, prev, pager, next"
-            background
-            @change="fetchList"
-          />
+            @change="fetchList" />
         </div>
       </el-card>
 
@@ -98,8 +94,7 @@
             v-model="form.title"
             placeholder="请输入公告标题"
             maxlength="100"
-            show-word-limit
-          />
+            show-word-limit />
         </el-form-item>
 
         <el-form-item label="内容" prop="content">
@@ -109,8 +104,7 @@
             :rows="6"
             placeholder="请输入公告内容"
             maxlength="2000"
-            show-word-limit
-          />
+            show-word-limit />
         </el-form-item>
 
         <el-form-item label="紧急程度" prop="noticeType">

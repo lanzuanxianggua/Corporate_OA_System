@@ -4,6 +4,7 @@ import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.PageParamUtil;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaPurchase;
 import cn.oa.entity.SysEmployee;
@@ -75,7 +76,7 @@ public class PurchaseController {
                                            @RequestParam int pageSize,
                                            @RequestParam(required = false) Long empId,
                                            @RequestParam(required = false) Integer status) {
-        IPage<OaPurchase> page = purchaseService.pageList(pageNum, pageSize, empId, status);
+        IPage<OaPurchase> page = purchaseService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), empId, status);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 

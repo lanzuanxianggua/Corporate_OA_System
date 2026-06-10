@@ -1,93 +1,40 @@
 <template>
-  <div class="flex h-screen bg-[#f5f7fa]">
+  <div class="oa-app-shell flex h-screen">
     <!-- 侧边栏 -->
     <div
-      class="bg-white border-r border-[#ebeef5] transition-all duration-300 flex flex-col shrink-0"
+      v-if="!isMobile"
+      class="oa-sidebar transition-all duration-300 flex flex-col shrink-0"
       :class="isCollapsed ? 'w-16' : 'w-[210px]'"
     >
       <div
-        class="h-14 flex items-center justify-center gap-2 border-b border-[#ebeef5] shrink-0"
+        class="oa-sidebar-header h-14 flex items-center justify-center gap-2 shrink-0"
       >
-        <el-icon :size="24" color="#409EFF"><OfficeBuilding /></el-icon>
+        <el-icon :size="24" color="var(--oa-primary)"><OfficeBuilding /></el-icon>
         <span
           v-if="!isCollapsed"
-          class="text-lg font-bold text-[#409EFF] whitespace-nowrap"
+          class="oa-brand-text text-lg font-bold whitespace-nowrap"
         >
           OA办公系统
         </span>
       </div>
-      <el-menu
-        :default-active="activeMenu"
-        :collapse="isCollapsed"
-        :router="true"
-        class="border-r-0 flex-1 overflow-y-auto"
-        background-color="#ffffff"
-        text-color="#303133"
-        active-text-color="#409EFF"
-      >
-        <template v-for="(item, idx) in menuConfig" :key="'root-' + idx">
-          <template v-if="!item.roles || userStore.hasAnyRole(item.roles)">
-            <!-- No children: standalone menu item -->
-            <el-menu-item
-              v-if="!item.children"
-              :index="item.path ?? ''"
-            >
-              <el-icon><component :is="item.icon" /></el-icon>
-              <template #title>{{ item.title }}</template>
-            </el-menu-item>
-
-            <!-- Has children: sub-menu -->
-            <el-sub-menu v-else :index="'menu-' + idx">
-              <template #title>
-                <el-icon><component :is="item.icon" /></el-icon>
-                <span>{{ item.title }}</span>
-              </template>
-              <template v-for="(child, cidx) in item.children" :key="'menu-' + idx + '-' + cidx">
-                <!-- Nested sub-menu (children with children) -->
-                <el-sub-menu
-                  v-if="child.children && child.children.length"
-                  :index="'menu-' + idx + '-' + cidx"
-                >
-                  <template #title>{{ child.title }}</template>
-                  <el-menu-item
-                    v-for="(nested, nidx) in child.children"
-                    v-show="!nested.roles || userStore.hasAnyRole(nested.roles)"
-                    :key="'menu-' + idx + '-' + cidx + '-' + nidx"
-                    :index="nested.path ?? ''"
-                  >
-                    {{ nested.title }}
-                  </el-menu-item>
-                </el-sub-menu>
-
-                <!-- Direct child item -->
-                <el-menu-item
-                  v-else
-                  v-show="!child.roles || userStore.hasAnyRole(child.roles)"
-                  :index="child.path ?? ''"
-                >
-                  {{ child.title }}
-                </el-menu-item>
-              </template>
-            </el-sub-menu>
-          </template>
-        </template>
-      </el-menu>
+      <SideMenu :active-menu="activeMenu" :collapsed="isCollapsed" />
     </div>
 
     <!-- 主区域 -->
     <div class="flex-1 flex flex-col overflow-hidden min-w-0">
       <!-- 顶部导航栏 -->
       <div
-        class="h-14 bg-white border-b border-[#ebeef5] flex items-center justify-between px-5 shrink-0"
+        class="oa-topbar h-14 flex items-center justify-between px-5 shrink-0"
       >
-        <div class="flex items-center gap-4">
-          <el-button text @click="isCollapsed = !isCollapsed">
+        <div class="oa-topbar-left flex items-center gap-4 min-w-0">
+          <el-button text class="oa-icon-button" :aria-label="isMobile ? '打开菜单' : '折叠菜单'" @click="handleMenuButtonClick">
             <el-icon :size="20">
-              <Expand v-if="isCollapsed" />
+              <MenuIcon v-if="isMobile" />
+              <Expand v-else-if="isCollapsed" />
               <Fold v-else />
             </el-icon>
           </el-button>
-          <el-breadcrumb separator="/">
+          <el-breadcrumb class="oa-breadcrumb" separator="/">
             <el-breadcrumb-item :to="{ path: '/welcome' }">
               首页
             </el-breadcrumb-item>
@@ -96,7 +43,7 @@
             </el-breadcrumb-item>
           </el-breadcrumb>
         </div>
-        <div class="flex items-center gap-4">
+        <div class="oa-topbar-actions flex items-center gap-4">
           <el-badge v-if="unreadCount > 0" :value="unreadCount" :max="99">
             <el-button text @click="router.push('/oa/message/list')">
               <el-icon :size="20"><Bell /></el-icon>
@@ -105,12 +52,35 @@
           <el-button v-else text @click="router.push('/oa/message/list')">
             <el-icon :size="20"><Bell /></el-icon>
           </el-button>
+          <el-dropdown trigger="click" @command="handleThemeCommand">
+            <el-button text class="oa-theme-button" :aria-label="themeStore.isDark ? '切换主题，当前深色' : '切换主题，当前浅色'">
+              <el-icon :size="20">
+                <component :is="themeStore.isDark ? Moon : Sunny" />
+              </el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="light">
+                  <el-icon><Sunny /></el-icon>
+                  浅色
+                </el-dropdown-item>
+                <el-dropdown-item command="dark">
+                  <el-icon><Moon /></el-icon>
+                  深色
+                </el-dropdown-item>
+                <el-dropdown-item command="system">
+                  <el-icon><Monitor /></el-icon>
+                  跟随系统
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
           <el-dropdown @command="handleCommand">
             <span class="flex items-center cursor-pointer gap-1">
               <el-avatar :size="32">
                 {{ userStore.userInfo?.empName?.charAt(0) || "U" }}
               </el-avatar>
-              <span class="text-sm text-[#303133]">
+              <span class="oa-user-name text-sm">
                 {{ userStore.userInfo?.empName || "用户" }}
               </span>
               <el-icon><ArrowDown /></el-icon>
@@ -130,30 +100,69 @@
       </div>
 
       <!-- 内容区 -->
-      <div class="flex-1 p-5 overflow-y-auto">
+      <div class="oa-content flex-1 p-5 overflow-y-auto">
         <router-view />
       </div>
     </div>
+
+    <el-drawer
+      v-model="mobileMenuVisible"
+      direction="ltr"
+      size="min(84vw, 310px)"
+      :with-header="false"
+      class="oa-mobile-drawer"
+    >
+      <div class="oa-sidebar-header h-14 flex items-center justify-center gap-2 shrink-0">
+        <el-icon :size="24" color="var(--oa-primary)"><OfficeBuilding /></el-icon>
+        <span class="oa-brand-text text-lg font-bold whitespace-nowrap">OA办公系统</span>
+      </div>
+      <SideMenu :active-menu="activeMenu" @navigate="mobileMenuVisible = false" />
+    </el-drawer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessageBox, ElNotification } from "element-plus";
+import { Menu as MenuIcon, Monitor, Moon, Sunny } from "@element-plus/icons-vue";
 import { useUserStore } from "@/store/user";
+import { useThemeStore, type ThemeMode } from "@/store/theme";
 import { getUnreadCount } from "@/api/message";
-import { menuConfig } from "./menuConfig";
+import SideMenu from "./SideMenu.vue";
 import { wsClient } from "@/utils/websocket";
 
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
+const themeStore = useThemeStore();
 const isCollapsed = ref(false);
+const isMobile = ref(false);
+const mobileMenuVisible = ref(false);
 const unreadCount = ref(0);
 let unreadTimer: ReturnType<typeof setInterval> | null = null;
 
 const activeMenu = computed(() => route.path);
+
+const updateViewport = () => {
+  if (typeof window === "undefined") return;
+  isMobile.value = window.innerWidth <= 768;
+  if (!isMobile.value) {
+    mobileMenuVisible.value = false;
+  }
+};
+
+const handleMenuButtonClick = () => {
+  if (isMobile.value) {
+    mobileMenuVisible.value = true;
+    return;
+  }
+  isCollapsed.value = !isCollapsed.value;
+};
+
+const handleThemeCommand = (command: string) => {
+  themeStore.setThemeMode(command as ThemeMode);
+};
 
 const handleCommand = async (command: string) => {
   if (command === "logout") {
@@ -184,6 +193,8 @@ const fetchUnreadCount = async () => {
 };
 
 onMounted(() => {
+  updateViewport();
+  window.addEventListener("resize", updateViewport);
   fetchUnreadCount();
   unreadTimer = setInterval(fetchUnreadCount, 60000);
 
@@ -209,7 +220,12 @@ onMounted(() => {
   }
 });
 
+watch(() => route.fullPath, () => {
+  mobileMenuVisible.value = false;
+});
+
 onUnmounted(() => {
+  window.removeEventListener("resize", updateViewport);
   wsClient.disconnect();
   if (unreadTimer) {
     clearInterval(unreadTimer);
@@ -217,3 +233,91 @@ onUnmounted(() => {
   }
 });
 </script>
+
+<style scoped>
+.oa-app-shell {
+  background: var(--oa-bg);
+  color: var(--oa-text);
+}
+
+.oa-sidebar {
+  background: var(--oa-surface);
+  border-right: 1px solid var(--oa-border);
+}
+
+.oa-sidebar-header,
+.oa-topbar {
+  background: var(--oa-surface);
+  border-bottom: 1px solid var(--oa-border);
+}
+
+.oa-brand-text {
+  color: var(--oa-primary);
+}
+
+.oa-topbar {
+  color: var(--oa-text);
+}
+
+.oa-user-name {
+  color: var(--oa-text-soft);
+}
+
+.oa-content {
+  background: var(--oa-bg);
+}
+
+.oa-theme-button {
+  color: var(--oa-text-soft);
+}
+
+:deep(.el-menu) {
+  border-right: 0;
+}
+
+:deep(.el-menu-item:hover),
+:deep(.el-sub-menu__title:hover) {
+  background-color: var(--oa-primary-soft);
+}
+
+:deep(.el-menu-item.is-active) {
+  background-color: var(--oa-primary-soft);
+}
+
+:deep(.oa-mobile-drawer .el-drawer__body) {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  background: var(--oa-surface);
+}
+
+.oa-icon-button {
+  min-width: 40px;
+  min-height: 40px;
+}
+
+@media (max-width: 768px) {
+  .oa-app-shell {
+    height: 100dvh;
+  }
+
+  .oa-topbar {
+    height: 52px;
+    padding: 0 10px;
+  }
+
+  .oa-topbar-left,
+  .oa-topbar-actions {
+    gap: 8px;
+  }
+
+  .oa-breadcrumb,
+  .oa-user-name {
+    display: none;
+  }
+
+  .oa-content {
+    padding: 10px;
+  }
+}
+</style>

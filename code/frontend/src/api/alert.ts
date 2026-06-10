@@ -16,5 +16,7 @@ export const deleteAlertRule = (id: number) =>
 export const getAlertLogPage = (params: PageParams & Partial<AlertLog>) =>
   request.get<unknown, ApiResponse<PageResult<AlertLog>>>("/api/alert/log/page", { params });
 
-export const handleAlert = (data: { id: number; status?: number; remark?: string }) =>
-  request.post<unknown, ApiResponse<void>>("/api/alert/handle", data);
+export const handleAlert = (data: { id: number; handleRemark?: string }) =>
+  request.post<unknown, ApiResponse<void>>(`/api/alert/log/handle/${data.id}`, {
+    handleRemark: data.handleRemark || "已处理"
+  });

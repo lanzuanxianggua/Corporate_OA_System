@@ -1,11 +1,11 @@
 <template>
-  <div class="h-[560px] border border-gray-200 rounded-lg overflow-hidden relative">
-    <VueFlow v-model:nodes="flowNodes" v-model:edges="flowEdges" :default-viewport="{ zoom: 0.9, x: 80, y: 50 }" fit-view-on-init class="bg-gray-50" @connect="onConnect">
+  <div class="flow-designer h-[560px] border border-[var(--oa-border)] rounded-lg overflow-hidden relative">
+    <VueFlow v-model:nodes="flowNodes" v-model:edges="flowEdges" :default-viewport="{ zoom: 0.9, x: 80, y: 50 }" fit-view-on-init class="bg-[var(--oa-surface-soft)]" @connect="onConnect">
       <Background />
       <Controls position="bottom-right" />
     </VueFlow>
 
-    <div class="absolute top-2 left-2 z-10 flex gap-1">
+    <div class="flow-toolbar absolute top-2 left-2 z-10 flex gap-1">
       <el-button size="small" @click="addStartNode">开始</el-button>
       <el-button size="small" @click="addApprovalNode">审批</el-button>
       <el-button size="small" @click="addGatewayNode('exclusive')">排他网关</el-button>
@@ -13,7 +13,7 @@
       <el-button size="small" @click="addEndNode">结束</el-button>
     </div>
 
-    <div v-if="selectedNode" class="absolute top-2 right-2 z-10 w-72 bg-white border rounded-lg shadow-lg p-3">
+    <div v-if="selectedNode" class="flow-node-panel absolute top-2 right-2 z-10 w-72 bg-[var(--oa-surface)] border rounded-lg shadow-lg p-3">
       <div class="flex justify-between items-center mb-2">
         <span class="text-sm font-medium">节点配置</span>
         <el-button size="small" text @click="selectedNode = null">X</el-button>
@@ -49,7 +49,7 @@
                   <el-input v-model="selectedNode.data.assigneeValue" placeholder='["DEPT_MANAGER","DIRECTOR","GM"]' @blur="syncFromFlow" />
                 </template>
                 <template v-else-if="selectedNode.data.assigneeType === 'dept_manager'">
-                  <span class="text-gray-400 text-xs">自动取发起人直属上级</span>
+                  <span class="text-[var(--oa-subtle)] text-xs">自动取发起人直属上级</span>
                 </template>
               </el-form-item>
               <el-form-item label="多人审批">
@@ -104,7 +104,7 @@
                 <el-input v-model="selectedNode.data.escalateTo.value" placeholder='["DEPT_MANAGER","DIRECTOR","GM"]' @blur="syncFromFlow" />
               </template>
               <template v-else>
-                <span class="text-gray-400 text-xs">自动取发起人直属上级</span>
+                <span class="text-[var(--oa-subtle)] text-xs">自动取发起人直属上级</span>
               </template>
             </el-form-item>
           </el-collapse-item>
@@ -113,12 +113,12 @@
             v-if="selectedNode.data.nodeType === 'approval'"
             title="4 维条件路由" name="routing">
             <div class="flex justify-between items-center mb-2">
-              <span class="text-xs text-gray-500">满足条件时跳转(顺序敏感,第一条命中即匹配)</span>
+              <span class="text-xs text-[var(--oa-muted)]">满足条件时跳转(顺序敏感,第一条命中即匹配)</span>
               <el-button size="small" type="primary" plain @click="addRoutingRule">
                 <el-icon><Plus /></el-icon> 添加条件
               </el-button>
             </div>
-            <div v-for="(rule, idx) in selectedNode.data.routingRules" :key="rule.id" class="border rounded p-2 mb-2 bg-gray-50">
+            <div v-for="(rule, idx) in selectedNode.data.routingRules" :key="rule.id" class="border rounded p-2 mb-2 bg-[var(--oa-surface-soft)]">
               <el-form-item label="字段" label-width="50px">
                 <el-select v-model="rule.field" placeholder="选择维度" @change="(v: any) => handleRoutingFieldChange(rule, v)">
                   <el-option-group label="4 维条件">
@@ -159,7 +159,7 @@
                 </el-button>
               </div>
             </div>
-            <div v-if="!selectedNode.data.routingRules?.length" class="text-xs text-gray-400 text-center py-2">
+            <div v-if="!selectedNode.data.routingRules?.length" class="text-xs text-[var(--oa-subtle)] text-center py-2">
               暂无条件,点击右上"添加条件"开始配置
             </div>
           </el-collapse-item>
@@ -464,3 +464,42 @@ watch(
 
 watch([flowNodes, flowEdges], () => emitSchema(), { deep: true });
 </script>
+
+<style scoped>
+.flow-toolbar {
+  max-width: calc(100% - 18px);
+  flex-wrap: wrap;
+}
+
+.flow-node-panel {
+  max-height: calc(100% - 16px);
+  overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  .flow-designer {
+    height: 68dvh;
+    min-height: 460px;
+  }
+
+  .flow-toolbar {
+    right: 8px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+  }
+
+  .flow-toolbar :deep(.el-button) {
+    flex: 0 0 auto;
+  }
+
+  .flow-node-panel {
+    top: auto;
+    right: 8px;
+    bottom: 8px;
+    left: 8px;
+    width: auto;
+    max-height: 42%;
+  }
+}
+</style>

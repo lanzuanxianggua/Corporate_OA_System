@@ -17,4 +17,4 @@ export const assignEmployees = (data: { groupId: number; empIds: number[] }) =>
   request.post<unknown, ApiResponse<void>>(`/api/attendance-group/${data.groupId}/employees`, { empIds: data.empIds });
 
 export const removeEmployees = (data: { groupId: number; empIds: number[] }) =>
-  request.delete<unknown, ApiResponse<void>>(`/api/attendance-group/${data.groupId}/employees`, { data: { empIds: data.empIds } });
+  request.post<unknown, ApiResponse<void>>(`/api/attendance-group/${data.groupId}/employees/remove`, { empIds: data.empIds });

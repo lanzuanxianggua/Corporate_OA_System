@@ -80,6 +80,25 @@ public class WfTask {
     private String businessType;
 
     @TableField(exist = false)
+    private String processName;
+
+    @TableField(exist = false)
+    private String applicant;
+
+    @TableField(exist = false)
+    private String taskName;
+
+    @TableField(exist = false)
+    private String multiType;
+
+    @TableField(exist = false)
+    private String remark;
+
+    @TableField(exist = false)
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime updateTime;
+
+    @TableField(exist = false)
     private WfProcessInstance instance;
 
     @TableField(exist = false)

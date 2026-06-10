@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <div class="h-full">
     <el-card shadow="never">
       <template #header>
         <div class="flex items-center justify-between">
-          <span class="text-base font-semibold text-[#303133]">审批中心</span>
+          <span class="text-base font-semibold text-[var(--oa-text)]">审批中心</span>
         </div>
       </template>
 
@@ -15,7 +15,7 @@
 
       <!-- History type selector - shown above table when on history tab -->
       <div v-if="activeTab === 'history'" class="mb-4">
-        <el-radio-group v-model="activeHistoryType" @change="fetchHistoryTasks">
+        <el-radio-group v-model="activeHistoryType" @change="handleHistoryTypeChange">
           <el-radio-button v-for="t in historyTypes" :key="t" :value="t">
             {{ businessTypeLabel(t) }}
           </el-radio-button>
@@ -25,11 +25,13 @@
       <!-- Pending tasks table -->
       <template v-if="activeTab === 'pending'">
         <el-table
+          class="oa-desktop-table"
+          max-height="calc(100vh - 330px)"
           :data="pendingTasks"
           v-loading="loading"
           stripe
           style="width: 100%"
-          :header-cell-style="{ background: '#f5f7fa', color: '#606266' }"
+          :header-cell-style="{ background: 'var(--oa-surface-soft)', color: 'var(--oa-muted)' }"
         >
           <el-table-column label="申请人" width="90">
             <template #default="{ row }">
@@ -71,27 +73,53 @@
           </el-table-column>
         </el-table>
 
-        <div class="mt-4 flex justify-end">
-          <el-pagination
+        <div v-loading="loading" class="oa-mobile-list">
+          <el-empty v-if="!pendingTasks.length" description="暂无待审批任务" :image-size="72" />
+          <div v-else class="oa-mobile-card-list">
+            <article v-for="row in pendingTasks" :key="row.id" class="oa-mobile-card">
+              <div class="oa-mobile-card-main">
+                <div class="oa-mobile-card-title">
+                  <span>{{ businessTypeLabel(row.businessType) }}</span>
+                  <el-tag size="small" type="warning" effect="light">待审批</el-tag>
+                </div>
+                <div class="oa-mobile-card-subtitle">{{ row.nodeName || '-' }}</div>
+                <div class="oa-mobile-card-meta">
+                  <div class="oa-mobile-meta-row">
+                    <span>申请人</span>
+                    <strong>{{ row.instance?.initiatorName || getInitiatorName(row) || '-' }}</strong>
+                  </div>
+                  <div class="oa-mobile-meta-row">
+                    <span>提交时间</span>
+                    <span>{{ formatTime(row.createTime) }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="oa-mobile-card-actions">
+                <el-button type="success" plain @click="openDialog(row, 1)">通过</el-button>
+                <el-button type="danger" plain @click="openDialog(row, 2)">拒绝</el-button>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <OaPagination
             v-model:current-page="pendingPageNum"
             v-model:page-size="pendingPageSize"
             :total="pendingTotal"
             :page-sizes="[10, 20, 50]"
-            layout="total, sizes, prev, pager, next"
-            background
-            @change="fetchPendingTasks"
-          />
-        </div>
+            @change="fetchPendingTasks" />
       </template>
 
       <!-- History table -->
       <template v-if="activeTab === 'history'">
         <el-table
+          class="oa-desktop-table"
+          max-height="calc(100vh - 330px)"
           :data="historyTasks"
           v-loading="historyLoading"
           stripe
           style="width: 100%"
-          :header-cell-style="{ background: '#f5f7fa', color: '#606266' }"
+          :header-cell-style="{ background: 'var(--oa-surface-soft)', color: 'var(--oa-muted)' }"
         >
           <el-table-column label="申请人" width="90">
             <template #default="{ row }">
@@ -213,17 +241,46 @@
           </el-table-column>
         </el-table>
 
-        <div class="mt-4 flex justify-end">
-          <el-pagination
+        <div v-loading="historyLoading" class="oa-mobile-list">
+          <el-empty v-if="!historyTasks.length" description="暂无已审批记录" :image-size="72" />
+          <div v-else class="oa-mobile-card-list">
+            <article v-for="row in historyTasks" :key="row.id" class="oa-mobile-card">
+              <div class="oa-mobile-card-main">
+                <div class="oa-mobile-card-title">
+                  <span>{{ businessTypeLabel(activeHistoryType) }}</span>
+                  <el-tag :type="(statusTagType(row.status) as any)" size="small" effect="light">
+                    {{ statusText(row.status) }}
+                  </el-tag>
+                </div>
+                <div class="oa-mobile-card-subtitle">{{ historyMobileTitle(row) }}</div>
+                <div class="oa-mobile-card-meta">
+                  <div class="oa-mobile-meta-row">
+                    <span>申请人</span>
+                    <strong>{{ row.empName || '-' }}</strong>
+                  </div>
+                  <div
+                    v-for="item in historyMobileRows(row)"
+                    :key="item.label"
+                    class="oa-mobile-meta-row"
+                  >
+                    <span>{{ item.label }}</span>
+                    <span>{{ item.value }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="oa-mobile-card-actions">
+                <el-button type="primary" plain @click="openHistoryDetail(row)">详情</el-button>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <OaPagination
             v-model:current-page="historyPageNum"
             v-model:page-size="historyPageSize"
             :total="historyTotal"
             :page-sizes="[10, 20, 50]"
-            layout="total, sizes, prev, pager, next"
-            background
-            @change="fetchHistoryTasks"
-          />
-        </div>
+            @change="fetchHistoryTasks" />
       </template>
     </el-card>
 
@@ -300,8 +357,7 @@
         <ApprovalTimeline
           v-if="currentTask.businessType && businessDetail?.id"
           :business-type="currentTask.businessType"
-          :business-id="businessDetail.id"
-        />
+          :business-id="businessDetail.id" />
 
         <el-form label-position="top" class="mt-4">
           <el-form-item label="审批备注">
@@ -311,8 +367,7 @@
               :rows="3"
               placeholder="请输入审批备注（拒绝时必填）"
               maxlength="200"
-              show-word-limit
-            />
+              show-word-limit />
           </el-form-item>
         </el-form>
       </template>
@@ -392,8 +447,7 @@
         <ApprovalTimeline
           v-if="activeHistoryType && historyDetail.id"
           :business-type="activeHistoryType"
-          :business-id="historyDetail.id"
-        />
+          :business-id="historyDetail.id" />
       </template>
     </el-dialog>
   </div>
@@ -477,7 +531,6 @@ const historyTotal = ref(0);
 
 const fetchHistoryTasks = async () => {
   historyLoading.value = true;
-  historyPageNum.value = 1;
   try {
     const fetcher = historyFetchers[activeHistoryType.value];
     if (!fetcher) return;
@@ -495,6 +548,11 @@ const fetchHistoryTasks = async () => {
   } finally {
     historyLoading.value = false;
   }
+};
+
+const handleHistoryTypeChange = () => {
+  historyPageNum.value = 1;
+  fetchHistoryTasks();
 };
 
 const handleTabChange = () => {
@@ -599,6 +657,66 @@ const statusTagType = (s?: number | string) =>
   ({ 0: "warning", 1: "success", 2: "danger", 3: "info", 4: "info", 5: "warning" }[Number(s ?? -1)] || "info");
 const formatTime = (t?: string) =>
   t ? t.replace("T", " ").substring(0, 16) : "-";
+
+const moneyText = (value: unknown) => value !== null && value !== undefined && value !== "" ? `¥${value}` : "-";
+
+const historyMobileTitle = (row: any) => {
+  if (activeHistoryType.value === "leave") return leaveTypeMap[row.leaveType] || "请假申请";
+  if (activeHistoryType.value === "trip") return row.destination || row.purpose || "出差申请";
+  if (activeHistoryType.value === "outing") return row.destination || row.reason || "外出申请";
+  if (activeHistoryType.value === "purchase") return row.itemName || "采购申请";
+  if (activeHistoryType.value === "expense") return row.title || row.category || "经费申请";
+  if (activeHistoryType.value === "overtime") return row.overtimeDate || "加班申请";
+  if (activeHistoryType.value === "loan") return moneyText(row.loanAmount);
+  return "-";
+};
+
+const historyMobileRows = (row: any) => {
+  if (activeHistoryType.value === "leave") {
+    return [
+      { label: "时间", value: `${formatTime(row.startTime)} 至 ${formatTime(row.endTime)}` },
+      { label: "天数", value: calcDays(row.startTime, row.endTime) },
+      { label: "原因", value: row.reason || "-" }
+    ];
+  }
+  if (activeHistoryType.value === "trip") {
+    return [
+      { label: "目的", value: row.purpose || "-" },
+      { label: "时间", value: `${formatTime(row.startTime)} 至 ${formatTime(row.endTime)}` }
+    ];
+  }
+  if (activeHistoryType.value === "outing") {
+    return [
+      { label: "原因", value: row.reason || "-" },
+      { label: "时间", value: `${formatTime(row.startTime)} 至 ${formatTime(row.endTime)}` }
+    ];
+  }
+  if (activeHistoryType.value === "purchase") {
+    return [
+      { label: "数量", value: row.quantity ?? "-" },
+      { label: "金额", value: moneyText(row.amount) },
+      { label: "原因", value: row.reason || "-" }
+    ];
+  }
+  if (activeHistoryType.value === "expense") {
+    return [
+      { label: "类别", value: row.category || "-" },
+      { label: "金额", value: moneyText(row.amount) },
+      { label: "描述", value: row.description || "-" }
+    ];
+  }
+  if (activeHistoryType.value === "overtime") {
+    return [
+      { label: "时长", value: row.hours != null ? `${row.hours} 小时` : "-" },
+      { label: "时间", value: `${formatTime(row.startTime)} 至 ${formatTime(row.endTime)}` },
+      { label: "原因", value: row.reason || "-" }
+    ];
+  }
+  if (activeHistoryType.value === "loan") {
+    return [{ label: "原因", value: row.loanReason || "-" }];
+  }
+  return [];
+};
 
 onMounted(() => fetchPendingTasks());
 </script>

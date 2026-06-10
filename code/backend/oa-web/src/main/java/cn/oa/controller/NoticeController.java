@@ -3,6 +3,7 @@ package cn.oa.controller;
 import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.PageParamUtil;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaNotice;
 import cn.oa.entity.dto.NoticeDTO;
@@ -41,7 +42,7 @@ public class NoticeController {
                                         @RequestParam(required = false) String title,
                                         HttpServletRequest request) {
         Long empId = WebUtil.getEmpId(request);
-        IPage<OaNotice> page = noticeService.pageList(pageNum, pageSize, title);
+        IPage<OaNotice> page = noticeService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), title);
         for (OaNotice notice : page.getRecords()) {
             notice.setIsRead(noticeService.isRead(notice.getId(), empId));
         }

@@ -3,6 +3,7 @@ package cn.oa.controller;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.PageParamUtil;
 import cn.oa.entity.SysDictData;
 import cn.oa.entity.SysDictType;
 import cn.oa.service.DictDataService;
@@ -37,7 +38,7 @@ public class DictController {
                                                @RequestParam int pageSize,
                                                @RequestParam(required = false) String dictName,
                                                @RequestParam(required = false) String dictType) {
-        IPage<SysDictType> page = dictTypeService.pageList(pageNum, pageSize, dictName, dictType);
+        IPage<SysDictType> page = dictTypeService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), dictName, dictType);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 
@@ -76,7 +77,7 @@ public class DictController {
                                                @RequestParam int pageSize,
                                                @RequestParam(required = false) String dictType,
                                                @RequestParam(required = false) String dictLabel) {
-        IPage<SysDictData> page = dictDataService.pageList(pageNum, pageSize, dictType, dictLabel);
+        IPage<SysDictData> page = dictDataService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), dictType, dictLabel);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 

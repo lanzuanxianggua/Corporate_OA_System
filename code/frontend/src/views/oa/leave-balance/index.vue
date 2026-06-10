@@ -1,11 +1,24 @@
-<template>
+﻿<template>
   <div class="h-full">
-    <el-card shadow="never">
+    <el-card shadow="never" class="leave-balance-card h-full">
       <template #header>
-        <span class="text-base font-semibold text-[#303133]">假期余额</span>
+        <div class="flex items-center justify-between">
+          <span class="text-base font-semibold text-[var(--oa-text)]">假期余额</span>
+          <span class="text-sm text-[var(--oa-muted)]">{{ userStore.isAdmin() ? "全员假期余额" : "我的假期余额" }}</span>
+        </div>
       </template>
 
-      <el-table :data="tableData" v-loading="loading" stripe :header-cell-style="{ background: '#f5f7fa', color: '#606266' }">
+      <el-table
+        :data="tableData"
+        v-loading="loading"
+        stripe
+        height="100%"
+        class="leave-balance-table"
+        :header-cell-style="{ background: 'var(--oa-surface-soft)', color: 'var(--oa-muted)' }"
+      >
+        <template #empty>
+          <el-empty description="暂无假期余额记录" :image-size="72" />
+        </template>
         <el-table-column prop="empName" label="员工" width="100" />
         <el-table-column prop="leaveType" label="假期类型" width="100">
           <template #default="{ row }">{{ leaveTypeMap[row.leaveType] || "其他" }}</template>
@@ -21,9 +34,7 @@
         <el-table-column prop="remark" label="备注" min-width="120" show-overflow-tooltip />
       </el-table>
 
-      <div class="mt-4 flex justify-end">
-        <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total" :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next" background @change="fetchList" />
-      </div>
+      <OaPagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total" :page-sizes="[10, 20, 50]" @change="fetchList" />
     </el-card>
   </div>
 </template>
@@ -49,8 +60,8 @@ const fetchList = async () => {
       ? await getBalancePage({ pageNum: pageNum.value, pageSize: pageSize.value })
       : await getMyBalances();
     const data: any = res;
-    tableData.value = data.data?.list || data.data || [];
-    total.value = data.data?.total || 0;
+    tableData.value = data.data?.list || data.data?.records || data.data || [];
+    total.value = data.data?.total ?? tableData.value.length;
   } finally {
     loading.value = false;
   }
@@ -58,3 +69,18 @@ const fetchList = async () => {
 
 onMounted(() => { fetchList(); });
 </script>
+
+<style scoped>
+.leave-balance-card :deep(.el-card__body) {
+  display: flex;
+  flex-direction: column;
+  height: calc(100% - 57px);
+  min-height: 0;
+}
+
+.leave-balance-table {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+</style>

@@ -25,6 +25,17 @@ export default defineConfig({
       "@": resolve(__dirname, "src")
     }
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vue: ["vue", "vue-router", "pinia"],
+          element: ["element-plus", "@element-plus/icons-vue"],
+          echarts: ["echarts/core", "echarts/charts", "echarts/components", "echarts/renderers"]
+        }
+      }
+    }
+  },
   server: {
     port: 8848,
     host: "0.0.0.0",

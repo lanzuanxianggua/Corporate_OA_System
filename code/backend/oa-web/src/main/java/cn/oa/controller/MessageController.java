@@ -3,6 +3,7 @@ package cn.oa.controller;
 import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.PageParamUtil;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaMessage;
 import cn.oa.service.MessageService;
@@ -45,7 +46,7 @@ public class MessageController {
                                           @RequestParam(defaultValue = "10") int pageSize,
                                           HttpServletRequest request) {
         Long empId = WebUtil.getEmpId(request);
-        IPage<OaMessage> page = messageService.pageList(pageNum, pageSize, empId);
+        IPage<OaMessage> page = messageService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), empId);
         return R.ok(cn.oa.common.result.PageResult.of(page.getTotal(), page.getRecords()));
     }
 

@@ -4,6 +4,7 @@ import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.PageParamUtil;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaMeeting;
 import cn.oa.entity.OaMeetingRoom;
@@ -105,7 +106,7 @@ public class MeetingController {
                                           @RequestParam int pageSize,
                                           @RequestParam(required = false) Long organizerId,
                                           HttpServletRequest request) {
-        IPage<OaMeeting> page = meetingService.pageList(pageNum, pageSize, organizerId);
+        IPage<OaMeeting> page = meetingService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), organizerId);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <section class="oa-analytics-page">
     <header class="oa-page-header">
       <div>
@@ -109,8 +109,7 @@
             :percentage="attendanceRate"
             :stroke-width="10"
             :show-text="false"
-            :color="attendanceRate >= 90 ? '#059669' : attendanceRate >= 70 ? '#d97706' : '#dc2626'"
-          />
+            :color="attendanceRate >= 90 ? '#059669' : attendanceRate >= 70 ? '#d97706' : '#dc2626'" />
         </div>
       </article>
 
@@ -518,7 +517,7 @@ onUnmounted(() => clearInterval(timer));
 }
 
 .notice-content {
-  color: #374151;
+  color: var(--oa-text-soft);
   font-size: 14px;
   line-height: 1.75;
   white-space: pre-wrap;

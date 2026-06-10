@@ -1,7 +1,7 @@
 <template>
-  <div class="flex w-full h-screen">
+  <div class="login-page flex w-full min-h-screen">
     <div
-      class="flex-1 flex items-center justify-center relative overflow-hidden"
+      class="login-hero flex-1 flex items-center justify-center relative overflow-hidden"
       style="background: linear-gradient(135deg, #409eff 0%, #667eea 100%)"
     >
       <div class="decoration">
@@ -16,16 +16,14 @@
       </div>
     </div>
     <div
-      class="w-[500px] flex items-center justify-center"
-      style="background-color: #f5f7fa"
+      class="login-panel-wrap flex items-center justify-center"
     >
       <div
-        class="w-[380px] p-10 bg-white rounded-xl"
-        style="box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1)"
+        class="login-card w-full max-w-[380px] p-10 bg-[var(--oa-surface)] rounded-xl"
       >
         <div class="flex flex-col items-center mb-8">
-          <el-icon :size="48" color="#409EFF"><OfficeBuilding /></el-icon>
-          <h1 class="mt-4 text-2xl font-bold text-[#303133]">OA办公系统</h1>
+          <el-icon :size="48" color="var(--oa-primary)"><OfficeBuilding /></el-icon>
+          <h1 class="mt-4 text-2xl font-bold text-[var(--oa-text)]">OA办公系统</h1>
         </div>
         <el-form
           ref="loginFormRef"
@@ -38,8 +36,7 @@
               v-model="loginForm.username"
               placeholder="请输入用户名"
               prefix-icon="User"
-              size="large"
-            />
+              size="large" />
           </el-form-item>
           <el-form-item prop="password">
             <el-input
@@ -48,8 +45,7 @@
               placeholder="请输入密码"
               prefix-icon="Lock"
               size="large"
-              show-password
-            />
+              show-password />
           </el-form-item>
           <el-form-item prop="captchaCode">
             <div class="flex w-full gap-2">
@@ -58,19 +54,17 @@
                 placeholder="请输入验证码"
                 prefix-icon="Key"
                 size="large"
-                @keyup.enter="handleLogin"
-              />
+                @keyup.enter="handleLogin" />
               <div
-                class="h-[40px] min-w-[120px] rounded cursor-pointer flex items-center justify-center border border-gray-200 overflow-hidden"
+                class="h-[40px] min-w-[120px] rounded cursor-pointer flex items-center justify-center border border-[var(--oa-border)] overflow-hidden"
                 @click="refreshCaptcha"
               >
                 <img
                   v-if="captchaImg"
                   :src="captchaImg"
                   alt="验证码"
-                  class="h-full w-full object-cover"
-                />
-                <span v-else class="text-xs text-gray-400">点击获取</span>
+                  class="h-full w-full object-cover" />
+                <span v-else class="text-xs text-[var(--oa-subtle)]">点击获取</span>
               </div>
             </div>
           </el-form-item>
@@ -209,5 +203,42 @@ const handleLogin = async () => {
   left: 50%;
   transform: translate(-50%, -50%) rotate(45deg);
   background: rgba(255, 255, 255, 0.08);
+}
+
+.login-panel-wrap {
+  width: min(500px, 100%);
+  padding: 24px;
+  background: var(--oa-bg);
+}
+
+.login-card {
+  border: 1px solid var(--oa-border);
+  box-shadow: var(--oa-shadow);
+}
+
+@media (max-width: 768px) {
+  .login-page {
+    min-height: 100dvh;
+    background: var(--oa-bg);
+  }
+
+  .login-hero {
+    display: none;
+  }
+
+  .login-panel-wrap {
+    width: 100%;
+    padding: 18px;
+  }
+
+  .login-card {
+    padding: 24px;
+  }
+}
+
+@media (max-width: 360px) {
+  .login-card {
+    padding: 20px 16px;
+  }
 }
 </style>

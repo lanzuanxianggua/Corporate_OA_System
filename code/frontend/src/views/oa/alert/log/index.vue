@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <div class="h-full">
     <el-card shadow="never">
       <template #header>
         <div class="flex items-center justify-between">
-          <span class="text-base font-semibold text-[#303133]">预警记录</span>
+          <span class="text-base font-semibold text-[var(--oa-text)]">预警记录</span>
           <el-radio-group v-model="statusFilter" @change="handleFilterChange">
             <el-radio-button :value="undefined">全部</el-radio-button>
             <el-radio-button :value="0">未处理</el-radio-button>
@@ -12,13 +12,13 @@
         </div>
       </template>
 
-      <el-table :data="tableData" v-loading="loading" stripe :header-cell-style="{ background: '#f5f7fa', color: '#606266' }">
+      <el-table :data="tableData" v-loading="loading" stripe :header-cell-style="{ background: 'var(--oa-surface-soft)', color: 'var(--oa-muted)' }">
         <el-table-column prop="ruleName" label="规则名称" min-width="120" />
         <el-table-column prop="alertContent" label="预警内容" min-width="200" show-overflow-tooltip />
         <el-table-column label="级别" width="80" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.level === 1 ? 'warning' : row.level === 2 ? 'danger' : 'info'" size="small">
-              {{ row.level === 1 ? "警告" : row.level === 2 ? "严重" : "提示" }}
+            <el-tag :type="alertLevelType(row)" size="small">
+              {{ alertLevelText(row) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -27,19 +27,19 @@
         </el-table-column>
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.status === 0 ? 'danger' : 'success'" size="small">{{ row.status === 0 ? "未处理" : "已处理" }}</el-tag>
+            <el-tag :type="isUnhandled(row) ? 'danger' : 'success'" size="small">{{ isUnhandled(row) ? "未处理" : "已处理" }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="100" align="center">
           <template #default="{ row }">
-            <el-button v-if="row.status === 0" type="primary" link size="small" @click="handleAlert(row)">处理</el-button>
-            <span v-else class="text-[#c0c4cc] text-xs">-</span>
+            <el-button v-if="isUnhandled(row)" type="primary" link size="small" @click="handleAlert(row)">处理</el-button>
+            <span v-else class="text-[var(--oa-subtle)] text-xs">-</span>
           </template>
         </el-table-column>
       </el-table>
 
       <div class="mt-4 flex justify-end">
-        <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total" :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next" background @change="fetchList" />
+        <OaPagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total" :page-sizes="[10, 20, 50]" @change="fetchList" />
       </div>
     </el-card>
   </div>
@@ -61,7 +61,7 @@ const fetchList = async () => {
   loading.value = true;
   try {
     const params: any = { pageNum: pageNum.value, pageSize: pageSize.value };
-    if (statusFilter.value !== undefined) params.status = statusFilter.value;
+    if (statusFilter.value !== undefined) params.handleStatus = statusFilter.value;
     const res: any = await getAlertLogPage(params);
     tableData.value = res.data?.list || [];
     total.value = res.data?.total || 0;
@@ -73,9 +73,23 @@ const fetchList = async () => {
 const handleFilterChange = () => { pageNum.value = 1; fetchList(); };
 
 const handleAlert = async (row: any) => {
-  await handleAlertApi({ id: row.id });
+  await handleAlertApi({ id: row.id, handleRemark: "已处理" });
   ElMessage.success("已处理");
   fetchList();
+};
+
+const numericValue = (value: unknown) => Number(value ?? -1);
+
+const isUnhandled = (row: any) => numericValue(row.handleStatus ?? row.status) === 0;
+
+const alertLevelText = (row: any) => {
+  const level = numericValue(row.alertLevel ?? row.level);
+  return level === 1 ? "警告" : level === 2 ? "严重" : "提示";
+};
+
+const alertLevelType = (row: any) => {
+  const level = numericValue(row.alertLevel ?? row.level);
+  return level === 1 ? "warning" : level === 2 ? "danger" : "info";
 };
 
 const formatTime = (time?: string) => {

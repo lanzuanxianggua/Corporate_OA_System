@@ -1,20 +1,20 @@
 <template>
   <div>
     <el-row :gutter="20">
-      <el-col :span="16">
+      <el-col :xs="24" :md="16">
         <el-card>
           <template #header><span class="font-medium">月历</span></template>
           <el-calendar v-model="selectedDate">
             <template #date-cell="{ data }">
               <div class="relative">
                 {{ data.day.split("-")[2] }}
-                <span v-if="hasSchedule(data.day)" class="absolute bottom-0 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[#409EFF] rounded-full"></span>
+                <span v-if="hasSchedule(data.day)" class="absolute bottom-0 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[var(--oa-primary)] rounded-full"></span>
               </div>
             </template>
           </el-calendar>
         </el-card>
       </el-col>
-      <el-col :span="8">
+      <el-col :xs="24" :md="8">
         <el-card>
           <template #header>
             <span class="font-medium">{{ dayjs(selectedDate).format("YYYY年MM月DD日") }} 日程</span>

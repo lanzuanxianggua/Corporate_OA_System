@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <div class="h-full">
     <el-card shadow="never">
       <template #header>
         <div class="flex items-center justify-between">
-          <span class="text-base font-semibold text-[#303133]">知识库</span>
+          <span class="text-base font-semibold text-[var(--oa-text)]">知识库</span>
           <div class="flex gap-2">
             <el-input v-model="keyword" placeholder="搜索标题" clearable style="width: 220px" @keyup.enter="reload" />
             <el-button @click="reload">搜索</el-button>

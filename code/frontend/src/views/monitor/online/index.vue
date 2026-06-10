@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div>
     <el-card>
       <template #header><span class="font-medium">在线用户</span></template>
@@ -15,7 +15,7 @@
         </el-table-column>
       </el-table>
       <div class="flex justify-end mt-4">
-        <el-pagination v-model:current-page="page" v-model:page-size="pageSize" :total="total" layout="total, prev, pager, next" @current-change="fetchData" />
+        <OaPagination v-model:current-page="page" v-model:page-size="pageSize" :total="total" @change="fetchData"  :page-sizes="[10, 20, 50]" />
       </div>
     </el-card>
   </div>

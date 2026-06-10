@@ -1,12 +1,12 @@
-<template>
+﻿<template>
   <div class="h-full">
     <el-card shadow="never">
       <template #header>
         <div class="flex items-center justify-between">
-          <span class="text-base font-semibold text-[#303133]">加班审批</span>
+          <span class="text-base font-semibold text-[var(--oa-text)]">加班审批</span>
           <div class="flex items-center gap-2">
             <el-radio-group v-model="statusFilter" @change="handleFilterChange">
-              <el-radio-button :value="undefined">全部</el-radio-button>
+              <el-radio-button :value="''">全部</el-radio-button>
               <el-radio-button :value="0">待审批</el-radio-button>
               <el-radio-button :value="1">已通过</el-radio-button>
               <el-radio-button :value="2">已拒绝</el-radio-button>
@@ -16,7 +16,7 @@
         </div>
       </template>
 
-      <el-table :data="tableData" v-loading="loading" stripe :header-cell-style="{ background: '#f5f7fa', color: '#606266' }">
+      <el-table max-height="calc(100vh - 300px)" :data="tableData" v-loading="loading" stripe :header-cell-style="{ background: 'var(--oa-surface-soft)', color: 'var(--oa-muted)' }">
         <template #empty>
           <el-empty description="暂无待审批记录" :image-size="60" />
         </template>
@@ -38,18 +38,16 @@
         </el-table-column>
         <el-table-column label="操作" width="160" align="center" fixed="right">
           <template #default="{ row }">
-            <template v-if="row.status === 0">
+            <template v-if="isPendingStatus(row.status)">
               <el-button type="success" size="small" plain @click="openDialog(row, 1)">通过</el-button>
               <el-button type="danger" size="small" plain @click="openDialog(row, 2)">拒绝</el-button>
             </template>
-            <span v-else class="text-[#c0c4cc] text-xs">已处理</span>
+            <span v-else class="text-[var(--oa-subtle)] text-xs">已处理</span>
           </template>
         </el-table-column>
       </el-table>
 
-      <div class="mt-4 flex justify-end">
-        <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total" :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next" background @change="fetchList" />
-      </div>
+      <OaPagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total" :page-sizes="[10, 20, 50]" @change="fetchList" />
     </el-card>
 
     <el-dialog v-model="dialogVisible" :title="approveAction === 1 ? '审批通过' : '审批拒绝'" width="500px" :close-on-click-modal="false">
@@ -85,7 +83,7 @@ import { ref, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import ApprovalTimeline from "@/components/ApprovalTimeline.vue";
 import { getOvertimePage, approveOvertime } from "@/api/overtime";
-import { formatStatusText, formatStatusTagType } from "@/utils/format";
+import { formatStatusText, formatStatusTagType, isPendingStatus } from "@/utils/format";
 import { downloadFile } from "@/utils/download";
 
 const loading = ref(false);
@@ -93,13 +91,13 @@ const tableData = ref<any[]>([]);
 const pageNum = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
-const statusFilter = ref<number | undefined>(undefined);
+const statusFilter = ref<number | "">("");
 
 const fetchList = async () => {
   loading.value = true;
   try {
     const params: any = { pageNum: pageNum.value, pageSize: pageSize.value };
-    if (statusFilter.value !== undefined) params.status = statusFilter.value;
+    if (statusFilter.value !== "") params.status = statusFilter.value;
     const res: any = await getOvertimePage(params);
     tableData.value = res.data?.list || [];
     total.value = res.data?.total || 0;
@@ -154,7 +152,7 @@ onMounted(() => { fetchList(); });
 const handleExport = async () => {
   try {
     const params = new URLSearchParams();
-    if (statusFilter.value !== undefined) params.set("status", String(statusFilter.value));
+    if (statusFilter.value !== "") params.set("status", String(statusFilter.value));
     await downloadFile(`/api/overtime/export?${params.toString()}`, "加班数据.xlsx");
     ElMessage.success("导出成功");
   } catch {

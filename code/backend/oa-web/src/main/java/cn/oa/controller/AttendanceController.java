@@ -5,6 +5,7 @@ import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.annotation.RequireRole;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.PageParamUtil;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.utils.ExcelExportUtil;
 import cn.oa.entity.OaAttendance;
@@ -102,7 +103,7 @@ public class AttendanceController {
             @RequestParam(required = false) Integer status,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
-        IPage<Map<String, Object>> page = attendanceService.adminPage(pageNum, pageSize, empName, status, startDate, endDate);
+        IPage<Map<String, Object>> page = attendanceService.adminPage(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), empName, status, startDate, endDate);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 

@@ -3,6 +3,7 @@ package cn.oa.controller;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.PageParamUtil;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaAsset;
 import cn.oa.entity.OaAssetBorrow;
@@ -38,7 +39,7 @@ public class AssetController {
                                         @RequestParam(required = false) String status,
                                         @RequestParam(required = false) String assetName,
                                         @RequestParam(required = false) String assetCode) {
-        IPage<OaAsset> page = assetService.pageList(pageNum, pageSize, category, status, assetName, assetCode);
+        IPage<OaAsset> page = assetService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), category, status, assetName, assetCode);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 
@@ -108,7 +109,7 @@ public class AssetController {
             @RequestParam int pageSize,
             @RequestParam(required = false) Long borrowerId,
             @RequestParam(required = false) String status) {
-        IPage<OaAssetBorrow> page = assetBorrowService.pageList(pageNum, pageSize, borrowerId, status);
+        IPage<OaAssetBorrow> page = assetBorrowService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), borrowerId, status);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 }

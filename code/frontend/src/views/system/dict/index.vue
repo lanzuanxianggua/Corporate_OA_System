@@ -1,8 +1,8 @@
-<template>
+﻿<template>
   <div class="h-full">
     <el-card shadow="never">
       <template #header>
-        <span class="text-base font-semibold text-[#303133]">字典管理</span>
+        <span class="text-base font-semibold text-[var(--oa-text)]">字典管理</span>
       </template>
 
       <el-tabs v-model="activeTab" @tab-change="handleTabChange">
@@ -12,7 +12,7 @@
             <el-button type="primary" @click="openTypeDialog()">新增类型</el-button>
           </div>
 
-          <el-table :data="typeList" v-loading="typeLoading" stripe :header-cell-style="{ background: '#f5f7fa', color: '#606266' }">
+          <el-table :data="typeList" v-loading="typeLoading" stripe :header-cell-style="{ background: 'var(--oa-surface-soft)', color: 'var(--oa-muted)' }">
             <el-table-column prop="dictName" label="字典名称" min-width="150" />
             <el-table-column prop="dictType" label="字典类型" min-width="150" />
             <el-table-column label="创建时间" prop="createTime" width="170" />
@@ -33,7 +33,7 @@
           </el-table>
 
           <div class="mt-4 flex justify-end">
-            <el-pagination v-model:current-page="typePageNum" v-model:page-size="typePageSize" :total="typeTotal" :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next" background @change="fetchTypeList" />
+            <OaPagination v-model:current-page="typePageNum" v-model:page-size="typePageSize" :total="typeTotal" :page-sizes="[10, 20, 50]" @change="fetchTypeList" />
           </div>
         </el-tab-pane>
 
@@ -48,7 +48,7 @@
             <el-button type="primary" @click="openDataDialog()">新增数据</el-button>
           </div>
 
-          <el-table :data="dataList" v-loading="dataLoading" stripe :header-cell-style="{ background: '#f5f7fa', color: '#606266' }">
+          <el-table :data="dataList" v-loading="dataLoading" stripe :header-cell-style="{ background: 'var(--oa-surface-soft)', color: 'var(--oa-muted)' }">
             <el-table-column prop="dictLabel" label="字典标签" min-width="120" />
             <el-table-column prop="dictValue" label="字典值" min-width="100" />
             <el-table-column prop="dictType" label="字典类型" min-width="120" />
@@ -69,7 +69,7 @@
           </el-table>
 
           <div class="mt-4 flex justify-end">
-            <el-pagination v-model:current-page="dataPageNum" v-model:page-size="dataPageSize" :total="dataTotal" :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next" background @change="fetchDataList" />
+            <OaPagination v-model:current-page="dataPageNum" v-model:page-size="dataPageSize" :total="dataTotal" :page-sizes="[10, 20, 50]" @change="fetchDataList" />
           </div>
         </el-tab-pane>
       </el-tabs>

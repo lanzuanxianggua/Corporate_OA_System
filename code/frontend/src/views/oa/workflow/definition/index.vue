@@ -1,14 +1,22 @@
-<template>
+﻿<template>
   <div class="h-full">
     <el-card shadow="never">
       <template #header>
         <div class="flex items-center justify-between">
-          <span class="text-base font-semibold text-[#303133]">流程定义</span>
+          <span class="text-base font-semibold text-[var(--oa-text)]">流程定义</span>
           <el-button type="primary" @click="openDialog()">新增定义</el-button>
         </div>
       </template>
 
-      <el-table :data="tableData" v-loading="loading" stripe :header-cell-style="{ background: '#f5f7fa', color: '#606266' }">
+      <el-table
+        :data="pagedTableData"
+        v-loading="loading"
+        stripe
+        max-height="calc(100vh - 300px)"
+        class="workflow-definition-table"
+        :header-cell-style="{ background: 'var(--oa-surface-soft)', color: 'var(--oa-muted)' }"
+        @row-dblclick="openDialog"
+      >
         <el-table-column prop="processName" label="流程名称" min-width="150" />
         <el-table-column prop="processKey" label="流程标识" min-width="120" />
         <el-table-column prop="version" label="版本" width="80" align="center" />
@@ -33,6 +41,8 @@
           <el-empty description="暂无流程定义" />
         </template>
       </el-table>
+
+      <OaPagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total" :page-sizes="[10, 20, 50]" @change="handlePageChange" />
     </el-card>
 
     <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑流程定义' : '新增流程定义'" width="900px" :close-on-click-modal="false" top="5vh" destroy-on-close>
@@ -76,7 +86,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
+import { computed, ref, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import type { FormInstance, FormRules } from "element-plus";
 import { getDefinitions, createDefinition, updateDefinition, activateDefinition, validateDefinitionApi } from "@/api/workflow";
@@ -86,17 +96,40 @@ const designMode = ref<"visual">("visual");
 
 const loading = ref(false);
 const tableData = ref<any[]>([]);
+const pageNum = ref(1);
+const pageSize = ref(10);
+const total = ref(0);
+
+const pagedTableData = computed(() => {
+  const start = (pageNum.value - 1) * pageSize.value;
+  return tableData.value.slice(start, start + pageSize.value);
+});
+
+const readDefinitionList = (data: any) => {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.list)) return data.list;
+  if (Array.isArray(data?.records)) return data.records;
+  return [];
+};
 
 const fetchList = async () => {
   loading.value = true;
   try {
     const res: any = await getDefinitions({});
-    tableData.value = res.data || [];
+    tableData.value = readDefinitionList(res.data);
+    total.value = Number(res.data?.total ?? tableData.value.length) || 0;
+    if ((pageNum.value - 1) * pageSize.value >= total.value) {
+      pageNum.value = 1;
+    }
   } catch {
     ElMessage.error("获取流程定义失败");
   } finally {
     loading.value = false;
   }
+};
+
+const handlePageChange = () => {
+  // 全量定义由后端一次返回，这里只让 computed 重新切片。
 };
 
 const nodeSummary = (nodeConfig: string) => {
@@ -127,6 +160,26 @@ const rules = reactive<FormRules>({
   nodeConfig: [{ required: true, message: "请配置审批流程", trigger: "blur" }]
 });
 
+const defaultGraphConfig = () => JSON.stringify({
+  schemaVersion: 2,
+  nodes: [
+    { nodeId: "start", nodeType: "start", name: "开始", nodeName: "开始" },
+    {
+      nodeId: "approval_1",
+      nodeType: "approval",
+      name: "部门主管审批",
+      nodeName: "部门主管审批",
+      assigneeType: "role",
+      assigneeValue: "DEPT_MANAGER"
+    },
+    { nodeId: "end", nodeType: "end", name: "结束", nodeName: "结束" }
+  ],
+  edges: [
+    { source: "start", target: "approval_1", sourceId: "start", targetId: "approval_1" },
+    { source: "approval_1", target: "end", sourceId: "approval_1", targetId: "end" }
+  ]
+});
+
 const openDialog = (row?: any) => {
   isEdit.value = !!row;
   if (row) {
@@ -134,14 +187,14 @@ const openDialog = (row?: any) => {
     form.processName = row.processName || "";
     form.processKey = row.processKey || "";
     form.processType = row.processType || "";
-    form.nodeConfig = row.nodeConfig || "[]";
+    form.nodeConfig = row.nodeConfig || defaultGraphConfig();
   } else {
+    formRef.value?.resetFields();
     editingId.value = undefined;
     form.processName = "";
     form.processKey = "";
     form.processType = "";
-    form.nodeConfig = "";
-    formRef.value?.resetFields();
+    form.nodeConfig = defaultGraphConfig();
   }
   dialogVisible.value = true;
 };
@@ -205,3 +258,9 @@ onMounted(() => {
   fetchList();
 });
 </script>
+
+<style scoped>
+.workflow-definition-table :deep(.el-table__row) {
+  cursor: pointer;
+}
+</style>

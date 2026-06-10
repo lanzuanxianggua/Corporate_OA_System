@@ -465,19 +465,28 @@ class WorkflowServiceImplTest {
         WfTask task = createPendingTask(200L, approverId, 0);
         WfProcessInstance inst = createRunningInstance();
         inst.setId(200L);
-        task.setInstance(inst);
+        WfProcessDefinition def = createDefinition(v2SingleApproverConfig());
+        def.setProcessName("请假审批");
+        SysEmployee initiator = new SysEmployee();
+        initiator.setId(initiatorId);
+        initiator.setEmpName("张三");
         Page<WfTask> page = new Page<>(1, 10);
         page.setRecords(Collections.singletonList(task));
         page.setTotal(1);
 
         when(taskMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class))).thenReturn(page);
-        when(instanceMapper.selectById(200L)).thenReturn(inst);
+        when(instanceMapper.selectBatchIds(anyCollection())).thenReturn(Collections.singletonList(inst));
+        when(definitionMapper.selectBatchIds(anyCollection())).thenReturn(Collections.singletonList(def));
+        when(employeeMapper.selectBatchIds(anyCollection())).thenReturn(Collections.singletonList(initiator));
 
         IPage<WfTask> result = workflowService.myPendingTasks(approverId, 1, 10);
 
         assertThat(result).isNotNull();
         assertThat(result.getRecords()).hasSize(1);
         assertThat(result.getRecords().get(0).getBusinessType()).isEqualTo(businessType);
+        assertThat(result.getRecords().get(0).getProcessName()).isEqualTo("请假审批");
+        assertThat(result.getRecords().get(0).getApplicant()).isEqualTo("张三");
+        assertThat(result.getRecords().get(0).getInstance().getInitiatorName()).isEqualTo("张三");
     }
 
     @Test
@@ -501,7 +510,7 @@ class WorkflowServiceImplTest {
         when(empRoleMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Collections.singletonList(empRole));
         when(roleMapper.selectBatchIds(anyCollection())).thenReturn(Collections.singletonList(adminRole));
         when(taskMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class))).thenReturn(page);
-        when(instanceMapper.selectById(200L)).thenReturn(inst);
+        when(instanceMapper.selectBatchIds(anyCollection())).thenReturn(Collections.singletonList(inst));
 
         IPage<WfTask> result = workflowService.myPendingTasks(adminId, 1, 10);
 
@@ -518,21 +527,32 @@ class WorkflowServiceImplTest {
         WfTask task = createPendingTask(200L, approverId, 0);
         task.setStatus("1");
         task.setCompleteTime(LocalDateTime.now());
+        task.setOpinion("同意");
         WfProcessInstance inst = createRunningInstance();
         inst.setId(200L);
-        task.setInstance(inst);
+        WfProcessDefinition def = createDefinition(v2SingleApproverConfig());
+        def.setProcessName("请假审批");
+        SysEmployee initiator = new SysEmployee();
+        initiator.setId(initiatorId);
+        initiator.setEmpName("张三");
         Page<WfTask> page = new Page<>(1, 10);
         page.setRecords(Collections.singletonList(task));
         page.setTotal(1);
 
         when(taskMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class))).thenReturn(page);
-        when(instanceMapper.selectById(200L)).thenReturn(inst);
+        when(instanceMapper.selectBatchIds(anyCollection())).thenReturn(Collections.singletonList(inst));
+        when(definitionMapper.selectBatchIds(anyCollection())).thenReturn(Collections.singletonList(def));
+        when(employeeMapper.selectBatchIds(anyCollection())).thenReturn(Collections.singletonList(initiator));
 
         IPage<WfTask> result = workflowService.myHandledTasks(approverId, 1, 10);
 
         assertThat(result).isNotNull();
         assertThat(result.getRecords()).hasSize(1);
         assertThat(result.getRecords().get(0).getStatus()).isEqualTo("1");
+        assertThat(result.getRecords().get(0).getProcessName()).isEqualTo("请假审批");
+        assertThat(result.getRecords().get(0).getApplicant()).isEqualTo("张三");
+        assertThat(result.getRecords().get(0).getRemark()).isEqualTo("同意");
+        assertThat(result.getRecords().get(0).getUpdateTime()).isEqualTo(task.getCompleteTime());
     }
 
     // ==================== withdrawProcess ====================

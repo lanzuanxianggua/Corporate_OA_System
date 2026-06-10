@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <div class="h-full">
     <el-card shadow="never">
       <template #header>
         <div class="flex items-center justify-between">
-          <span class="text-base font-semibold text-[#303133]">招聘管理</span>
+          <span class="text-base font-semibold text-[var(--oa-text)]">招聘管理</span>
           <div class="flex gap-2">
             <el-button type="primary" @click="openCandidateDialog">新增候选人</el-button>
             <el-button type="success" @click="openInterviewDialog">安排面试</el-button>

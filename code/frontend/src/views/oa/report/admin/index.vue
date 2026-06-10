@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <section class="oa-analytics-page">
     <header class="oa-page-header">
       <div>
@@ -14,8 +14,7 @@
           format="YYYY年MM月"
           value-format="YYYY-MM"
           :clearable="false"
-          @change="fetchAllData"
-        />
+          @change="fetchAllData" />
       </div>
     </header>
 
@@ -77,7 +76,7 @@
         <el-table :data="rankingList" stripe>
           <el-table-column label="排名" width="90">
             <template #default="{ $index }">
-              <span class="rank-index" :style="{ color: rankColors[$index] || '#111827' }">
+              <span class="rank-index" :style="{ color: rankColors[$index] || chartTextColor() }">
                 {{ $index + 1 }}
               </span>
             </template>
@@ -89,8 +88,7 @@
               <el-progress
                 :percentage="Number(row.rate || 0)"
                 :stroke-width="10"
-                :color="Number(row.rate || 0) >= 90 ? '#059669' : Number(row.rate || 0) >= 75 ? '#d97706' : '#dc2626'"
-              />
+                :color="Number(row.rate || 0) >= 90 ? '#059669' : Number(row.rate || 0) >= 75 ? '#d97706' : '#dc2626'" />
             </template>
           </el-table-column>
         </el-table>
@@ -103,13 +101,16 @@
 import { nextTick, onMounted, onUnmounted, reactive, ref } from "vue";
 import type { Component } from "vue";
 import dayjs from "dayjs";
-import * as echarts from "echarts";
+import * as echarts from "@/utils/echarts";
 import { CircleClose, TrendCharts, User, WarningFilled } from "@element-plus/icons-vue";
 import {
   axisStyle,
   axisTooltip,
+  chartBorderColor,
   chartGrid,
+  chartMutedColor,
   chartPalette,
+  chartTextColor,
   chartTextStyle,
   createGradient,
   emptyChartOption,
@@ -245,7 +246,7 @@ async function initDeptChart() {
           barWidth: 26,
           data: data.map((item) => Number(item.rate || item.value) || 0),
           itemStyle: { color: "#2563eb", borderRadius: [6, 6, 0, 0] },
-          label: { show: true, position: "top", color: "#111827", fontWeight: 700, formatter: "{c}%" }
+          label: { show: true, position: "top", color: chartTextColor(), fontWeight: 700, formatter: "{c}%" }
         }
       ]
     });
@@ -285,15 +286,15 @@ async function initLeaveChart() {
       textStyle: chartTextStyle(),
       color: chartPalette,
       tooltip: itemTooltip("{b}<br/>{c} 次 ({d}%)"),
-      legend: { bottom: 0, type: "scroll", icon: "circle", itemWidth: 8, itemHeight: 8, textStyle: { color: "#6b7280" } },
+      legend: { bottom: 0, type: "scroll", icon: "circle", itemWidth: 8, itemHeight: 8, textStyle: { color: chartMutedColor() } },
       series: [
         {
           type: "pie",
           radius: ["48%", "70%"],
           center: ["50%", "44%"],
           padAngle: 3,
-          itemStyle: { borderColor: "#fff", borderWidth: 4, borderRadius: 8 },
-          label: { formatter: "{b}\n{c}次", color: "#374151", fontWeight: 650 },
+          itemStyle: { borderColor: chartBorderColor(), borderWidth: 4, borderRadius: 8 },
+          label: { formatter: "{b}\n{c}次", color: chartTextColor(), fontWeight: 650 },
           data
         }
       ]
@@ -314,14 +315,20 @@ function handleResize() {
   charts.forEach((chart) => chart.resize());
 }
 
+function handleThemeChange() {
+  fetchAllData();
+}
+
 onMounted(() => {
   fetchAllData();
   window.addEventListener("resize", handleResize);
+  window.addEventListener("oa-theme-change", handleThemeChange);
 });
 
 onUnmounted(() => {
   destroyCharts();
   window.removeEventListener("resize", handleResize);
+  window.removeEventListener("oa-theme-change", handleThemeChange);
 });
 </script>
 

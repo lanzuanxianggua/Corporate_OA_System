@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div>
     <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
       <div class="flex items-center gap-3">
@@ -60,8 +60,7 @@
             check-strictly
             clearable
             placeholder="无（顶级部门）"
-            style="width: 100%"
-          />
+            style="width: 100%" />
         </el-form-item>
         <el-form-item label="部门名称" prop="deptName"><el-input v-model="form.deptName" placeholder="请输入部门名称" /></el-form-item>
         <el-form-item label="负责人"><el-input v-model="form.leader" placeholder="请输入负责人" /></el-form-item>

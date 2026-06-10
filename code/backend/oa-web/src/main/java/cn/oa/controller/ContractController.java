@@ -3,6 +3,7 @@ package cn.oa.controller;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.PageParamUtil;
 import cn.oa.entity.OaContract;
 import cn.oa.service.ContractService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -32,7 +33,7 @@ public class ContractController {
                                             @RequestParam(required = false) String contractName,
                                             @RequestParam(required = false) String contractType,
                                             @RequestParam(required = false) String contractNo) {
-        IPage<OaContract> page = contractService.pageList(pageNum, pageSize, contractName, contractType, contractNo);
+        IPage<OaContract> page = contractService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), contractName, contractType, contractNo);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 

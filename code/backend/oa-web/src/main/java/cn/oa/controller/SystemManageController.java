@@ -4,6 +4,7 @@ import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.PageParamUtil;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.*;
 import cn.oa.entity.dto.AssignRolesDTO;
@@ -69,10 +70,40 @@ public class SystemManageController {
         }
         wrapper.orderByDesc(SysEmployee::getCreateTime);
 
-        Page<SysEmployee> page = employeeMapper.selectPage(new Page<>(pageNum, pageSize), wrapper);
+        int current = PageParamUtil.pageNum(pageNum);
+        int size = PageParamUtil.pageSize(pageSize);
+        Page<SysEmployee> page = employeeMapper.selectPage(new Page<>(current, size), wrapper);
+        List<SysEmployee> records = page.getRecords();
+
+        Set<Long> deptIds = records.stream()
+                .map(SysEmployee::getDeptId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        Map<Long, SysDept> deptMap = deptIds.isEmpty()
+                ? Map.of()
+                : deptMapper.selectBatchIds(deptIds).stream()
+                        .collect(Collectors.toMap(SysDept::getId, d -> d, (a, b) -> a));
+
+        List<Long> empIds = records.stream()
+                .map(SysEmployee::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        List<SysEmpRole> allEmpRoles = empIds.isEmpty()
+                ? List.of()
+                : empRoleMapper.selectList(new LambdaQueryWrapper<SysEmpRole>().in(SysEmpRole::getEmpId, empIds));
+        Map<Long, List<SysEmpRole>> empRoleMap = allEmpRoles.stream()
+                .collect(Collectors.groupingBy(SysEmpRole::getEmpId));
+        Set<Long> allRoleIds = allEmpRoles.stream()
+                .map(SysEmpRole::getRoleId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        Map<Long, SysRole> roleMap = allRoleIds.isEmpty()
+                ? Map.of()
+                : roleMapper.selectBatchIds(allRoleIds).stream()
+                        .collect(Collectors.toMap(SysRole::getId, r -> r, (a, b) -> a));
 
         List<Map<String, Object>> list = new ArrayList<>();
-        for (SysEmployee emp : page.getRecords()) {
+        for (SysEmployee emp : records) {
             Map<String, Object> user = new LinkedHashMap<>();
             user.put("id", emp.getId());
             user.put("username", emp.getEmpCode());
@@ -84,20 +115,22 @@ public class SystemManageController {
             user.put("createTime", emp.getCreateTime() != null ? emp.getCreateTime().toString() : "");
 
             if (emp.getDeptId() != null) {
-                SysDept dept = deptMapper.selectById(emp.getDeptId());
+                SysDept dept = deptMap.get(emp.getDeptId());
                 if (dept != null) {
-                    Map<String, Object> deptMap = new LinkedHashMap<>();
-                    deptMap.put("id", dept.getId());
-                    deptMap.put("name", dept.getDeptName());
-                    user.put("dept", deptMap);
+                    Map<String, Object> deptInfo = new LinkedHashMap<>();
+                    deptInfo.put("id", dept.getId());
+                    deptInfo.put("name", dept.getDeptName());
+                    user.put("dept", deptInfo);
                 }
             }
 
-            List<SysEmpRole> empRoles = empRoleMapper.selectList(
-                    new LambdaQueryWrapper<SysEmpRole>().eq(SysEmpRole::getEmpId, emp.getId()));
+            List<SysEmpRole> empRoles = empRoleMap.getOrDefault(emp.getId(), List.of());
             if (!empRoles.isEmpty()) {
-                List<Long> roleIds = empRoles.stream().map(SysEmpRole::getRoleId).collect(Collectors.toList());
-                List<SysRole> roles = roleMapper.selectBatchIds(roleIds);
+                List<SysRole> roles = empRoles.stream()
+                        .map(SysEmpRole::getRoleId)
+                        .map(roleMap::get)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList());
                 user.put("roles", roles.stream().map(r -> {
                     Map<String, Object> rm = new LinkedHashMap<>();
                     rm.put("id", r.getId());
@@ -113,8 +146,8 @@ public class SystemManageController {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("list", list);
         result.put("total", page.getTotal());
-        result.put("pageSize", pageSize);
-        result.put("currentPage", pageNum);
+        result.put("pageSize", size);
+        result.put("currentPage", current);
         return R.ok(result);
     }
 
@@ -355,7 +388,7 @@ public class SystemManageController {
         wrapper.eq(OaLoginLog::getEmpId, empId)
                 .orderByDesc(OaLoginLog::getLoginTime);
 
-        Page<OaLoginLog> page = loginLogMapper.selectPage(new Page<>(pageNum, pageSize), wrapper);
+        Page<OaLoginLog> page = loginLogMapper.selectPage(new Page<>(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize)), wrapper);
 
         List<Map<String, Object>> list = page.getRecords().stream().map(log -> {
             Map<String, Object> logMap = new LinkedHashMap<>();

@@ -1,10 +1,10 @@
 <template>
-  <section class="oa-analytics-page">
-    <header class="oa-page-header">
+  <section class="oa-analytics-page data-board-page">
+    <header class="oa-page-header board-header">
       <div>
         <div class="oa-eyebrow">OA Operations</div>
         <h1 class="oa-page-title">数据看板</h1>
-        <p class="oa-page-subtitle">以所选日期出勤为核心，汇总缺勤、请假、迟到、审批与组织结构指标</p>
+        <p class="oa-page-subtitle">从出勤、审批、组织、请假和出差维度观察当前运营状态</p>
       </div>
       <div class="oa-header-actions">
         <el-date-picker
@@ -15,19 +15,18 @@
           :clearable="false"
           :editable="false"
           :prefix-icon="Calendar"
-          @change="fetchDashboardData"
-        />
+          @change="fetchDashboardData" />
         <el-button :icon="Refresh" circle :loading="loading" @click="fetchDashboardData" />
       </div>
     </header>
 
     <div v-loading="loading" element-loading-text="正在加载看板数据...">
-      <div class="oa-stat-grid">
-        <article v-for="item in metricCards" :key="item.label" class="oa-stat-card">
+      <div class="oa-stat-grid board-stat-grid">
+        <article v-for="item in metricCards" :key="item.label" class="oa-stat-card board-stat-card">
           <div class="oa-stat-icon" :style="{ color: item.color, backgroundColor: item.bgColor }">
             <el-icon :size="22"><component :is="item.icon" /></el-icon>
           </div>
-          <div>
+          <div class="min-w-0">
             <div class="oa-stat-label">{{ item.label }}</div>
             <div class="oa-stat-value">{{ item.value }}</div>
             <div class="oa-stat-note">{{ item.note }}</div>
@@ -35,24 +34,65 @@
         </article>
       </div>
 
-      <div class="oa-micro-grid dashboard-insights">
-        <div v-for="item in insightCards" :key="item.label" class="oa-kpi-box">
-          <div class="insight-line">
-            <span class="oa-signal-dot" :style="{ backgroundColor: item.color }"></span>
-            <span class="oa-kpi-label">{{ item.label }}</span>
+      <div class="board-insight-grid">
+        <article v-for="item in riskIndicators" :key="item.label" class="board-insight" :class="`is-${item.level}`">
+          <div class="insight-topline">
+            <span class="insight-dot"></span>
+            <span>{{ item.label }}</span>
           </div>
-          <div class="oa-kpi-value compact-value">{{ item.value }}</div>
-        </div>
+          <strong>{{ item.value }}</strong>
+          <p>{{ item.note }}</p>
+        </article>
       </div>
 
       <div class="oa-grid">
-        <article class="oa-panel oa-col-6">
+        <article class="oa-panel oa-col-12">
+          <div class="oa-panel-header">
+            <div>
+              <h2 class="oa-panel-title">日活跃员工与有效工时趋势</h2>
+              <p class="oa-panel-subtitle">近 30 天活跃员工、有效工时与审批处理量</p>
+            </div>
+            <el-tag effect="light" type="success">30 天</el-tag>
+          </div>
+          <div ref="dailyTrendChartRef" class="oa-chart board-chart-large"></div>
+        </article>
+
+        <article class="oa-panel oa-col-12">
+          <div class="oa-panel-header">
+            <div>
+              <h2 class="oa-panel-title">办公活跃时段热力图</h2>
+              <p class="oa-panel-subtitle">签到、签退与审批处理在 7×24 小时中的分布</p>
+            </div>
+          </div>
+          <div ref="officeHeatmapChartRef" class="oa-chart board-chart-large board-heatmap-chart"></div>
+        </article>
+
+        <article class="oa-panel oa-col-8">
+          <div class="oa-panel-header">
+            <div>
+              <h2 class="oa-panel-title">审批业务分布</h2>
+              <p class="oa-panel-subtitle">按业务类型拆分审批中、已通过、已拒绝和已撤回</p>
+            </div>
+          </div>
+          <div ref="approvalBusinessChartRef" class="oa-chart board-chart-large"></div>
+        </article>
+
+        <article class="oa-panel oa-col-4">
+          <div class="oa-panel-header">
+            <div>
+              <h2 class="oa-panel-title">近 6 月运营趋势</h2>
+              <p class="oa-panel-subtitle">审批发起、审批通过、请假与出差申请的月度变化</p>
+            </div>
+          </div>
+          <div ref="monthlyTrendChartRef" class="oa-chart board-chart-large"></div>
+        </article>
+
+        <article class="oa-panel oa-col-5">
           <div class="oa-panel-header">
             <div>
               <h2 class="oa-panel-title">{{ dateScopeLabel }}出勤健康度</h2>
-              <p class="oa-panel-subtitle">已打卡、待打卡、迟到、早退、缺勤与请假状态</p>
+              <p class="oa-panel-subtitle">当前日期范围内的出勤完成情况</p>
             </div>
-            <el-tag :type="attendanceTagType" effect="light">{{ attendanceRate }}%</el-tag>
           </div>
           <div class="health-layout">
             <div ref="attendanceGaugeRef" class="oa-chart gauge-chart"></div>
@@ -66,14 +106,64 @@
           </div>
         </article>
 
-        <article class="oa-panel oa-col-6">
+        <article class="oa-panel oa-col-7">
           <div class="oa-panel-header">
             <div>
-              <h2 class="oa-panel-title">{{ dateScopeLabel }}出勤构成</h2>
-              <p class="oa-panel-subtitle">出勤、请假、缺勤和待打卡占比</p>
+              <h2 class="oa-panel-title">{{ dateScopeLabel }}异常雷达</h2>
+              <p class="oa-panel-subtitle">迟到、早退、缺勤、请假待审和审批积压</p>
             </div>
           </div>
-          <div ref="attendanceMixChartRef" class="oa-chart"></div>
+          <div ref="exceptionRadarChartRef" class="oa-chart"></div>
+        </article>
+
+        <article class="oa-panel oa-col-4">
+          <div class="oa-panel-header">
+            <div>
+              <h2 class="oa-panel-title">审批状态结构</h2>
+              <p class="oa-panel-subtitle">审批中、通过、拒绝与撤回占比</p>
+            </div>
+          </div>
+          <div ref="approvalStatusChartRef" class="oa-chart"></div>
+        </article>
+
+        <article class="oa-panel oa-col-4">
+          <div class="oa-panel-header">
+            <div>
+              <h2 class="oa-panel-title">考勤状态结构</h2>
+              <p class="oa-panel-subtitle">正常、迟到、早退、缺勤、请假和出差分布</p>
+            </div>
+          </div>
+          <div ref="attendanceStatusChartRef" class="oa-chart"></div>
+        </article>
+
+        <article class="oa-panel oa-col-4">
+          <div class="oa-panel-header">
+            <div>
+              <h2 class="oa-panel-title">{{ dateScopeLabel }}请假类型</h2>
+              <p class="oa-panel-subtitle">不同请假类型的占比结构</p>
+            </div>
+          </div>
+          <div ref="leaveTypeChartRef" class="oa-chart"></div>
+        </article>
+
+        <article class="oa-panel oa-col-7">
+          <div class="oa-panel-header">
+            <div>
+              <h2 class="oa-panel-title">部门负载矩阵</h2>
+              <p class="oa-panel-subtitle">横轴为部门人数，纵轴为请假与出差负载</p>
+            </div>
+          </div>
+          <div ref="departmentWorkloadChartRef" class="oa-chart board-chart-large"></div>
+        </article>
+
+        <article class="oa-panel oa-col-5">
+          <div class="oa-panel-header">
+            <div>
+              <h2 class="oa-panel-title">部门人力结构</h2>
+              <p class="oa-panel-subtitle">组织规模分布与资源集中度</p>
+            </div>
+          </div>
+          <div ref="deptChartRef" class="oa-chart board-chart-large"></div>
         </article>
 
         <article class="oa-panel oa-col-4">
@@ -105,36 +195,6 @@
           </div>
           <div ref="lateRankChartRef" class="oa-chart rank-chart"></div>
         </article>
-
-        <article class="oa-panel oa-col-6">
-          <div class="oa-panel-header">
-            <div>
-              <h2 class="oa-panel-title">{{ dateScopeLabel }}请假分析</h2>
-              <p class="oa-panel-subtitle">当前日期范围内请假类型占比</p>
-            </div>
-          </div>
-          <div ref="leaveTypeChartRef" class="oa-chart"></div>
-        </article>
-
-        <article class="oa-panel oa-col-6">
-          <div class="oa-panel-header">
-            <div>
-              <h2 class="oa-panel-title">部门人力结构</h2>
-              <p class="oa-panel-subtitle">组织规模分布与资源集中度</p>
-            </div>
-          </div>
-          <div ref="deptChartRef" class="oa-chart"></div>
-        </article>
-
-        <article class="oa-panel oa-col-12">
-          <div class="oa-panel-header">
-            <div>
-              <h2 class="oa-panel-title">审批与流动</h2>
-              <p class="oa-panel-subtitle">待审批、月度请假、新增员工与出差活跃度</p>
-            </div>
-          </div>
-          <div ref="operationsChartRef" class="oa-chart"></div>
-        </article>
       </div>
     </div>
   </section>
@@ -143,7 +203,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import type { Component } from "vue";
-import * as echarts from "echarts";
+import * as echarts from "@/utils/echarts";
 import {
   Calendar,
   CircleCheck,
@@ -157,8 +217,11 @@ import {
 import {
   axisStyle,
   axisTooltip,
+  chartBorderColor,
   chartGrid,
+  chartMutedColor,
   chartPalette,
+  chartTextColor,
   chartTextStyle,
   createGradient,
   emptyChartOption,
@@ -194,6 +257,74 @@ interface AbsenceRankingItem {
   approvedLeaveDays?: number;
 }
 
+interface NameValueItem {
+  name?: string;
+  value?: number;
+  status?: string | number;
+}
+
+interface DailyTrendItem {
+  date?: string;
+  clockedIn?: number;
+  late?: number;
+  earlyLeave?: number;
+  leave?: number;
+  absent?: number;
+  attendanceRate?: number;
+}
+
+interface OfficeActivityTrendItem {
+  date?: string;
+  fullDate?: string;
+  activeEmployees?: number;
+  workHours?: number;
+  approvalActions?: number;
+}
+
+interface OfficeActivityHeatmapItem {
+  weekday?: number;
+  hour?: number;
+  events?: number;
+  clockInEvents?: number;
+  clockOutEvents?: number;
+  approvalEvents?: number;
+}
+
+interface MonthlyTrendItem {
+  month?: string;
+  leave?: number;
+  trip?: number;
+  submitted?: number;
+  approved?: number;
+  rejected?: number;
+}
+
+interface ApprovalBusinessItem {
+  name?: string;
+  total?: number;
+  pending?: number;
+  approved?: number;
+  rejected?: number;
+  canceled?: number;
+}
+
+interface DepartmentWorkloadItem {
+  name?: string;
+  employeeCount?: number;
+  clockedIn?: number;
+  leaveCount?: number;
+  tripCount?: number;
+  load?: number;
+  attendanceRate?: number;
+}
+
+interface RiskIndicator {
+  label: string;
+  value: string;
+  level: "good" | "warning" | "danger";
+  note: string;
+}
+
 interface DashboardData {
   employeeTotal?: number;
   attendance?: AttendanceStats;
@@ -211,6 +342,16 @@ interface DashboardData {
   lateRanking?: LateRankingItem[];
   attendanceRanking?: AttendanceRankingItem[];
   absenceRanking?: AbsenceRankingItem[];
+  attendanceTrendDetailed?: DailyTrendItem[];
+  officeActivityTrend?: OfficeActivityTrendItem[];
+  officeActivityHeatmap?: OfficeActivityHeatmapItem[];
+  attendanceStatusDistribution?: NameValueItem[];
+  approvalFunnel?: NameValueItem[];
+  approvalStatusDistribution?: NameValueItem[];
+  approvalBusinessDistribution?: ApprovalBusinessItem[];
+  monthlyOperationTrend?: MonthlyTrendItem[];
+  departmentWorkload?: DepartmentWorkloadItem[];
+  riskIndicators?: RiskIndicator[];
 }
 
 interface MetricCard {
@@ -222,12 +363,6 @@ interface MetricCard {
   icon: Component;
 }
 
-interface InsightCard {
-  label: string;
-  value: string;
-  color: string;
-}
-
 interface ChartItem {
   name: string;
   value: number;
@@ -237,14 +372,22 @@ interface ChartItem {
 const loading = ref(false);
 const dashboardData = ref<DashboardData>({});
 const selectedDate = ref(formatDate(new Date()));
+
+const dailyTrendChartRef = ref<HTMLDivElement>();
+const officeHeatmapChartRef = ref<HTMLDivElement>();
+const approvalFunnelChartRef = ref<HTMLDivElement>();
 const attendanceGaugeRef = ref<HTMLDivElement>();
-const attendanceMixChartRef = ref<HTMLDivElement>();
+const monthlyTrendChartRef = ref<HTMLDivElement>();
+const approvalStatusChartRef = ref<HTMLDivElement>();
+const attendanceStatusChartRef = ref<HTMLDivElement>();
+const exceptionRadarChartRef = ref<HTMLDivElement>();
+const approvalBusinessChartRef = ref<HTMLDivElement>();
+const departmentWorkloadChartRef = ref<HTMLDivElement>();
 const attendanceRankChartRef = ref<HTMLDivElement>();
 const absenceRankChartRef = ref<HTMLDivElement>();
+const lateRankChartRef = ref<HTMLDivElement>();
 const leaveTypeChartRef = ref<HTMLDivElement>();
 const deptChartRef = ref<HTMLDivElement>();
-const operationsChartRef = ref<HTMLDivElement>();
-const lateRankChartRef = ref<HTMLDivElement>();
 const charts: echarts.ECharts[] = [];
 
 const dateScopeLabel = computed(() => (selectedDate.value === formatDate(new Date()) ? "今日" : "所选日"));
@@ -266,11 +409,26 @@ const absenceRate = computed(() => {
   if (!totalRequired.value) return 0;
   return Math.round((absentToday.value / totalRequired.value) * 100);
 });
-const leaveRate = computed(() => {
-  if (!totalRequired.value) return 0;
-  return Math.round((onLeaveToday.value / totalRequired.value) * 100);
-});
 const exceptionTotal = computed(() => lateToday.value + earlyLeaveToday.value + absentToday.value);
+
+const approvalSummary = computed(() => {
+  const status = dashboardData.value.approvalStatusDistribution || [];
+  const valueByStatus = (code: string) => Number(status.find((item) => String(item.status) === code)?.value) || 0;
+  const pending = valueByStatus("0");
+  const approved = valueByStatus("1");
+  const rejected = valueByStatus("2");
+  const canceled = valueByStatus("3");
+  const completed = approved + rejected + canceled;
+  return {
+    pending,
+    approved,
+    rejected,
+    canceled,
+    completed,
+    total: pending + completed,
+    passRate: completed > 0 ? Math.round((approved / completed) * 100) : 0
+  };
+});
 
 const attendanceTagType = computed(() => {
   if (attendanceRate.value >= 90) return "success";
@@ -291,73 +449,75 @@ const metricCards = computed<MetricCard[]>(() => [
     label: `${dateScopeLabel.value}出勤率`,
     value: `${attendanceRate.value}%`,
     note: `${formatNumber(clockedIn.value)} / ${formatNumber(totalRequired.value)} 已打卡`,
-    color: "#059669",
-    bgColor: "#ecfdf5",
+    color: "#14b8a6",
+    bgColor: "#f0fdfa",
     icon: CircleCheck
-  },
-  {
-    label: "待打卡",
-    value: formatNumber(notClockedToday.value),
-    note: "尚未形成有效打卡",
-    color: "#64748b",
-    bgColor: "#f8fafc",
-    icon: Timer
   },
   {
     label: `${dateScopeLabel.value}缺勤`,
     value: formatNumber(absentToday.value),
     note: `缺勤率 ${absenceRate.value}%`,
-    color: "#dc2626",
+    color: "#ef4444",
     bgColor: "#fef2f2",
     icon: WarningFilled
-  },
-  {
-    label: `${dateScopeLabel.value}请假`,
-    value: formatNumber(onLeaveToday.value),
-    note: `占应出勤 ${leaveRate.value}%`,
-    color: "#7c3aed",
-    bgColor: "#f5f3ff",
-    icon: Timer
   },
   {
     label: `${dateScopeLabel.value}异常`,
     value: formatNumber(exceptionTotal.value),
     note: `${formatNumber(lateToday.value)} 迟到 / ${formatNumber(earlyLeaveToday.value)} 早退`,
-    color: "#d97706",
+    color: "#f97316",
     bgColor: "#fff7ed",
     icon: DataAnalysis
   },
   {
-    label: "待审批",
+    label: "审批积压",
     value: formatNumber(pendingApprovals.value),
-    note: "需要管理者处理",
-    color: "#be123c",
-    bgColor: "#fff1f2",
-    icon: WarningFilled
+    note: "来自 wf_task 待办任务",
+    color: "#db2777",
+    bgColor: "#fdf2f8",
+    icon: Timer
   },
   {
-    label: "本月新增",
-    value: formatNumber(Number(dashboardData.value.newEmployeesThisMonth) || 0),
-    note: `本月出差 ${formatNumber(Number(dashboardData.value.businessTripCountThisMonth) || 0)}`,
-    color: "#0f766e",
-    bgColor: "#f0fdfa",
+    label: "审批通过率",
+    value: `${approvalSummary.value.passRate}%`,
+    note: `已完结 ${formatNumber(approvalSummary.value.completed)} 条`,
+    color: "#16a34a",
+    bgColor: "#f0fdf4",
+    icon: TrendCharts
+  },
+  {
+    label: "本月请假",
+    value: formatNumber(Number(dashboardData.value.leaveCountThisMonth) || 0),
+    note: `待确认 ${formatNumber(Number(dashboardData.value.leave?.pending) || 0)} 条`,
+    color: "#7c3aed",
+    bgColor: "#f5f3ff",
+    icon: Timer
+  },
+  {
+    label: "本月流动",
+    value: formatNumber(Number(dashboardData.value.businessTripCountThisMonth) || 0),
+    note: `新增员工 ${formatNumber(Number(dashboardData.value.newEmployeesThisMonth) || 0)}`,
+    color: "#0891b2",
+    bgColor: "#ecfeff",
     icon: TrendCharts
   }
 ]);
 
-const insightCards = computed<InsightCard[]>(() => [
-  { label: "审批积压", value: `${formatNumber(pendingApprovals.value)} 条待处理`, color: "#be123c" },
-  { label: "请假审批", value: `${formatNumber(Number(dashboardData.value.leave?.pending) || 0)} 条待确认`, color: "#7c3aed" },
-  { label: "月度请假", value: `${formatNumber(Number(dashboardData.value.leaveCountThisMonth) || 0)} 条记录`, color: "#2563eb" },
-  { label: "月度出差", value: `${formatNumber(Number(dashboardData.value.businessTripCountThisMonth) || 0)} 条记录`, color: "#d97706" }
-]);
+const riskIndicators = computed<RiskIndicator[]>(() => {
+  const items = dashboardData.value.riskIndicators || [];
+  if (items.length) return items;
+  return [
+    { label: "出勤健康", value: `${attendanceRate.value}%`, level: attendanceRate.value >= 90 ? "good" : "warning", note: "等待接口返回完整风险指标" },
+    { label: "审批积压", value: `${pendingApprovals.value} 条`, level: pendingApprovals.value > 50 ? "danger" : "good", note: "当前待办任务数量" }
+  ];
+});
 
 const attendanceSignals = computed(() => [
-  { label: "已打卡", value: formatNumber(clockedIn.value), color: "#059669" },
+  { label: "已打卡", value: formatNumber(clockedIn.value), color: "#14b8a6" },
   { label: "待打卡", value: formatNumber(notClockedToday.value), color: "#64748b" },
-  { label: "迟到", value: formatNumber(lateToday.value), color: "#d97706" },
-  { label: "早退", value: formatNumber(earlyLeaveToday.value), color: "#dc2626" },
-  { label: "缺勤", value: formatNumber(absentToday.value), color: "#be123c" },
+  { label: "迟到", value: formatNumber(lateToday.value), color: "#f97316" },
+  { label: "早退", value: formatNumber(earlyLeaveToday.value), color: "#ef4444" },
+  { label: "缺勤", value: formatNumber(absentToday.value), color: "#db2777" },
   { label: "请假", value: formatNumber(onLeaveToday.value), color: "#7c3aed" }
 ]);
 
@@ -391,20 +551,234 @@ async function fetchDashboardData() {
 }
 
 function initCharts() {
+  initDailyTrendChart();
+  initOfficeHeatmapChart();
+  initApprovalFunnelChart();
   initAttendanceGauge();
-  initAttendanceMixChart();
+  initMonthlyTrendChart();
+  initApprovalStatusChart();
+  initAttendanceStatusChart();
+  initExceptionRadarChart();
+  initApprovalBusinessChart();
+  initDepartmentWorkloadChart();
   initAttendanceRankChart();
   initAbsenceRankChart();
   initLateRankChart();
   initLeaveTypeChart();
   initDeptChart();
-  initOperationsChart();
+}
+
+function createChart(element: HTMLDivElement | undefined) {
+  if (!element) return undefined;
+  const chart = echarts.init(element);
+  charts.push(chart);
+  return chart;
+}
+
+function initDailyTrendChart() {
+  const chart = createChart(dailyTrendChartRef.value);
+  if (!chart) return;
+  const data = dashboardData.value.officeActivityTrend || [];
+  if (!data.length) {
+    chart.setOption(emptyChartOption("暂无办公活跃趋势"));
+    return;
+  }
+
+  chart.setOption({
+    textStyle: chartTextStyle(),
+    color: ["#2563eb", "#14b8a6", "#f97316"],
+    tooltip: axisTooltip(),
+    legend: { top: 0, right: 0, icon: "circle", itemWidth: 8, itemHeight: 8, textStyle: { color: chartMutedColor() } },
+    grid: { top: 42, right: 52, bottom: 32, left: 42, containLabel: true },
+    xAxis: { type: "category", data: data.map((item) => item.date || ""), ...axisStyle() },
+    yAxis: [
+      { type: "value", name: "人数/次数", minInterval: 1, ...axisStyle() },
+      { type: "value", name: "工时(h)", axisLabel: { formatter: "{value}h", color: chartMutedColor() }, splitLine: { show: false } }
+    ],
+    series: [
+      {
+        name: "活跃员工",
+        type: "line",
+        smooth: true,
+        symbolSize: 6,
+        lineStyle: { width: 3 },
+        areaStyle: { color: createGradient("rgba(37, 99, 235, 0.22)", "rgba(37, 99, 235, 0.02)") },
+        data: data.map((item) => Number(item.activeEmployees) || 0)
+      },
+      {
+        name: "有效工时",
+        type: "line",
+        yAxisIndex: 1,
+        smooth: true,
+        symbolSize: 6,
+        lineStyle: { width: 3 },
+        areaStyle: { color: createGradient("rgba(20, 184, 166, 0.18)", "rgba(20, 184, 166, 0.02)") },
+        data: data.map((item) => Number(item.workHours) || 0)
+      },
+      {
+        name: "审批处理",
+        type: "bar",
+        barWidth: 14,
+        data: data.map((item) => Number(item.approvalActions) || 0),
+        itemStyle: { borderRadius: [6, 6, 0, 0], color: createGradient("#f97316", "#facc15") }
+      }
+    ]
+  });
+}
+
+function heatmapCellPalette() {
+  const isDark = typeof document !== "undefined" && document.documentElement.classList.contains("dark");
+  return isDark
+    ? ["#24182f", "#39204f", "#562b78", "#8140b8", "#c084fc"]
+    : ["#fbf7ff", "#ead8ff", "#d1aaff", "#9f5ee5", "#581c87"];
+}
+
+function heatmapGridGapColor() {
+  const isDark = typeof document !== "undefined" && document.documentElement.classList.contains("dark");
+  return isDark ? "#171b24" : "#f8fafc";
+}
+
+function heatmapColorCap(values: number[]) {
+  const positiveValues = values.filter((value) => value > 0).sort((a, b) => a - b);
+  if (!positiveValues.length) return 1;
+  const p88Index = Math.max(0, Math.ceil(positiveValues.length * 0.88) - 1);
+  const p88 = positiveValues[p88Index] || positiveValues[positiveValues.length - 1] || 1;
+  return Math.max(6, p88);
+}
+
+function initOfficeHeatmapChart() {
+  const chart = createChart(officeHeatmapChartRef.value);
+  if (!chart) return;
+  const weekdays = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+  const hours = Array.from({ length: 24 }, (_, index) => `${index}:00`);
+  const source = dashboardData.value.officeActivityHeatmap || [];
+  const eventValues = source.map((item) => Number(item.events) || 0);
+  const colorCap = heatmapColorCap(eventValues);
+  const totalEvents = source.reduce((sum, item) => sum + (Number(item.events) || 0), 0);
+  const sourceBySlot = new Map(source.map((item) => [`${Number(item.weekday) || 0}-${Number(item.hour) || 0}`, item]));
+  const data = weekdays.flatMap((_, weekdayIndex) =>
+    hours.map((_, hourIndex) => {
+      const item = sourceBySlot.get(`${weekdayIndex}-${hourIndex}`);
+      return [
+        hourIndex,
+        weekdayIndex,
+        Number(item?.events) || 0,
+        Number(item?.clockInEvents) || 0,
+        Number(item?.clockOutEvents) || 0,
+        Number(item?.approvalEvents) || 0
+      ];
+    })
+  );
+
+  if (!totalEvents) {
+    chart.setOption(emptyChartOption("暂无办公时段数据"));
+    return;
+  }
+
+  chart.setOption({
+    textStyle: chartTextStyle(),
+    tooltip: {
+      ...itemTooltip(),
+      formatter: (params: unknown) => {
+        const item = params as { data: number[] };
+        return `${weekdays[item.data[1]]} ${item.data[0]}:00<br/>总事件：${item.data[2]}<br/>签到：${item.data[3]} / 签退：${item.data[4]}<br/>审批：${item.data[5]}`;
+      }
+    },
+    grid: { top: 18, right: 18, bottom: 30, left: 48, containLabel: true },
+    xAxis: {
+      type: "category",
+      data: hours,
+      axisLine: { show: false },
+      axisTick: { show: false },
+      splitLine: { show: false },
+      splitArea: { show: false },
+      axisPointer: { show: false },
+      axisLabel: {
+        color: chartMutedColor(),
+        interval: (index: number) => index % 3 === 0,
+        fontSize: 10,
+        margin: 12
+      }
+    },
+    yAxis: {
+      type: "category",
+      data: weekdays,
+      axisLine: { show: false },
+      axisTick: { show: false },
+      splitLine: { show: false },
+      splitArea: { show: false },
+      axisPointer: { show: false },
+      axisLabel: { color: chartTextColor(), fontWeight: 650 }
+    },
+    visualMap: {
+      min: 0,
+      max: colorCap,
+      show: false,
+      calculable: false,
+      inRange: { color: heatmapCellPalette() }
+    },
+    series: [
+      {
+        name: "办公事件",
+        type: "heatmap",
+        data,
+        label: { show: false },
+        emphasis: {
+          itemStyle: {
+            borderColor: heatmapGridGapColor(),
+            borderWidth: 2,
+            borderRadius: 5,
+            shadowBlur: 0
+          }
+        },
+        itemStyle: {
+          borderColor: heatmapGridGapColor(),
+          borderWidth: 2,
+          borderRadius: 5
+        }
+      }
+    ]
+  });
+}
+
+function initApprovalFunnelChart() {
+  const chart = createChart(approvalFunnelChartRef.value);
+  if (!chart) return;
+  const data = (dashboardData.value.approvalFunnel || [])
+    .map((item) => ({ name: item.name || "未知", value: Number(item.value) || 0 }))
+    .filter((item) => item.value > 0);
+  if (!data.length) {
+    chart.setOption(emptyChartOption("暂无审批数据"));
+    return;
+  }
+
+  chart.setOption({
+    textStyle: chartTextStyle(),
+    color: ["#2563eb", "#14b8a6", "#16a34a"],
+    tooltip: itemTooltip("{b}<br/>{c} 条"),
+    series: [
+      {
+        type: "funnel",
+        sort: "none",
+        left: "8%",
+        top: 18,
+        width: "84%",
+        height: "78%",
+        gap: 3,
+        minSize: "34%",
+        maxSize: "100%",
+        label: { color: "#fff", fontWeight: 700, formatter: "{b}\n{c}" },
+        labelLine: { show: false },
+        itemStyle: { borderWidth: 0, borderRadius: 6 },
+        data
+      }
+    ]
+  });
 }
 
 function initAttendanceGauge() {
-  if (!attendanceGaugeRef.value) return;
-  const chart = echarts.init(attendanceGaugeRef.value);
-  charts.push(chart);
+  const chart = createChart(attendanceGaugeRef.value);
+  if (!chart) return;
   chart.setOption({
     textStyle: chartTextStyle(),
     tooltip: itemTooltip(`${dateScopeLabel.value}出勤率：{c}%`),
@@ -420,9 +794,9 @@ function initAttendanceGauge() {
           show: true,
           width: 16,
           roundCap: true,
-          itemStyle: { color: createGradient("#2563eb", "#059669", true) }
+          itemStyle: { color: createGradient("#2563eb", "#14b8a6", true) }
         },
-        axisLine: { lineStyle: { width: 16, color: [[1, "#e5e7eb"]] } },
+        axisLine: { lineStyle: { width: 16, color: [[1, chartBorderColor()]] } },
         axisTick: { show: false },
         splitLine: { show: false },
         axisLabel: { show: false },
@@ -432,48 +806,216 @@ function initAttendanceGauge() {
           formatter: "{value}%",
           fontSize: 30,
           fontWeight: 760,
-          color: "#111827",
+          color: chartTextColor(),
           offsetCenter: [0, "-4%"]
         },
-        title: { offsetCenter: [0, "30%"], color: "#6b7280", fontSize: 13 },
+        title: { offsetCenter: [0, "30%"], color: chartMutedColor(), fontSize: 13 },
         data: [{ value: attendanceRate.value, name: `${dateScopeLabel.value}出勤率` }]
       }
     ]
   });
 }
 
-function initAttendanceMixChart() {
-  if (!attendanceMixChartRef.value) return;
-  const chart = echarts.init(attendanceMixChartRef.value);
-  charts.push(chart);
-
-  const data = [
-    { name: "已打卡", value: clockedIn.value },
-    { name: "待打卡", value: notClockedToday.value },
-    { name: "请假", value: onLeaveToday.value },
-    { name: "缺勤", value: absentToday.value }
-  ].filter((item) => item.value > 0);
-
+function initMonthlyTrendChart() {
+  const chart = createChart(monthlyTrendChartRef.value);
+  if (!chart) return;
+  const data = dashboardData.value.monthlyOperationTrend || [];
   if (!data.length) {
-    chart.setOption(emptyChartOption("暂无出勤数据"));
+    chart.setOption(emptyChartOption("暂无月度数据"));
     return;
   }
 
   chart.setOption({
     textStyle: chartTextStyle(),
-    color: ["#059669", "#64748b", "#7c3aed", "#dc2626"],
-    tooltip: itemTooltip("{b}<br/>{c} 人 ({d}%)"),
-    legend: { bottom: 0, icon: "circle", itemWidth: 8, itemHeight: 8, textStyle: { color: "#6b7280" } },
+    color: ["#2563eb", "#16a34a", "#7c3aed", "#f97316", "#ef4444"],
+    tooltip: axisTooltip(),
+    legend: { top: 0, right: 0, icon: "circle", itemWidth: 8, itemHeight: 8, textStyle: { color: chartMutedColor() } },
+    grid: { top: 42, right: 22, bottom: 30, left: 42, containLabel: true },
+    xAxis: { type: "category", data: data.map((item) => item.month || ""), ...axisStyle() },
+    yAxis: { type: "value", minInterval: 1, ...axisStyle() },
+    series: [
+      { name: "审批发起", type: "bar", barWidth: 18, data: data.map((item) => Number(item.submitted) || 0), itemStyle: { borderRadius: [6, 6, 0, 0] } },
+      { name: "审批通过", type: "line", smooth: true, symbolSize: 7, lineStyle: { width: 3 }, data: data.map((item) => Number(item.approved) || 0) },
+      { name: "请假", type: "bar", barWidth: 18, data: data.map((item) => Number(item.leave) || 0), itemStyle: { borderRadius: [6, 6, 0, 0] } },
+      { name: "出差", type: "bar", barWidth: 18, data: data.map((item) => Number(item.trip) || 0), itemStyle: { borderRadius: [6, 6, 0, 0] } },
+      { name: "拒绝", type: "line", smooth: true, symbolSize: 7, lineStyle: { width: 2, type: "dashed" }, data: data.map((item) => Number(item.rejected) || 0) }
+    ]
+  });
+}
+
+function initApprovalStatusChart() {
+  initDonutChart(approvalStatusChartRef.value, dashboardData.value.approvalStatusDistribution || [], {
+    emptyText: "暂无审批状态",
+    tooltip: "{b}<br/>{c} 条 ({d}%)",
+    colors: ["#2563eb", "#16a34a", "#ef4444", "#64748b", "#f97316"]
+  });
+}
+
+function initAttendanceStatusChart() {
+  initDonutChart(attendanceStatusChartRef.value, dashboardData.value.attendanceStatusDistribution || [], {
+    emptyText: "暂无考勤状态",
+    tooltip: "{b}<br/>{c} 条 ({d}%)",
+    colors: chartPalette
+  });
+}
+
+function initDonutChart(
+  element: HTMLDivElement | undefined,
+  source: NameValueItem[],
+  config: { emptyText: string; tooltip: string; colors: string[] }
+) {
+  const chart = createChart(element);
+  if (!chart) return;
+  const data = source
+    .map((item) => ({ name: item.name || "未知", value: Number(item.value) || 0 }))
+    .filter((item) => item.value > 0);
+  if (!data.length) {
+    chart.setOption(emptyChartOption(config.emptyText));
+    return;
+  }
+
+  chart.setOption({
+    textStyle: chartTextStyle(),
+    color: config.colors,
+    tooltip: itemTooltip(config.tooltip),
+    legend: { bottom: 0, icon: "circle", itemWidth: 8, itemHeight: 8, textStyle: { color: chartMutedColor() } },
     series: [
       {
         type: "pie",
-        radius: ["50%", "72%"],
-        center: ["50%", "44%"],
+        radius: ["48%", "70%"],
+        center: ["50%", "43%"],
         padAngle: 3,
-        minAngle: 5,
-        itemStyle: { borderColor: "#fff", borderWidth: 4, borderRadius: 8 },
-        label: { formatter: "{b}\n{c}人", color: "#374151", fontWeight: 650 },
+        minAngle: 4,
+        itemStyle: { borderColor: chartBorderColor(), borderWidth: 4, borderRadius: 8 },
+        label: { formatter: "{b}\n{c}", color: chartTextColor(), fontWeight: 650 },
         data
+      }
+    ]
+  });
+}
+
+function initExceptionRadarChart() {
+  const chart = createChart(exceptionRadarChartRef.value);
+  if (!chart) return;
+  const values = [
+    { name: "迟到", value: lateToday.value },
+    { name: "早退", value: earlyLeaveToday.value },
+    { name: "缺勤", value: absentToday.value },
+    { name: "请假待审", value: Number(dashboardData.value.leave?.pending) || 0 },
+    { name: "审批积压", value: pendingApprovals.value }
+  ];
+  const max = Math.max(...values.map((item) => item.value), 5);
+
+  chart.setOption({
+    textStyle: chartTextStyle(),
+    tooltip: itemTooltip(),
+    radar: {
+      radius: "66%",
+      center: ["50%", "52%"],
+      splitNumber: 4,
+      axisName: { color: chartMutedColor(), fontWeight: 650 },
+      splitLine: { lineStyle: { color: chartBorderColor() } },
+      splitArea: { areaStyle: { color: ["rgba(37, 99, 235, 0.04)", "rgba(20, 184, 166, 0.04)"] } },
+      axisLine: { lineStyle: { color: chartBorderColor() } },
+      indicator: values.map((item) => ({ name: item.name, max: Math.max(max, item.value) }))
+    },
+    series: [
+      {
+        type: "radar",
+        data: [
+          {
+            value: values.map((item) => item.value),
+            name: "异常指标",
+            areaStyle: { color: "rgba(239, 68, 68, 0.18)" },
+            lineStyle: { color: "#ef4444", width: 3 },
+            itemStyle: { color: "#ef4444" }
+          }
+        ]
+      }
+    ]
+  });
+}
+
+function initApprovalBusinessChart() {
+  const chart = createChart(approvalBusinessChartRef.value);
+  if (!chart) return;
+  const data = (dashboardData.value.approvalBusinessDistribution || []).slice(0, 10).reverse();
+  if (!data.length) {
+    chart.setOption(emptyChartOption("暂无审批业务数据"));
+    return;
+  }
+
+  chart.setOption({
+    textStyle: chartTextStyle(),
+    color: ["#2563eb", "#16a34a", "#ef4444", "#64748b"],
+    tooltip: axisTooltip(),
+    legend: { top: 0, right: 0, icon: "circle", itemWidth: 8, itemHeight: 8, textStyle: { color: chartMutedColor() } },
+    grid: { top: 42, right: 34, bottom: 18, left: 76, containLabel: true },
+    xAxis: { type: "value", minInterval: 1, ...axisStyle() },
+    yAxis: {
+      type: "category",
+      data: data.map((item) => item.name || "未知业务"),
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { color: chartTextColor(), fontWeight: 650 }
+    },
+    series: [
+      { name: "审批中", type: "bar", stack: "total", barWidth: 16, data: data.map((item) => Number(item.pending) || 0) },
+      { name: "已通过", type: "bar", stack: "total", barWidth: 16, data: data.map((item) => Number(item.approved) || 0) },
+      { name: "已拒绝", type: "bar", stack: "total", barWidth: 16, data: data.map((item) => Number(item.rejected) || 0) },
+      { name: "已撤回", type: "bar", stack: "total", barWidth: 16, data: data.map((item) => Number(item.canceled) || 0), itemStyle: { borderRadius: [0, 8, 8, 0] } }
+    ]
+  });
+}
+
+function initDepartmentWorkloadChart() {
+  const chart = createChart(departmentWorkloadChartRef.value);
+  if (!chart) return;
+  const data = (dashboardData.value.departmentWorkload || [])
+    .map((item) => [
+      Number(item.employeeCount) || 0,
+      Number(item.load) || 0,
+      Number(item.attendanceRate) || 0,
+      item.name || "未分配部门",
+      Number(item.leaveCount) || 0,
+      Number(item.tripCount) || 0
+    ])
+    .filter((item) => Number(item[0]) > 0);
+  if (!data.length) {
+    chart.setOption(emptyChartOption("暂无部门负载"));
+    return;
+  }
+
+  chart.setOption({
+    textStyle: chartTextStyle(),
+    tooltip: {
+      ...itemTooltip(),
+      formatter: (params: unknown) => {
+        const item = params as { data: Array<number | string> };
+        return `${item.data[3]}<br/>部门人数：${item.data[0]}<br/>请假：${item.data[4]} / 出差：${item.data[5]}<br/>出勤率：${item.data[2]}%`;
+      }
+    },
+    grid: chartGrid(46),
+    xAxis: { type: "value", name: "人数", minInterval: 1, ...axisStyle() },
+    yAxis: { type: "value", name: "负载", minInterval: 1, ...axisStyle() },
+    visualMap: {
+      min: 0,
+      max: 100,
+      dimension: 2,
+      orient: "horizontal",
+      left: "center",
+      bottom: 0,
+      text: ["高出勤", "低出勤"],
+      textStyle: { color: chartMutedColor() },
+      inRange: { color: ["#ef4444", "#f97316", "#14b8a6"] }
+    },
+    series: [
+      {
+        type: "scatter",
+        data,
+        symbolSize: (value: Array<number | string>) => Math.max(18, Math.min(54, Number(value[1]) * 5 + 18)),
+        label: { show: true, formatter: (params: unknown) => String((params as { data: Array<number | string> }).data[3]), color: chartTextColor(), fontWeight: 650 },
+        itemStyle: { borderColor: chartBorderColor(), borderWidth: 2, opacity: 0.88 }
       }
     ]
   });
@@ -492,7 +1034,7 @@ function initAttendanceRankChart() {
   initHorizontalRankChart(attendanceRankChartRef.value, data, {
     emptyText: `${dateScopeLabel.value}暂无出勤率排行`,
     unit: "%",
-    colors: ["#059669", "#2563eb"],
+    colors: ["#14b8a6", "#2563eb"],
     max: 100
   });
 }
@@ -510,7 +1052,7 @@ function initAbsenceRankChart() {
   initHorizontalRankChart(absenceRankChartRef.value, data, {
     emptyText: `${dateScopeLabel.value}暂无缺勤记录`,
     unit: "次",
-    colors: ["#dc2626", "#d97706"]
+    colors: ["#ef4444", "#f97316"]
   });
 }
 
@@ -523,7 +1065,7 @@ function initLateRankChart() {
   initHorizontalRankChart(lateRankChartRef.value, data, {
     emptyText: `${dateScopeLabel.value}暂无迟到记录`,
     unit: "次",
-    colors: ["#d97706", "#dc2626"]
+    colors: ["#f97316", "#ef4444"]
   });
 }
 
@@ -532,9 +1074,8 @@ function initHorizontalRankChart(
   source: ChartItem[],
   config: { emptyText: string; unit: string; colors: [string, string]; max?: number }
 ) {
-  if (!element) return;
-  const chart = echarts.init(element);
-  charts.push(chart);
+  const chart = createChart(element);
+  if (!chart) return;
 
   const data = [...source].reverse();
   if (!data.length) {
@@ -559,14 +1100,14 @@ function initHorizontalRankChart(
       data: data.map((item) => item.name),
       axisLine: { show: false },
       axisTick: { show: false },
-      axisLabel: { color: "#374151", fontWeight: 650 }
+      axisLabel: { color: chartTextColor(), fontWeight: 650 }
     },
     series: [
       {
         type: "bar",
         barWidth: 14,
         data: data.map((item) => item.value),
-        label: { show: true, position: "right", color: "#111827", fontWeight: 700, formatter: `{c}${config.unit}` },
+        label: { show: true, position: "right", color: chartTextColor(), fontWeight: 700, formatter: `{c}${config.unit}` },
         itemStyle: { borderRadius: [0, 8, 8, 0], color: createGradient(config.colors[0], config.colors[1], true) }
       }
     ]
@@ -574,43 +1115,18 @@ function initHorizontalRankChart(
 }
 
 function initLeaveTypeChart() {
-  if (!leaveTypeChartRef.value) return;
-  const chart = echarts.init(leaveTypeChartRef.value);
-  charts.push(chart);
-
   const byType = dashboardData.value.leave?.byType || {};
-  const data = Object.entries(byType)
-    .map(([name, value]) => ({ name, value: Number(value) || 0 }))
-    .filter((item) => item.value > 0);
-
-  if (!data.length) {
-    chart.setOption(emptyChartOption(`${dateScopeLabel.value}暂无请假`));
-    return;
-  }
-
-  chart.setOption({
-    textStyle: chartTextStyle(),
-    color: chartPalette,
-    tooltip: itemTooltip("{b}<br/>{c} 人 ({d}%)"),
-    legend: { bottom: 0, icon: "circle", itemWidth: 8, itemHeight: 8, textStyle: { color: "#6b7280" } },
-    series: [
-      {
-        type: "pie",
-        radius: ["48%", "70%"],
-        center: ["50%", "44%"],
-        padAngle: 3,
-        itemStyle: { borderColor: "#fff", borderWidth: 4, borderRadius: 8 },
-        label: { formatter: "{b}\n{c}人", color: "#374151", fontWeight: 650 },
-        data
-      }
-    ]
+  const data = Object.entries(byType).map(([name, value]) => ({ name, value: Number(value) || 0 }));
+  initDonutChart(leaveTypeChartRef.value, data, {
+    emptyText: `${dateScopeLabel.value}暂无请假`,
+    tooltip: "{b}<br/>{c} 人 ({d}%)",
+    colors: ["#7c3aed", "#2563eb", "#14b8a6", "#f97316", "#db2777", "#64748b"]
   });
 }
 
 function initDeptChart() {
-  if (!deptChartRef.value) return;
-  const chart = echarts.init(deptChartRef.value);
-  charts.push(chart);
+  const chart = createChart(deptChartRef.value);
+  if (!chart) return;
 
   const data = (dashboardData.value.departmentDistribution || [])
     .map((item) => ({ name: item.name || "未分配", value: Number(item.value || item.count) || 0 }))
@@ -634,47 +1150,15 @@ function initDeptChart() {
       data: data.map((item) => item.name),
       axisLine: { show: false },
       axisTick: { show: false },
-      axisLabel: { color: "#374151", fontWeight: 650 }
+      axisLabel: { color: chartTextColor(), fontWeight: 650 }
     },
     series: [
       {
         type: "bar",
         barWidth: 14,
         data: data.map((item) => item.value),
-        label: { show: true, position: "right", color: "#111827", fontWeight: 700 },
+        label: { show: true, position: "right", color: chartTextColor(), fontWeight: 700 },
         itemStyle: { borderRadius: [0, 8, 8, 0], color: createGradient("#2563eb", "#0891b2", true) }
-      }
-    ]
-  });
-}
-
-function initOperationsChart() {
-  if (!operationsChartRef.value) return;
-  const chart = echarts.init(operationsChartRef.value);
-  charts.push(chart);
-
-  const data = [
-    { name: "待审批", value: pendingApprovals.value, color: "#be123c" },
-    { name: "本月请假", value: Number(dashboardData.value.leaveCountThisMonth) || 0, color: "#7c3aed" },
-    { name: "新增员工", value: Number(dashboardData.value.newEmployeesThisMonth) || 0, color: "#0f766e" },
-    { name: "出差申请", value: Number(dashboardData.value.businessTripCountThisMonth) || 0, color: "#d97706" }
-  ];
-
-  chart.setOption({
-    textStyle: chartTextStyle(),
-    tooltip: axisTooltip(),
-    grid: chartGrid(38),
-    xAxis: { type: "category", data: data.map((item) => item.name), ...axisStyle() },
-    yAxis: { type: "value", minInterval: 1, ...axisStyle() },
-    series: [
-      {
-        type: "bar",
-        barWidth: 30,
-        data: data.map((item) => ({
-          value: item.value,
-          itemStyle: { borderRadius: [8, 8, 0, 0], color: createGradient(item.color, "#cbd5e1") }
-        })),
-        label: { show: true, position: "top", color: "#111827", fontWeight: 700 }
       }
     ]
   });
@@ -684,50 +1168,158 @@ function handleResize() {
   charts.forEach((chart) => chart.resize());
 }
 
+async function handleThemeChange() {
+  clearCharts();
+  await nextTick();
+  initCharts();
+}
+
 onMounted(() => {
   fetchDashboardData();
   window.addEventListener("resize", handleResize);
+  window.addEventListener("oa-theme-change", handleThemeChange);
 });
 
 onUnmounted(() => {
   clearCharts();
   window.removeEventListener("resize", handleResize);
+  window.removeEventListener("oa-theme-change", handleThemeChange);
 });
 </script>
 
 <style scoped>
-.dashboard-insights {
-  margin: 16px 0;
+.data-board-page {
+  padding-bottom: 18px;
 }
 
-.insight-line {
+.board-header {
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.08), transparent 36%),
+    linear-gradient(315deg, rgba(20, 184, 166, 0.1), transparent 32%),
+    var(--oa-surface);
+}
+
+.board-stat-grid {
+  margin-bottom: 14px;
+}
+
+.board-stat-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.board-insight-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.board-insight {
+  min-height: 118px;
+  padding: 13px;
+  border: 1px solid var(--oa-border-soft);
+  border-left: 4px solid #14b8a6;
+  border-radius: 8px;
+  background: var(--oa-surface);
+  box-shadow: var(--oa-shadow);
+}
+
+.board-insight.is-warning {
+  border-left-color: #f97316;
+}
+
+.board-insight.is-danger {
+  border-left-color: #ef4444;
+}
+
+.insight-topline {
   display: flex;
   align-items: center;
   gap: 8px;
+  color: var(--oa-muted);
+  font-size: 12px;
+  font-weight: 700;
 }
 
-.compact-value {
-  font-size: 17px;
+.insight-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #14b8a6;
+}
+
+.board-insight.is-warning .insight-dot {
+  background: #f97316;
+}
+
+.board-insight.is-danger .insight-dot {
+  background: #ef4444;
+}
+
+.board-insight strong {
+  display: block;
+  margin-top: 10px;
+  color: var(--oa-text);
+  font-size: 22px;
+  line-height: 1.1;
+  font-weight: 780;
+  font-variant-numeric: tabular-nums;
+}
+
+.board-insight p {
+  margin: 8px 0 0;
+  color: var(--oa-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.board-chart-large {
+  height: 338px;
+}
+
+.board-heatmap-chart {
+  height: 360px;
 }
 
 .health-layout {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(190px, 0.72fr);
+  grid-template-columns: minmax(210px, 1fr) minmax(168px, 0.7fr);
   align-items: center;
   gap: 14px;
 }
 
 .gauge-chart {
-  height: 278px;
+  height: 286px;
 }
 
 .rank-chart {
   height: 330px;
 }
 
+@media (max-width: 1280px) {
+  .board-insight-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 900px) {
   .health-layout {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .board-insight-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .board-chart-large {
+    height: 280px;
+  }
+
+  .board-heatmap-chart {
+    height: 310px;
   }
 }
 </style>

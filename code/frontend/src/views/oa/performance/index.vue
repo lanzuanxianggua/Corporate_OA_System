@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <div class="h-full">
     <el-card shadow="never">
       <template #header>
         <div class="flex items-center justify-between">
-          <span class="text-base font-semibold text-[#303133]">绩效管理</span>
+          <span class="text-base font-semibold text-[var(--oa-text)]">绩效管理</span>
           <div class="flex gap-2">
             <el-button type="primary" @click="openGoalDialog">新增目标</el-button>
             <el-button type="success" @click="openEvalDialog">新增评估</el-button>
@@ -56,7 +56,7 @@
         </el-tab-pane>
       </el-tabs>
       <div class="mt-4 flex justify-end">
-        <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total" layout="total, sizes, prev, pager, next" background @change="reload" />
+        <OaPagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total" @change="reload"  :page-sizes="[10, 20, 50]" />
       </div>
     </el-card>
 

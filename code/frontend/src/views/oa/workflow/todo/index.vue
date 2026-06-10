@@ -1,22 +1,26 @@
-<template>
+﻿<template>
   <div class="h-full">
     <el-card shadow="never">
       <template #header>
-        <span class="text-base font-semibold text-[#303133]">我的待办任务</span>
+        <span class="text-base font-semibold text-[var(--oa-text)]">我的待办任务</span>
       </template>
 
-      <el-table :data="tableData" v-loading="loading" stripe :header-cell-style="{ background: '#f5f7fa', color: '#606266' }">
-        <el-table-column prop="processName" label="流程名称" min-width="120" />
+      <el-table class="oa-desktop-table" max-height="calc(100vh - 300px)" :data="tableData" v-loading="loading" stripe :header-cell-style="{ background: 'var(--oa-surface-soft)', color: 'var(--oa-muted)' }">
+        <el-table-column label="流程名称" min-width="120" show-overflow-tooltip>
+          <template #default="{ row }">{{ taskProcessName(row) }}</template>
+        </el-table-column>
         <el-table-column prop="taskName" label="任务节点" min-width="100">
           <template #default="{ row }">
             <div class="flex items-center gap-1">
-              <span>{{ row.nodeName || row.taskName || '-' }}</span>
-              <el-tag v-if="row.multiType === 'countersign'" type="warning" size="small">会签</el-tag>
-              <el-tag v-else-if="row.multiType === 'orsign'" type="warning" size="small">或签</el-tag>
+              <span>{{ taskNodeName(row) }}</span>
+              <el-tag v-if="taskMultiType(row) === 'countersign'" type="warning" size="small">会签</el-tag>
+              <el-tag v-else-if="taskMultiType(row) === 'orsign'" type="warning" size="small">或签</el-tag>
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="applicant" label="申请人" width="90" />
+        <el-table-column label="申请人" width="90">
+          <template #default="{ row }">{{ taskApplicant(row) }}</template>
+        </el-table-column>
         <el-table-column prop="createTime" label="创建时间" min-width="140">
           <template #default="{ row }">{{ formatTime(row.createTime) }}</template>
         </el-table-column>
@@ -30,9 +34,39 @@
         </el-table-column>
       </el-table>
 
-      <div class="mt-4 flex justify-end">
-        <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total" :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next" background @change="fetchList" />
+      <div v-loading="loading" class="oa-mobile-list">
+        <el-empty v-if="!tableData.length" description="暂无待办任务" :image-size="72" />
+        <div v-else class="oa-mobile-card-list">
+          <article v-for="row in tableData" :key="row.id" class="oa-mobile-card">
+            <div class="oa-mobile-card-main">
+              <div class="oa-mobile-card-title">
+                <span>{{ taskProcessName(row) }}</span>
+                <el-tag v-if="taskMultiType(row) === 'countersign'" type="warning" size="small">会签</el-tag>
+                <el-tag v-else-if="taskMultiType(row) === 'orsign'" type="warning" size="small">或签</el-tag>
+              </div>
+              <div class="oa-mobile-card-subtitle">{{ taskNodeName(row) }}</div>
+              <div class="oa-mobile-card-meta">
+                <div class="oa-mobile-meta-row">
+                  <span>申请人</span>
+                  <strong>{{ taskApplicant(row) }}</strong>
+                </div>
+                <div class="oa-mobile-meta-row">
+                  <span>创建时间</span>
+                  <span>{{ formatTime(row.createTime) }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="oa-mobile-card-actions">
+              <el-button type="success" plain @click="openHandleDialog(row, 1)">通过</el-button>
+              <el-button type="danger" plain @click="openHandleDialog(row, 2)">驳回</el-button>
+              <el-button type="warning" plain @click="openTransferDialog(row)">转办</el-button>
+              <el-button type="info" plain @click="openReturnDialog(row)">退回</el-button>
+            </div>
+          </article>
+        </div>
       </div>
+
+      <OaPagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total" :page-sizes="[10, 20, 50]" @change="fetchList" />
     </el-card>
 
     <el-dialog v-model="dialogVisible" :title="handleAction === 1 ? '审批通过' : '审批驳回'" width="500px" :close-on-click-modal="false">
@@ -95,6 +129,34 @@ const tableData = ref<WorkflowTask[]>([]);
 const pageNum = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
+
+const businessTypeLabels: Record<string, string> = {
+  leave: "请假审批",
+  trip: "出差审批",
+  outing: "外出审批",
+  purchase: "采购审批",
+  expense: "经费审批",
+  overtime: "加班审批",
+  loan: "借支审批",
+  contract: "合同审批"
+};
+
+const firstText = (...values: Array<unknown>) => {
+  const value = values.find(v => v !== null && v !== undefined && String(v).trim() !== "");
+  return value === undefined ? "-" : String(value);
+};
+
+const taskProcessName = (row: WorkflowTask) => {
+  const businessType = row.businessType || row.instance?.businessType;
+  return firstText(row.processName, businessType ? businessTypeLabels[businessType] : undefined, businessType);
+};
+
+const taskNodeName = (row: WorkflowTask) => firstText(row.nodeName, row.taskName);
+
+const taskApplicant = (row: WorkflowTask) =>
+  firstText(row.applicant, row.instance?.initiatorName, row.instance?.initiatorId);
+
+const taskMultiType = (row: WorkflowTask) => row.multiType || row.taskType;
 
 const fetchList = async () => {
   loading.value = true;

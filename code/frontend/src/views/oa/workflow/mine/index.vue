@@ -1,15 +1,15 @@
-<template>
+﻿<template>
   <div class="h-full">
     <el-card shadow="never">
       <template #header>
-        <span class="text-base font-semibold text-[#303133]">我的申请</span>
+        <span class="text-base font-semibold text-[var(--oa-text)]">我的申请</span>
       </template>
 
       <div class="mb-4 flex items-center gap-3 flex-wrap">
         <el-radio-group v-model="activeType" @change="handleTypeChange">
           <el-radio-button v-for="t in businessTypes" :key="t.key" :value="t.key">{{ t.label }}</el-radio-button>
         </el-radio-group>
-        <el-select v-model="statusFilter" placeholder="状态" clearable class="w-32" @change="fetchList">
+        <el-select v-model="statusFilter" placeholder="状态" clearable class="w-32" @change="handleStatusChange">
           <el-option label="待审批" :value="0" />
           <el-option label="已通过" :value="1" />
           <el-option label="已驳回" :value="2" />
@@ -17,7 +17,7 @@
         </el-select>
       </div>
 
-      <el-table :data="tableData" v-loading="loading" stripe :header-cell-style="{ background: '#f5f7fa', color: '#606266' }">
+      <el-table max-height="calc(100vh - 300px)" :data="tableData" v-loading="loading" stripe :header-cell-style="{ background: 'var(--oa-surface-soft)', color: 'var(--oa-muted)' }">
         <el-table-column label="提交时间" width="170">
           <template #default="{ row }">{{ formatTime(row.createTime) }}</template>
         </el-table-column>
@@ -37,14 +37,12 @@
         <el-table-column label="操作" width="120" align="center" fixed="right">
           <template #default="{ row }">
             <el-button v-if="row.status === 0 || row.status === '0'" type="warning" size="small" plain @click="handleWithdraw(row)">撤回</el-button>
-            <span v-else class="text-[#909399] text-sm">-</span>
+            <span v-else class="text-[var(--oa-subtle)] text-sm">-</span>
           </template>
         </el-table-column>
       </el-table>
 
-      <div class="mt-4 flex justify-end">
-        <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total" :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next" background @change="fetchList" />
-      </div>
+      <OaPagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total" :page-sizes="[10, 20, 50]" @change="fetchList" />
     </el-card>
   </div>
 </template>
@@ -92,7 +90,7 @@ const summaryFields: Record<string, (row: any) => string> = {
 };
 
 const activeType = ref("leave");
-const statusFilter = ref<number | undefined>(undefined);
+const statusFilter = ref<number | null>(null);
 const currentLabel = computed(() => businessTypes.find(t => t.key === activeType.value)?.label || "");
 
 const loading = ref(false);
@@ -119,7 +117,7 @@ const fetchList = async () => {
     const fetcher = fetchers[activeType.value];
     if (!fetcher) return;
     const params: any = { pageNum: pageNum.value, pageSize: pageSize.value };
-    if (statusFilter.value !== undefined) params.status = statusFilter.value;
+    if (statusFilter.value != null) params.status = statusFilter.value;
     const res: any = await fetcher(params);
     tableData.value = res.data?.list || [];
     total.value = res.data?.total || 0;
@@ -130,7 +128,12 @@ const fetchList = async () => {
 
 const handleTypeChange = () => {
   pageNum.value = 1;
-  statusFilter.value = undefined;
+  statusFilter.value = null;
+  fetchList();
+};
+
+const handleStatusChange = () => {
+  pageNum.value = 1;
   fetchList();
 };
 

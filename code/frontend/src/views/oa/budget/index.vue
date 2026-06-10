@@ -1,14 +1,14 @@
-<template>
+﻿<template>
   <div class="h-full">
     <el-card shadow="never">
       <template #header>
         <div class="flex items-center justify-between">
-          <span class="text-base font-semibold text-[#303133]">预算管理</span>
+          <span class="text-base font-semibold text-[var(--oa-text)]">预算管理</span>
           <el-button type="primary" @click="openDialog()">新增预算</el-button>
         </div>
       </template>
 
-      <el-table :data="tableData" v-loading="loading" stripe style="width: 100%" :header-cell-style="{ background: '#f5f7fa', color: '#606266' }">
+      <el-table :data="tableData" v-loading="loading" stripe style="width: 100%" :header-cell-style="{ background: 'var(--oa-surface-soft)', color: 'var(--oa-muted)' }">
         <el-table-column label="部门" min-width="80" align="center">
           <template #default="{ row }">{{ getDeptName(row.deptId) }}</template>
         </el-table-column>
@@ -47,7 +47,7 @@
       </el-table>
 
       <div class="mt-4 flex justify-end">
-        <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total" :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next" background @change="fetchList" />
+        <OaPagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total" :page-sizes="[10, 20, 50]" @change="fetchList" />
       </div>
     </el-card>
 

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="h-full">
     <el-card shadow="never" class="h-full">
       <template #header>
@@ -23,7 +23,7 @@
         </el-table-column>
       </el-table>
       <div class="mt-4 flex justify-end">
-        <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total" layout="total, prev, pager, next" background small @change="fetchList" />
+        <OaPagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total" @change="fetchList"  :page-sizes="[10, 20, 50]" />
       </div>
     </el-card>
   </div>

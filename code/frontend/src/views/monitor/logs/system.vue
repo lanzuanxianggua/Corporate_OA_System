@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div>
     <div class="flex items-center gap-3 mb-4">
       <el-button type="primary" @click="fetchData">刷新</el-button>
@@ -19,7 +19,7 @@
         <el-table-column label="请求时间" prop="requestTime" width="180" />
       </el-table>
       <div class="flex justify-end mt-4">
-        <el-pagination v-model:current-page="page" v-model:page-size="pageSize" :total="total" layout="total, prev, pager, next" @current-change="fetchData" />
+        <OaPagination v-model:current-page="page" v-model:page-size="pageSize" :total="total" @current-change="fetchData" />
       </div>
     </el-card>
   </div>

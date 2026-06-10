@@ -418,13 +418,7 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
         wrapper.eq(WfTask::getStatus, "0")
                .orderByDesc(WfTask::getCreateTime);
         IPage<WfTask> result = taskMapper.selectPage(page, wrapper);
-
-        // fill instance info
-        for (WfTask task : result.getRecords()) {
-            WfProcessInstance inst = instanceMapper.selectById(task.getInstanceId());
-            task.setInstance(inst);
-            task.setBusinessType(inst != null ? inst.getBusinessType() : null);
-        }
+        fillWorkflowTaskDisplayFields(result.getRecords());
         return result;
     }
 
@@ -432,17 +426,141 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
     public IPage<WfTask> myHandledTasks(Long assigneeId, int pageNum, int pageSize) {
         Page<WfTask> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<WfTask> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(WfTask::getAssigneeId, assigneeId)
-                .ne(WfTask::getStatus, "0")
+
+        if (!isAdminUser(assigneeId)) {
+            List<OaApprovalRecord> handledRecords = approvalRecordMapper.selectList(new LambdaQueryWrapper<OaApprovalRecord>()
+                    .eq(OaApprovalRecord::getApproverId, assigneeId)
+                    .isNotNull(OaApprovalRecord::getTaskId));
+            List<Long> handledTaskIds = Optional.ofNullable(handledRecords)
+                    .orElseGet(Collections::emptyList)
+                    .stream()
+                    .map(OaApprovalRecord::getTaskId)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .collect(Collectors.toList());
+            wrapper.and(w -> {
+                w.eq(WfTask::getAssigneeId, assigneeId);
+                if (!handledTaskIds.isEmpty()) {
+                    w.or().in(WfTask::getId, handledTaskIds);
+                }
+            });
+        }
+
+        wrapper.ne(WfTask::getStatus, "0")
                 .orderByDesc(WfTask::getCompleteTime);
         IPage<WfTask> result = taskMapper.selectPage(page, wrapper);
-
-        for (WfTask task : result.getRecords()) {
-            WfProcessInstance inst = instanceMapper.selectById(task.getInstanceId());
-            task.setInstance(inst);
-            task.setBusinessType(inst != null ? inst.getBusinessType() : null);
-        }
+        fillWorkflowTaskDisplayFields(result.getRecords());
         return result;
+    }
+
+    private void fillWorkflowTaskDisplayFields(List<WfTask> tasks) {
+        if (tasks == null || tasks.isEmpty()) {
+            return;
+        }
+        Set<Long> missingInstanceIds = tasks.stream()
+                .filter(task -> task.getInstance() == null)
+                .map(WfTask::getInstanceId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        Map<Long, WfProcessInstance> instanceMap = missingInstanceIds.isEmpty()
+                ? Map.of()
+                : Optional.ofNullable(instanceMapper.selectBatchIds(missingInstanceIds)).orElseGet(Collections::emptyList).stream()
+                        .collect(Collectors.toMap(WfProcessInstance::getId, instance -> instance, (a, b) -> a));
+
+        Set<Long> initiatorIds = new LinkedHashSet<>();
+        Set<Long> processIds = new LinkedHashSet<>();
+        for (WfTask task : tasks) {
+            WfProcessInstance instance = task.getInstance();
+            if (instance == null && task.getInstanceId() != null) {
+                instance = instanceMap.get(task.getInstanceId());
+                task.setInstance(instance);
+            }
+            if (instance != null) {
+                if (instance.getInitiatorId() != null) {
+                    initiatorIds.add(instance.getInitiatorId());
+                }
+                if (instance.getProcessId() != null) {
+                    processIds.add(instance.getProcessId());
+                }
+            }
+        }
+
+        Map<Long, SysEmployee> initiatorMap = initiatorIds.isEmpty()
+                ? Map.of()
+                : Optional.ofNullable(employeeMapper.selectBatchIds(initiatorIds)).orElseGet(Collections::emptyList).stream()
+                        .collect(Collectors.toMap(SysEmployee::getId, emp -> emp, (a, b) -> a));
+        Map<Long, WfProcessDefinition> definitionMap = processIds.isEmpty()
+                ? Map.of()
+                : Optional.ofNullable(baseMapper.selectBatchIds(processIds)).orElseGet(Collections::emptyList).stream()
+                        .collect(Collectors.toMap(WfProcessDefinition::getId, definition -> definition, (a, b) -> a));
+
+        for (WfTask task : tasks) {
+            WfProcessInstance instance = task.getInstance();
+
+            String businessType = instance != null ? instance.getBusinessType() : task.getBusinessType();
+            task.setBusinessType(businessType);
+            task.setTaskName(firstNonBlank(task.getNodeName(), task.getTaskType()));
+            task.setMultiType(isMultiTaskType(task.getTaskType()) ? task.getTaskType() : null);
+            task.setRemark(task.getOpinion());
+            task.setUpdateTime(firstNonNull(task.getCompleteTime(), task.getCreateTime()));
+
+            if (instance == null) {
+                task.setProcessName(firstNonBlank(task.getProcessName(), workflowBusinessName(businessType)));
+                task.setApplicant(firstNonBlank(task.getApplicant(), "-"));
+                continue;
+            }
+
+            if (instance.getInitiatorId() != null) {
+                SysEmployee initiator = initiatorMap.get(instance.getInitiatorId());
+                if (initiator != null) {
+                    instance.setInitiatorName(initiator.getEmpName());
+                    task.setApplicant(initiator.getEmpName());
+                }
+            }
+
+            if (instance.getProcessId() != null) {
+                WfProcessDefinition definition = definitionMap.get(instance.getProcessId());
+                if (definition != null) {
+                    task.setProcessName(definition.getProcessName());
+                }
+            }
+
+            task.setProcessName(firstNonBlank(task.getProcessName(), workflowBusinessName(businessType)));
+            task.setApplicant(firstNonBlank(task.getApplicant(), instance.getInitiatorName(), "-"));
+        }
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    private LocalDateTime firstNonNull(LocalDateTime first, LocalDateTime second) {
+        return first != null ? first : second;
+    }
+
+    private String workflowBusinessName(String businessType) {
+        if (businessType == null || businessType.isBlank()) {
+            return "-";
+        }
+        return switch (businessType) {
+            case "leave" -> "请假审批";
+            case "trip" -> "出差审批";
+            case "outing" -> "外出审批";
+            case "purchase" -> "采购审批";
+            case "expense" -> "经费审批";
+            case "overtime" -> "加班审批";
+            case "loan" -> "借支审批";
+            case "contract" -> "合同审批";
+            default -> businessType;
+        };
     }
 
     @Override
@@ -1423,6 +1541,7 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
         wrapper.eq(WfTask::getInstanceId, instance.getId())
                .orderByAsc(WfTask::getNodeId);
         List<WfTask> tasks = taskMapper.selectList(wrapper);
+        fillWorkflowTaskDisplayFields(tasks);
         // Fill assignee names
         for (WfTask task : tasks) {
             if (task.getAssigneeId() != null) {

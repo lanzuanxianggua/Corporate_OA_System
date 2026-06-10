@@ -1,21 +1,21 @@
 <template>
   <div>
     <div class="text-center mb-8">
-      <div class="text-5xl font-bold text-[#303133] font-mono">{{ currentTime }}</div>
-      <div class="text-base text-[#909399] mt-2">{{ currentDate }}</div>
+      <div class="text-5xl font-bold text-[var(--oa-text)] font-mono">{{ currentTime }}</div>
+      <div class="text-base text-[var(--oa-subtle)] mt-2">{{ currentDate }}</div>
     </div>
 
     <el-row :gutter="20" class="mb-6">
-      <el-col :span="12">
-        <div class="bg-white rounded-lg p-6" style="box-shadow:0 2px 12px rgba(0,0,0,.06)">
+      <el-col :xs="24" :md="12">
+        <div class="bg-[var(--oa-surface)] rounded-lg p-6" style="box-shadow:0 2px 12px rgba(0,0,0,.06)">
           <div class="flex items-center gap-3 mb-4">
-            <div class="w-12 h-12 rounded-full bg-[#fff7e6] flex items-center justify-center">
+            <div class="w-12 h-12 rounded-full bg-[var(--oa-surface-muted)] flex items-center justify-center">
               <el-icon :size="24" color="#E6A23C"><Sunny /></el-icon>
             </div>
             <span class="text-lg font-medium">上班打卡</span>
           </div>
           <template v-if="todayData?.clockIn">
-            <div class="flex items-center gap-2 text-2xl font-bold text-[#67C23A]">
+            <div class="flex items-center gap-2 text-2xl font-bold text-[var(--oa-success)]">
               <el-icon><CircleCheck /></el-icon>
               {{ todayData.clockIn.substring(11, 19) }}
             </div>
@@ -25,16 +25,16 @@
           </template>
         </div>
       </el-col>
-      <el-col :span="12">
-        <div class="bg-white rounded-lg p-6" style="box-shadow:0 2px 12px rgba(0,0,0,.06)">
+      <el-col :xs="24" :md="12">
+        <div class="bg-[var(--oa-surface)] rounded-lg p-6" style="box-shadow:0 2px 12px rgba(0,0,0,.06)">
           <div class="flex items-center gap-3 mb-4">
-            <div class="w-12 h-12 rounded-full bg-[#e6f7ff] flex items-center justify-center">
-              <el-icon :size="24" color="#409EFF"><Moon /></el-icon>
+            <div class="w-12 h-12 rounded-full bg-[var(--oa-surface-muted)] flex items-center justify-center">
+              <el-icon :size="24" color="var(--oa-primary)"><Moon /></el-icon>
             </div>
             <span class="text-lg font-medium">下班打卡</span>
           </div>
           <template v-if="todayData?.clockOut">
-            <div class="flex items-center gap-2 text-2xl font-bold text-[#67C23A]">
+            <div class="flex items-center gap-2 text-2xl font-bold text-[var(--oa-success)]">
               <el-icon><CircleCheck /></el-icon>
               {{ todayData.clockOut.substring(11, 19) }}
             </div>

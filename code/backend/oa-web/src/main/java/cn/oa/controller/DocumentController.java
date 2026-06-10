@@ -4,6 +4,7 @@ import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.PageParamUtil;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaDocument;
 import cn.oa.service.DocumentService;
@@ -49,7 +50,7 @@ public class DocumentController {
     public R<PageResult<OaDocument>> page(@RequestParam int pageNum,
                                           @RequestParam int pageSize,
                                           @RequestParam(required = false) String keyword) {
-        IPage<OaDocument> page = documentService.pageList(pageNum, pageSize, keyword);
+        IPage<OaDocument> page = documentService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), keyword);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 

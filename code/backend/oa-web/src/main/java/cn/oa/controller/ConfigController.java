@@ -3,6 +3,7 @@ package cn.oa.controller;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.PageParamUtil;
 import cn.oa.entity.SysConfig;
 import cn.oa.service.ConfigService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -28,7 +29,7 @@ public class ConfigController {
                                          @RequestParam int pageSize,
                                          @RequestParam(required = false) String configName,
                                          @RequestParam(required = false) String configKey) {
-        IPage<SysConfig> page = configService.pageList(pageNum, pageSize, configName, configKey);
+        IPage<SysConfig> page = configService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), configName, configKey);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 

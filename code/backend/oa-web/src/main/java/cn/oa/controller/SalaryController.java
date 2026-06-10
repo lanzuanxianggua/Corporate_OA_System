@@ -3,6 +3,7 @@ package cn.oa.controller;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.PageParamUtil;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaSalaryRecord;
 import cn.oa.entity.OaSalaryStructure;
@@ -36,7 +37,7 @@ public class SalaryController {
                                                            @RequestParam int pageSize,
                                                            @RequestParam(required = false) Long empId,
                                                            @RequestParam(required = false) String searchKey) {
-        IPage<OaSalaryStructure> page = salaryStructureService.pageList(pageNum, pageSize, empId, searchKey);
+        IPage<OaSalaryStructure> page = salaryStructureService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), empId, searchKey);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 
@@ -68,7 +69,7 @@ public class SalaryController {
                                                       @RequestParam(required = false) Long empId,
                                                       @RequestParam(required = false) String salaryMonth,
                                                       @RequestParam(required = false) String searchKey) {
-        IPage<OaSalaryRecord> page = salaryRecordService.pageList(pageNum, pageSize, empId, salaryMonth, searchKey);
+        IPage<OaSalaryRecord> page = salaryRecordService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), empId, salaryMonth, searchKey);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 

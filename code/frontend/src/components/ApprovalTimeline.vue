@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div v-loading="loading">
     <el-timeline v-if="records.length > 0">
       <el-timeline-item
@@ -8,18 +8,18 @@
         :timestamp="formatTime(record.approveTime)"
       >
         <div class="text-sm font-medium">{{ record.nodeName || '审批' }}</div>
-        <div class="text-xs text-gray-500">审批人：{{ record.approverName || '-' }}</div>
+        <div class="text-xs text-[var(--oa-muted)]">审批人：{{ record.approverName || '-' }}</div>
         <div class="mt-1 flex items-center gap-2">
           <el-tag :type="getStatusTagType(record.approveStatus)" size="small">
             {{ getStatusLabel(record.approveStatus) }}
           </el-tag>
-          <span v-if="record.remark" class="text-xs text-gray-500">{{ record.remark }}</span>
+          <span v-if="record.remark" class="text-xs text-[var(--oa-muted)]">{{ record.remark }}</span>
         </div>
       </el-timeline-item>
     </el-timeline>
 
     <template v-if="pendingTasks.length > 0">
-      <div class="text-xs text-gray-400 mb-2 mt-2" v-if="records.length > 0">当前待审批</div>
+      <div class="text-xs text-[var(--oa-subtle)] mb-2 mt-2" v-if="records.length > 0">当前待审批</div>
       <el-timeline>
         <el-timeline-item
           v-for="task in pendingTasks"
@@ -28,7 +28,7 @@
           :hollow="true"
         >
           <div class="text-sm font-medium">{{ task.nodeName || '审批' }}</div>
-          <div class="text-xs text-gray-500">审批人：{{ task.assigneeName || '-' }}</div>
+          <div class="text-xs text-[var(--oa-muted)]">审批人：{{ task.assigneeName || '-' }}</div>
           <div class="mt-1 flex items-center gap-2">
             <el-tag type="info" size="small">等待审批中</el-tag>
             <el-tag v-if="task.multiType === 'countersign'" type="warning" size="small">会签</el-tag>

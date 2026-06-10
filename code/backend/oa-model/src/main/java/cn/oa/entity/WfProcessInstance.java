@@ -26,6 +26,9 @@ public class WfProcessInstance {
 
     private Long initiatorId;
 
+    @TableField(exist = false)
+    private String initiatorName;
+
     private Integer currentNode = 0;
 
     /** JSON string storing condition context for conditional routing */

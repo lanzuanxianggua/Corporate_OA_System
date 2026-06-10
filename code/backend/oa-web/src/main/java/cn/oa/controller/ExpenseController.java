@@ -4,6 +4,7 @@ import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.PageParamUtil;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.dto.ApproveDTO;
 import cn.oa.utils.ExcelExportUtil;
@@ -76,7 +77,7 @@ public class ExpenseController {
                                           @RequestParam int pageSize,
                                           @RequestParam(required = false) Long empId,
                                           @RequestParam(required = false) Integer status) {
-        IPage<OaExpense> page = expenseService.pageList(pageNum, pageSize, empId, status);
+        IPage<OaExpense> page = expenseService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), empId, status);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 

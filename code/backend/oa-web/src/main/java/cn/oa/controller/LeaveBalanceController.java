@@ -3,6 +3,7 @@ package cn.oa.controller;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
+import cn.oa.common.utils.PageParamUtil;
 import cn.oa.common.utils.WebUtil;
 import cn.oa.entity.OaLeaveBalance;
 import cn.oa.entity.dto.LeaveBalanceInitDTO;
@@ -35,7 +36,7 @@ public class LeaveBalanceController {
                                                @RequestParam(required = false) Long empId,
                                                @RequestParam(required = false) Integer year,
                                                @RequestParam(required = false) String searchKey) {
-        IPage<OaLeaveBalance> page = leaveBalanceService.pageList(pageNum, pageSize, empId, year, searchKey);
+        IPage<OaLeaveBalance> page = leaveBalanceService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), empId, year, searchKey);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 

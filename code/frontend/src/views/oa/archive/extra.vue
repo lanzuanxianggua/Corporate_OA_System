@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <div class="h-full">
     <el-card shadow="never">
       <template #header>
         <div class="flex items-center justify-between">
-          <span class="text-base font-semibold text-[#303133]">员工档案扩展</span>
+          <span class="text-base font-semibold text-[var(--oa-text)]">员工档案扩展</span>
           <div class="flex gap-2">
             <el-input-number v-model="empId" :min="1" controls-position="right" />
             <el-button @click="reload">查询</el-button>

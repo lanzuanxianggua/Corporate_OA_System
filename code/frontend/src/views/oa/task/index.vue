@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <div class="h-full">
     <el-card shadow="never">
       <template #header>
         <div class="flex items-center justify-between">
-          <span class="text-base font-semibold text-[#303133]">任务协作</span>
+          <span class="text-base font-semibold text-[var(--oa-text)]">任务协作</span>
           <div class="flex gap-2">
             <el-button type="primary" @click="openProject">新增项目</el-button>
             <el-button type="success" @click="openTask">新增任务</el-button>
@@ -12,7 +12,7 @@
       </template>
       <el-tabs v-model="activeTab" @tab-change="reload">
         <el-tab-pane label="项目" name="projects">
-          <el-table :data="projects" v-loading="loading" stripe>
+          <el-table :data="projects" v-loading="loading" stripe max-height="calc(100vh - 330px)">
             <el-table-column prop="projectName" label="项目名称" min-width="180" />
             <el-table-column prop="ownerId" label="负责人" width="100" />
             <el-table-column prop="deptId" label="部门ID" width="100" />
@@ -20,9 +20,16 @@
             <el-table-column prop="createTime" label="创建时间" width="180" />
             <el-table-column label="操作" width="140"><template #default="{ row }"><el-button link type="success" @click="projectStatus(row.id, 'ACTIVE')">启动</el-button><el-button link @click="projectStatus(row.id, 'CLOSED')">关闭</el-button></template></el-table-column>
           </el-table>
+          <OaPagination
+            v-model:current-page="projectPageNum"
+            v-model:page-size="projectPageSize"
+            :total="projectTotal"
+            :page-sizes="[10, 20, 50]"
+            @change="reload"
+          />
         </el-tab-pane>
         <el-tab-pane label="任务" name="items">
-          <el-table :data="items" v-loading="loading" stripe>
+          <el-table :data="items" v-loading="loading" stripe max-height="calc(100vh - 330px)">
             <el-table-column prop="taskName" label="任务名称" min-width="180" />
             <el-table-column prop="projectId" label="项目ID" width="100" />
             <el-table-column prop="assigneeId" label="负责人" width="100" />
@@ -33,6 +40,13 @@
             <el-table-column prop="status" label="状态" width="110" />
             <el-table-column label="操作" width="160"><template #default="{ row }"><el-button link type="success" @click="itemStatus(row.id, 'DONE')">完成</el-button><el-button link @click="setProgress(row.id)">进度</el-button></template></el-table-column>
           </el-table>
+          <OaPagination
+            v-model:current-page="itemPageNum"
+            v-model:page-size="itemPageSize"
+            :total="itemTotal"
+            :page-sizes="[10, 20, 50]"
+            @change="reload"
+          />
         </el-tab-pane>
       </el-tabs>
     </el-card>
@@ -68,13 +82,29 @@ const activeTab = ref("projects");
 const loading = ref(false);
 const projects = ref<any[]>([]);
 const items = ref<any[]>([]);
+const projectPageNum = ref(1);
+const projectPageSize = ref(10);
+const projectTotal = ref(0);
+const itemPageNum = ref(1);
+const itemPageSize = ref(10);
+const itemTotal = ref(0);
+
 function rows(data: any) { return data?.records || data?.list || []; }
+function totalOf(data: any) { return Number(data?.total ?? data?.totalCount ?? rows(data).length) || 0; }
+
 async function reload() {
   loading.value = true;
   try {
-    const res: any = activeTab.value === "items" ? await taskCollabApi.items({ pageNum: 1, pageSize: 30 }) : await taskCollabApi.projects({ pageNum: 1, pageSize: 30 });
-    if (activeTab.value === "items") items.value = rows(res.data);
-    else projects.value = rows(res.data);
+    if (activeTab.value === "items") {
+      const res: any = await taskCollabApi.items({ pageNum: itemPageNum.value, pageSize: itemPageSize.value });
+      items.value = rows(res.data);
+      itemTotal.value = totalOf(res.data);
+      return;
+    }
+
+    const res: any = await taskCollabApi.projects({ pageNum: projectPageNum.value, pageSize: projectPageSize.value });
+    projects.value = rows(res.data);
+    projectTotal.value = totalOf(res.data);
   } finally { loading.value = false; }
 }
 const projectVisible = ref(false);

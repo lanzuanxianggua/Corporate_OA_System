@@ -1,15 +1,15 @@
-<template>
+﻿<template>
   <div class="h-full">
     <el-card shadow="never">
       <template #header>
-        <span class="text-base font-semibold text-[#303133]">我的薪资</span>
+        <span class="text-base font-semibold text-[var(--oa-text)]">我的薪资</span>
       </template>
 
       <div class="mb-4">
         <el-date-picker v-model="month" type="month" placeholder="选择月份" value-format="YYYY-MM" @change="fetchList" />
       </div>
 
-      <el-table :data="tableData" v-loading="loading" stripe :header-cell-style="{ background: '#f5f7fa', color: '#606266' }">
+      <el-table :data="tableData" v-loading="loading" stripe :header-cell-style="{ background: 'var(--oa-surface-soft)', color: 'var(--oa-muted)' }">
         <el-table-column prop="salaryMonth" label="月份" width="100" align="center" />
         <el-table-column prop="baseSalary" label="基本工资" min-width="120" align="right">
           <template #default="{ row }">{{ row.baseSalary?.toFixed(2) || "-" }}</template>
@@ -28,7 +28,7 @@
         </el-table-column>
         <el-table-column label="实发工资" min-width="120" align="right">
           <template #default="{ row }">
-            <span class="font-semibold text-[#409EFF]">{{ row.actualAmount?.toFixed(2) || "-" }}</span>
+            <span class="font-semibold text-[var(--oa-primary)]">{{ row.actualAmount?.toFixed(2) || "-" }}</span>
           </template>
         </el-table-column>
       </el-table>
