@@ -3,7 +3,7 @@
 -- These seeds cover the original approval business types that use the current
 -- oa-web runtime callbacks.
 --
--- The graph format (schemaVersion=2) is parsed by WorkflowServiceImpl.parseNodeConfig
+-- The graph format (schemaVersion=3) is parsed by WorkflowServiceImpl.parseNodeConfig
 -- and materialized to an executable runtime path at process start.
 -- Each seed demonstrates the 4 routing dimensions:
 --   - amount threshold (purchase)
@@ -24,7 +24,7 @@ INSERT INTO wf_process_definition
 VALUES
   ('出差审批流程(分级)', 'trip_tiered', 'trip',
    '{
-     "schemaVersion": 2,
+     "schemaVersion": 3,
      "nodes": [
        {"nodeId": "start", "nodeType": "start", "nodeName": "开始"},
        {"nodeId": "gw_days", "nodeType": "gateway", "gatewayType": "exclusive", "nodeName": "按天数分支",
@@ -67,7 +67,7 @@ INSERT INTO wf_process_definition
 VALUES
   ('加班审批流程(分级)', 'overtime_tiered', 'overtime',
    '{
-     "schemaVersion": 2,
+     "schemaVersion": 3,
      "nodes": [
        {"nodeId": "start", "nodeType": "start", "nodeName": "开始"},
        {"nodeId": "gw_hours", "nodeType": "gateway", "gatewayType": "exclusive", "nodeName": "按小时分支",
@@ -104,7 +104,7 @@ INSERT INTO wf_process_definition
 VALUES
   ('采购审批流程(分级)', 'purchase_tiered', 'purchase',
    '{
-     "schemaVersion": 2,
+     "schemaVersion": 3,
      "nodes": [
        {"nodeId": "start", "nodeType": "start", "nodeName": "开始"},
        {"nodeId": "gw_amount", "nodeType": "gateway", "gatewayType": "exclusive", "nodeName": "按金额分支",
@@ -136,11 +136,12 @@ VALUES
    }',
    '0', 1, 'system', NOW(), 'system', NOW(), '0');
 
--- Deactivate non-v2 definitions for the same processTypes so the engine uses
+-- Deactivate non-v3 definitions for the same processTypes so the engine uses
 -- the graph-format seeds. (status=1 = inactive per existing code.)
 UPDATE wf_process_definition
    SET status = '1', update_by = 'system', update_time = NOW()
  WHERE process_type IN ('trip', 'overtime', 'purchase')
    AND del_flag = '0'
    AND status = '0'
-   AND node_config NOT LIKE '%"schemaVersion":2%';
+   AND (JSON_VALID(node_config) = 0
+        OR JSON_UNQUOTE(JSON_EXTRACT(node_config, '$.schemaVersion')) <> '3');

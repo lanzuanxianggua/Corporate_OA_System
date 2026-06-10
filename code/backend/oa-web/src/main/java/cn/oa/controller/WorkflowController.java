@@ -20,6 +20,7 @@ import cn.oa.entity.dto.ReturnTaskDTO;
 import cn.oa.entity.dto.TransferTaskDTO;
 import cn.oa.service.DelegationService;
 import cn.oa.service.WorkflowService;
+import cn.oa.service.workflow.WorkflowValidationError;
 import cn.oa.mapper.WfCcRecordMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -106,11 +107,8 @@ public class WorkflowController {
     @Operation(summary = "激活/停用流程定义")
     @OperationLog(module = "工作流管理", operation = "激活/停用流程定义")
     public R<Void> activateDefinition(@RequestBody @Valid ActivateDefinitionDTO dto) {
-        WfProcessDefinition def = workflowService.getById(dto.getId());
-        if (def == null) return R.fail("流程定义不存在");
-        def.setStatus("0".equals(def.getStatus()) ? "1" : "0");
-        workflowService.updateById(def);
-        log.info("Workflow definition activated/deactivated: id={}, status={}", dto.getId(), def.getStatus());
+        workflowService.activateDefinition(dto.getId());
+        log.info("Workflow definition activated/deactivated: id={}", dto.getId());
         return R.ok();
     }
 
@@ -234,16 +232,15 @@ public class WorkflowController {
 
     @PostMapping("/definition/validate")
     @RequireAdmin
-    @Operation(summary = "校验流程定义 (V1010 图格式)")
-    public R<java.util.List<cn.oa.service.impl.WorkflowServiceImpl.ValidationError>> validateDefinition(
+    @Operation(summary = "校验自定义流程定义")
+    public R<java.util.List<WorkflowValidationError>> validateDefinition(
             @RequestBody WfProcessDefinition definition) {
-        cn.oa.service.impl.WorkflowServiceImpl.WorkflowGraph graph =
-                workflowService.validateDefinition(definition.getNodeConfig());
+        cn.oa.service.workflow.WorkflowGraph graph = workflowService.validateDefinition(definition.getNodeConfig());
         return R.ok(graph.errors);
     }
 
     @GetMapping("/definition/preview")
-    @Operation(summary = "预览流程路由路径 (V1010)")
+    @Operation(summary = "预览自定义流程路由路径")
     public R<java.util.List<cn.hutool.json.JSONObject>> previewDefinition(
             @RequestParam String businessType,
             @RequestParam Long businessId,

@@ -45,7 +45,7 @@
       <OaPagination v-model:current-page="pageNum" v-model:page-size="pageSize" :total="total" :page-sizes="[10, 20, 50]" @change="handlePageChange" />
     </el-card>
 
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑流程定义' : '新增流程定义'" width="900px" :close-on-click-modal="false" top="5vh" destroy-on-close>
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑流程定义' : '新增流程定义'" width="min(96vw, 1180px)" :close-on-click-modal="false" top="4vh" destroy-on-close>
       <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
         <div class="flex gap-4 mb-3">
           <el-form-item label="流程名称" prop="processName" class="flex-1">
@@ -72,13 +72,13 @@
             <el-radio value="visual">可视化模式</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="审批流程" prop="nodeConfig">
+        <el-form-item label="审批流程" prop="nodeConfig" class="workflow-designer-form-item">
           <FlowDesigner v-model="form.nodeConfig" />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button :loading="validating" @click="handleValidate">校验 (V1010)</el-button>
+        <el-button :loading="validating" @click="handleValidate">校验流程</el-button>
         <el-button type="primary" :loading="saving" @click="handleSave">确定</el-button>
       </template>
     </el-dialog>
@@ -135,13 +135,10 @@ const handlePageChange = () => {
 const nodeSummary = (nodeConfig: string) => {
   try {
     const parsed = JSON.parse(nodeConfig);
-    if (parsed.schemaVersion === 2 && parsed.nodes && parsed.edges) {
-      // Graph format
+    if (parsed.schemaVersion >= 2 && parsed.nodes && parsed.edges) {
       return parsed.nodes.filter((n: any) => n.nodeType === "approval").map((n: any) => n.nodeName || n.name).join(" -> ") || "无审批节点";
     }
-    return "Invalid v2 graph";
-    if (!parsed.length) return "无节点";
-    return parsed.map((n: any) => n.nodeName || n.name).join(" -> ");
+    return "无效流程图";
   } catch {
     return "配置错误";
   }
@@ -161,7 +158,7 @@ const rules = reactive<FormRules>({
 });
 
 const defaultGraphConfig = () => JSON.stringify({
-  schemaVersion: 2,
+  schemaVersion: 3,
   nodes: [
     { nodeId: "start", nodeType: "start", name: "开始", nodeName: "开始" },
     {
@@ -169,6 +166,12 @@ const defaultGraphConfig = () => JSON.stringify({
       nodeType: "approval",
       name: "部门主管审批",
       nodeName: "部门主管审批",
+      approvalMode: "single",
+      assigneeRule: {
+        type: "role",
+        roleKey: "DEPT_MANAGER",
+        value: "DEPT_MANAGER"
+      },
       assigneeType: "role",
       assigneeValue: "DEPT_MANAGER"
     },
@@ -202,6 +205,13 @@ const openDialog = (row?: any) => {
 const validating = ref(false);
 
 const handleValidate = async () => {
+  if (!formRef.value) return;
+  try {
+    await formRef.value.validate();
+  } catch {
+    ElMessage.warning("请先填写流程名称、流程标识、分类和审批流程");
+    return;
+  }
   if (!form.nodeConfig) {
     ElMessage.warning("请先配置审批流程");
     return;
@@ -262,5 +272,22 @@ onMounted(() => {
 <style scoped>
 .workflow-definition-table :deep(.el-table__row) {
   cursor: pointer;
+}
+
+.workflow-designer-form-item {
+  display: block;
+}
+
+.workflow-designer-form-item :deep(.el-form-item__label) {
+  display: block;
+  width: auto !important;
+  margin-bottom: 8px;
+  text-align: left;
+}
+
+.workflow-designer-form-item :deep(.el-form-item__content) {
+  display: block;
+  margin-left: 0 !important;
+  min-width: 0;
 }
 </style>

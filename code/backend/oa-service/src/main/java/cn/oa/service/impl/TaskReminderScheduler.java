@@ -9,6 +9,7 @@ import cn.oa.mapper.WfTaskMapper;
 import cn.oa.service.NotificationService;
 import cn.oa.service.TodoService;
 import cn.oa.service.WorkflowService;
+import cn.oa.service.workflow.WorkflowGraph;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -102,7 +103,7 @@ public class TaskReminderScheduler {
         String targetNodeId = task.getNodeId() == null ? null : String.valueOf(task.getNodeId());
         int runtimeIndex = task.getNodeId() == null ? -1 : task.getNodeId().intValue();
 
-        cn.oa.service.impl.WorkflowServiceImpl.WorkflowGraph graph = workflowService.parseNodeConfig(nodeConfig);
+        WorkflowGraph graph = workflowService.parseNodeConfig(nodeConfig);
         if (graph.isGraph() && graph.valid) {
             JSONObject graphNode = findGraphNodeForRuntimeTask(graph, runtimeIndex);
             if (graphNode != null) return graphNode.getStr("timeoutAction", "notify_only");
@@ -192,12 +193,12 @@ public class TaskReminderScheduler {
                 task.getId(), task.getAssigneeId(), newAssigneeId, currentEscalations + 1);
     }
 
-    /** Locate the schemaVersion=2 graph node config object for a given task. */
+    /** Locate the graph node config object for a given task. */
     private JSONObject findNodeForTask(WfProcessDefinition definition, WfTask task) {
         String nodeConfig = definition.getNodeConfig();
         if (nodeConfig == null) return null;
 
-        cn.oa.service.impl.WorkflowServiceImpl.WorkflowGraph graph = workflowService.parseNodeConfig(nodeConfig);
+        WorkflowGraph graph = workflowService.parseNodeConfig(nodeConfig);
         if (graph.isGraph() && graph.valid) {
             String nodeId = task.getNodeId() == null ? null : String.valueOf(task.getNodeId());
             JSONObject graphNode = findGraphNodeForRuntimeTask(graph, task.getNodeId() == null ? -1 : task.getNodeId().intValue());
@@ -207,7 +208,7 @@ public class TaskReminderScheduler {
         return null;
     }
 
-    private JSONObject findGraphNodeForRuntimeTask(cn.oa.service.impl.WorkflowServiceImpl.WorkflowGraph graph, int runtimeNodeIndex) {
+    private JSONObject findGraphNodeForRuntimeTask(WorkflowGraph graph, int runtimeNodeIndex) {
         if (graph == null || runtimeNodeIndex < 0) return null;
         int index = 0;
         for (JSONObject node : graph.nodes.values()) {

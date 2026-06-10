@@ -4,6 +4,7 @@ import cn.oa.entity.OaApprovalRecord;
 import cn.oa.entity.WfProcessDefinition;
 import cn.oa.entity.WfProcessInstance;
 import cn.oa.entity.WfTask;
+import cn.oa.service.workflow.WorkflowGraph;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -30,6 +31,8 @@ public interface WorkflowService extends IService<WfProcessDefinition> {
 
     void saveDefinition(WfProcessDefinition definition);
 
+    void activateDefinition(Long definitionId);
+
     WfTask findPendingTask(String businessType, Long businessId, Long assigneeId);
 
     List<WfTask> getApprovalHistory(String businessType, Long businessId);
@@ -45,35 +48,32 @@ public interface WorkflowService extends IService<WfProcessDefinition> {
     void returnTask(Long taskId, Long handlerId, String returnTarget, String remark);
 
     /**
-     * V1010: public hook for the timeout-escalation scheduler. Resolves an
-     * assignee from a node-level escalateTo config without going through the
-     * graph materialization path. Currently delegates to the same machinery
-     * as startProcess routing.
+     * Public hook for the timeout-escalation scheduler. Resolves an assignee
+     * from a node-level escalateTo config without going through the graph
+     * materialization path.
      */
     Long resolveAssigneeForEscalation(String assigneeType, String assigneeValue, Long currentAssigneeId);
 
     /**
-     * V1010: parse + validate a graph-format workflow definition. Returns the
-     * parsed graph (with errors populated when invalid). The graph object is
-     * useful both for validation responses and for downstream operations.
+     * Parse + validate a graph-format workflow definition. Returns the parsed
+     * graph with errors populated when invalid.
      */
-    cn.oa.service.impl.WorkflowServiceImpl.WorkflowGraph validateDefinition(String nodeConfig);
+    WorkflowGraph validateDefinition(String nodeConfig);
 
     /**
-     * Parse schemaVersion=2 graph nodeConfig using the same parser as runtime routing.
+     * Parse schemaVersion 2/3 graph nodeConfig using the same parser as runtime routing.
      */
-    cn.oa.service.impl.WorkflowServiceImpl.WorkflowGraph parseNodeConfig(String nodeConfig);
+    WorkflowGraph parseNodeConfig(String nodeConfig);
 
     /**
-     * V1010: preview the routing path a real business submission would take,
-     * without actually starting a process. Returns the materialized executable
-     * node list so the frontend can render the path highlight.
+     * Preview the routing path a real business submission would take without
+     * actually starting a process.
      */
     java.util.List<cn.hutool.json.JSONObject> previewPath(String businessType, Long businessId, Long initiatorId);
 
     /**
-     * Rebuild missing pending tasks for running instances using current
-     * schemaVersion=2 process definitions.
+     * Rebuild missing pending tasks for running instances using current graph
+     * process definitions.
      */
     int repairMissingPendingTasks();
 }

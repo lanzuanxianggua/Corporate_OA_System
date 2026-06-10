@@ -32,6 +32,8 @@ import cn.oa.service.DeptService;
 import cn.oa.service.TodoService;
 import cn.oa.service.WorkflowService;
 import cn.oa.service.NotificationService;
+import cn.oa.service.workflow.WorkflowGraph;
+import cn.oa.service.workflow.WorkflowRuntimeEngine;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -98,6 +100,9 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
 
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
+
+    @Autowired
+    private WorkflowRuntimeEngine workflowRuntimeEngine;
 
     @Override
     @Transactional
@@ -709,6 +714,19 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
     @Override
     @Transactional
     public void saveDefinition(WfProcessDefinition definition) {
+        WorkflowGraph graph = validateDefinition(definition.getNodeConfig());
+        if (!graph.valid) {
+            throw new BusinessException("流程定义校验失败: " + graph.errors.stream()
+                    .map(error -> error.message)
+                    .collect(Collectors.joining("; ")));
+        }
+        if (definition.getProcessType() == null || definition.getProcessType().isBlank()) {
+            throw new BusinessException("流程分类不能为空");
+        }
+        if (definition.getProcessKey() == null || definition.getProcessKey().isBlank()) {
+            definition.setProcessKey(definition.getProcessType() + "_process");
+        }
+
         if (definition.getId() != null) {
             WfProcessDefinition existing = this.getById(definition.getId());
             if (existing != null) {
@@ -718,14 +736,68 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
                 definition.setVersion(existing.getVersion() + 1);
                 definition.setStatus("0");
                 definition.setCreateTime(LocalDateTime.now());
+                deactivateActiveDefinitions(definition.getProcessType(), existing.getId());
                 this.save(definition);
                 return;
             }
         }
-        definition.setVersion(1);
+        definition.setVersion(nextDefinitionVersion(definition.getProcessType()));
         definition.setStatus("0");
         definition.setCreateTime(LocalDateTime.now());
+        deactivateActiveDefinitions(definition.getProcessType(), null);
         this.save(definition);
+    }
+
+    private int nextDefinitionVersion(String processType) {
+        WfProcessDefinition latest = this.getOne(new LambdaQueryWrapper<WfProcessDefinition>()
+                .eq(WfProcessDefinition::getProcessType, processType)
+                .orderByDesc(WfProcessDefinition::getVersion)
+                .last("LIMIT 1"));
+        return Optional.ofNullable(latest)
+                .map(WfProcessDefinition::getVersion)
+                .map(version -> version + 1)
+                .orElse(1);
+    }
+
+    private void deactivateActiveDefinitions(String processType, Long excludeId) {
+        LambdaQueryWrapper<WfProcessDefinition> wrapper = new LambdaQueryWrapper<WfProcessDefinition>()
+                .eq(WfProcessDefinition::getProcessType, processType)
+                .eq(WfProcessDefinition::getStatus, "0");
+        if (excludeId != null) {
+            wrapper.ne(WfProcessDefinition::getId, excludeId);
+        }
+        List<WfProcessDefinition> activeDefinitions = this.list(wrapper);
+        if (activeDefinitions == null || activeDefinitions.isEmpty()) {
+            return;
+        }
+        for (WfProcessDefinition activeDefinition : activeDefinitions) {
+            activeDefinition.setStatus("1");
+            this.updateById(activeDefinition);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void activateDefinition(Long definitionId) {
+        WfProcessDefinition definition = this.getById(definitionId);
+        if (definition == null) {
+            throw new BusinessException("流程定义不存在");
+        }
+        if ("0".equals(definition.getStatus())) {
+            definition.setStatus("1");
+            this.updateById(definition);
+            return;
+        }
+
+        WorkflowGraph graph = validateDefinition(definition.getNodeConfig());
+        if (!graph.valid) {
+            throw new BusinessException("流程定义校验失败: " + graph.errors.stream()
+                    .map(error -> error.message)
+                    .collect(Collectors.joining("; ")));
+        }
+        deactivateActiveDefinitions(definition.getProcessType(), definition.getId());
+        definition.setStatus("0");
+        this.updateById(definition);
     }
 
     private void createTaskForNode(WfProcessInstance instance, JSONObject node, int runtimeIndex) {
@@ -850,7 +922,7 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
     }
 
     /**
-     * Convert schemaVersion=2 graph JSON into the executable approval-node list
+     * Convert graph JSON into the executable approval-node list
      * consumed by the runtime engine.
      */
     private JSONArray materializeExecutableNodes(WfProcessDefinition definition,
@@ -868,9 +940,9 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
 
         WorkflowGraph graph = parseNodeConfig(nodeConfig);
         if (!graph.isGraph() || !graph.valid) {
-            throw new BusinessException("流程定义必须使用 schemaVersion=2 图配置: " + graph.errors);
+            throw new BusinessException("流程定义必须使用 graph schema 配置: " + graph.errors);
         }
-        return materializeGraphToRuntimePath(graph, conditionContext);
+        return workflowRuntimeEngine.materializeGraphToRuntimePath(graph, conditionContext);
     }
 
     private int runtimeIndex(WfTask task) {
@@ -1158,54 +1230,11 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
     }
 
     private List<JSONObject> filterApplicableNodes(JSONArray nodes, Map<String, Object> context) {
-        List<JSONObject> result = new ArrayList<>();
-        for (int i = 0; i < nodes.size(); i++) {
-            JSONObject node = nodes.getJSONObject(i);
-            JSONArray conditions = node.getJSONArray("conditions");
-            if (conditions == null || conditions.isEmpty() || context == null || context.isEmpty()) {
-                result.add(node);
-            } else if (evaluateConditions(conditions, context)) {
-                result.add(node);
-            }
-        }
-        return result;
+        return workflowRuntimeEngine.filterApplicableNodes(nodes, context);
     }
 
     private boolean evaluateConditions(JSONArray conditions, Map<String, Object> context) {
-        for (int i = 0; i < conditions.size(); i++) {
-            JSONObject cond = conditions.getJSONObject(i);
-            String field = cond.getStr("field");
-            String operator = cond.getStr("operator");
-            Object rawVal = context.get(field);
-            if (rawVal == null) return false;
-
-            Object thresholdObj = cond.get("value");
-            String type = cond.getStr("type", "number");
-
-            switch (operator) {
-                // Numeric operators
-                case "<=": if (!numCheck(rawVal, thresholdObj, (a, t) -> a <= t)) return false; break;
-                case "<":  if (!numCheck(rawVal, thresholdObj, (a, t) -> a < t)) return false; break;
-                case ">=": if (!numCheck(rawVal, thresholdObj, (a, t) -> a >= t)) return false; break;
-                case ">":  if (!numCheck(rawVal, thresholdObj, (a, t) -> a > t)) return false; break;
-                case "==": if (!numCheck(rawVal, thresholdObj, (a, t) -> Math.abs(a - t) < 1e-9)) return false; break;
-                case "!=": if (!numCheck(rawVal, thresholdObj, (a, t) -> Math.abs(a - t) >= 1e-9)) return false; break;
-                // String operators
-                case "equals": if (!String.valueOf(rawVal).equals(String.valueOf(thresholdObj))) return false; break;
-                case "not_equals": if (String.valueOf(rawVal).equals(String.valueOf(thresholdObj))) return false; break;
-                case "contains": if (!String.valueOf(rawVal).contains(String.valueOf(thresholdObj))) return false; break;
-                case "starts_with": if (!String.valueOf(rawVal).startsWith(String.valueOf(thresholdObj))) return false; break;
-                // Enum operator
-                case "in": {
-                    String val = String.valueOf(rawVal);
-                    JSONArray arr = cond.getJSONArray("values");
-                    if (arr == null || !arr.toList(String.class).contains(val)) return false;
-                    break;
-                }
-                default: return false;
-            }
-        }
-        return true;
+        return workflowRuntimeEngine.evaluateConditions(conditions, context);
     }
 
     @FunctionalInterface
@@ -1709,7 +1738,7 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
         if (!graph.isGraph() || !graph.valid) {
             return java.util.Collections.emptyList();
         }
-        JSONArray path = materializeGraphToRuntimePath(graph, ctx);
+        JSONArray path = workflowRuntimeEngine.materializeGraphToRuntimePath(graph, ctx);
         return path.toList(JSONObject.class);
     }
 
@@ -1833,452 +1862,11 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
         }
     }
 
-    // ====================================================================
-    // Graph-format workflow definitions (schemaVersion=2).
-    //
-    // WorkflowGraph is a parsed view of a graph-format nodeConfig that exposes:
-    //   - nodeId -> node object lookup
-    //   - outgoing edges per nodeId
-    //   - entry (start) and exit (end) nodes
-    //
-    // parseNodeConfig is the single entry point. Non-v2 definitions are invalid.
-    // ====================================================================
-
-    /** Parsed graph view of a graph-format nodeConfig. */
-    public static class WorkflowGraph {
-        public final int schemaVersion;
-        public final Map<String, JSONObject> nodes;       // nodeId -> node
-        public final Map<String, List<JSONObject>> outgoing; // nodeId -> edges where source=nodeId
-        public final List<JSONObject> edges;
-        public final List<ValidationError> errors;
-        public final boolean valid;
-
-        WorkflowGraph(int schemaVersion,
-                      Map<String, JSONObject> nodes,
-                      Map<String, List<JSONObject>> outgoing,
-                      List<JSONObject> edges,
-                      List<ValidationError> errors) {
-            this.schemaVersion = schemaVersion;
-            this.nodes = nodes;
-            this.outgoing = outgoing;
-            this.edges = edges;
-            this.errors = errors;
-            this.valid = errors.isEmpty();
-        }
-
-        public boolean isGraph() { return schemaVersion == 2; }
-    }
-
-    /** Structured validation error for graph definitions. */
-    public static class ValidationError {
-        public final String type;       // duplicate_node_id | unknown_edge_endpoint | no_start | no_end | cycle
-        public final String nodeId;     // may be null
-        public final String message;
-
-        public ValidationError(String type, String nodeId, String message) {
-            this.type = type;
-            this.nodeId = nodeId;
-            this.message = message;
-        }
-    }
-
-    /**
-     * Walk the graph from the start node following routing rules + edges,
-     * collecting every approval node the workflow will visit given the
-     * current condition context. Returns a JSONArray of node objects with
-     * {@code runtimeIndex} set in visit order (0, 1, 2, ...).
-     *
-     * <p>Stops at the first end node or when the next nodeId is null / cyclic.
-     * Gateway nodes are visited but not included in the output (they are
-     * routing logic, not approval work).
-     */
-    private JSONArray materializeGraphToRuntimePath(WorkflowGraph graph, Map<String, Object> ctx) {
-        JSONArray out = new JSONArray();
-        if (graph == null || !graph.valid) return out;
-
-        String startId = graph.nodes.values().stream()
-                .filter(n -> "start".equals(n.getStr("nodeType")))
-                .map(n -> n.getStr("nodeId"))
-                .findFirst().orElse(null);
-        if (startId == null) return out;
-
-        java.util.Set<String> visited = new java.util.HashSet<>();
-        String currentId = startId;
-        int outIndex = 0;
-        int safetyLimit = 64; // path length cap
-
-        while (currentId != null && safetyLimit-- > 0) {
-            if (visited.contains(currentId)) break;
-            visited.add(currentId);
-            JSONObject current = graph.nodes.get(currentId);
-            if (current == null) break;
-            String type = current.getStr("nodeType");
-
-            if ("approval".equals(type)) {
-                JSONObject pathNode = new JSONObject();
-                pathNode.set("runtimeIndex", outIndex++);
-                pathNode.set("nodeId", currentId);
-                pathNode.set("nodeName", current.getStr("nodeName", current.getStr("name")));
-                pathNode.set("nodeType", "approval");
-                pathNode.set("assigneeType", current.getStr("assigneeType"));
-                pathNode.set("assigneeValue", current.getStr("assigneeValue"));
-                pathNode.set("multiType", current.getStr("multiType"));
-                pathNode.set("multiAssigneeIds", current.getJSONArray("multiAssigneeIds"));
-                pathNode.set("conditions", current.getJSONArray("conditions"));
-                pathNode.set("ccList", current.getJSONArray("ccList"));
-                pathNode.set("timeoutHours", current.getInt("timeoutHours", 0));
-                pathNode.set("timeoutAction", current.getStr("timeoutAction", "notify_only"));
-                out.add(pathNode);
-            } else if ("end".equals(type)) {
-                break;
-            }
-
-            currentId = findNextNode(graph, currentId, ctx);
-        }
-        return out;
-    }
-
-    /**
-     * Parse a schemaVersion=2 nodeConfig string into a WorkflowGraph. Validation
-     * is performed during parsing; check {@link WorkflowGraph#valid} before use.
-     */
     public WorkflowGraph parseNodeConfig(String nodeConfig) {
-        if (nodeConfig == null || nodeConfig.isBlank()) {
-            return new WorkflowGraph(2, new LinkedHashMap<>(), new LinkedHashMap<>(), new ArrayList<>(),
-                    java.util.Collections.singletonList(new ValidationError("empty", null, "nodeConfig 为空")));
-        }
-
-        String trimmed = nodeConfig.trim();
-        if (!trimmed.startsWith("{")) {
-            return new WorkflowGraph(0, new LinkedHashMap<>(), new LinkedHashMap<>(), new ArrayList<>(),
-                    java.util.Collections.singletonList(new ValidationError("schema_v2_required", null, "流程定义必须是 schemaVersion=2 图 JSON")));
-        }
-        // Graph format
-        JSONObject config;
-        try {
-            config = JSONUtil.parseObj(trimmed);
-        } catch (Exception e) {
-            return new WorkflowGraph(2, new LinkedHashMap<>(), new LinkedHashMap<>(), new ArrayList<>(),
-                    java.util.Collections.singletonList(new ValidationError("parse_error", null, "图格式 JSON 解析失败: " + e.getMessage())));
-        }
-        int schemaVersion = config.getInt("schemaVersion", 0);
-        JSONArray nodesArr = config.getJSONArray("nodes");
-        JSONArray edgesArr = config.getJSONArray("edges");
-
-        Map<String, JSONObject> nodes = new LinkedHashMap<>();
-        Map<String, List<JSONObject>> outgoing = new LinkedHashMap<>();
-        List<JSONObject> edges = new ArrayList<>();
-        List<ValidationError> errors = new ArrayList<>();
-
-        if (schemaVersion != 2) {
-            errors.add(new ValidationError("schema_v2_required", null, "流程定义必须声明 schemaVersion=2"));
-        }
-
-        if (nodesArr == null) {
-            errors.add(new ValidationError("no_nodes", null, "图格式缺少 nodes 数组"));
-        } else {
-            for (int i = 0; i < nodesArr.size(); i++) {
-                JSONObject n = nodesArr.getJSONObject(i);
-                String id = n.getStr("nodeId");
-                if (id == null || id.isBlank()) {
-                    errors.add(new ValidationError("missing_node_id", null, "第 " + i + " 个节点缺少 nodeId"));
-                    continue;
-                }
-                if (nodes.containsKey(id)) {
-                    errors.add(new ValidationError("duplicate_node_id", id, "节点 ID 重复: " + id));
-                }
-                nodes.put(id, n);
-                outgoing.computeIfAbsent(id, k -> new ArrayList<>());
-            }
-        }
-
-        if (edgesArr != null) {
-            for (int i = 0; i < edgesArr.size(); i++) {
-                JSONObject e = edgesArr.getJSONObject(i);
-                String source = e.getStr("source");
-                String target = e.getStr("target");
-                if (source == null || !nodes.containsKey(source)) {
-                    errors.add(new ValidationError("unknown_edge_endpoint", source, "边的 source 不存在: " + source));
-                }
-                if (target == null || !nodes.containsKey(target)) {
-                    errors.add(new ValidationError("unknown_edge_endpoint", target, "边的 target 不存在: " + target));
-                }
-                if (source != null && target != null) {
-                    outgoing.computeIfAbsent(source, k -> new ArrayList<>()).add(e);
-                    edges.add(e);
-                }
-            }
-        }
-
-        // At least one start and one end
-        boolean hasStart = nodes.values().stream().anyMatch(n -> "start".equals(n.getStr("nodeType")));
-        boolean hasEnd = nodes.values().stream().anyMatch(n -> "end".equals(n.getStr("nodeType")));
-        if (!hasStart) errors.add(new ValidationError("no_start", null, "图缺少开始节点 (nodeType=start)"));
-        if (!hasEnd) errors.add(new ValidationError("no_end", null, "图缺少结束节点 (nodeType=end)"));
-
-        // Cycle detection via DFS from start
-        if (hasStart) {
-            String startId = nodes.values().stream()
-                    .filter(n -> "start".equals(n.getStr("nodeType")))
-                    .findFirst().get().getStr("nodeId");
-            java.util.Set<String> visiting = new java.util.HashSet<>();
-            java.util.Set<String> visited = new java.util.HashSet<>();
-            if (hasCycle(startId, outgoing, visiting, visited)) {
-                errors.add(new ValidationError("cycle", startId, "图存在环，可能导致死循环"));
-            }
-        }
-
-        // Per-approval-node: assigneeType + assigneeValue required
-        for (JSONObject n : nodes.values()) {
-            if ("approval".equals(n.getStr("nodeType"))) {
-                String t = n.getStr("assigneeType");
-                String v = n.getStr("assigneeValue");
-                if (t == null || t.isBlank()) {
-                    errors.add(new ValidationError("missing_assignee_type", n.getStr("nodeId"),
-                            "审批节点缺少 assigneeType"));
-                }
-                if (v == null || v.isBlank()) {
-                    errors.add(new ValidationError("missing_assignee_value", n.getStr("nodeId"),
-                            "审批节点缺少 assigneeValue"));
-                }
-            }
-        }
-
-        return new WorkflowGraph(schemaVersion, nodes, outgoing, edges, errors);
+        return workflowRuntimeEngine.parseNodeConfig(nodeConfig);
     }
 
-    /** DFS cycle detection. */
-    private boolean hasCycle(String startId,
-                             Map<String, List<JSONObject>> outgoing,
-                             java.util.Set<String> visiting,
-                             java.util.Set<String> visited) {
-        if (visited.contains(startId)) return false;
-        if (visiting.contains(startId)) return true;
-        visiting.add(startId);
-        List<JSONObject> edges = outgoing.getOrDefault(startId, java.util.Collections.emptyList());
-        for (JSONObject e : edges) {
-            String target = e.getStr("target");
-            if (target != null && hasCycle(target, outgoing, visiting, visited)) {
-                return true;
-            }
-        }
-        visiting.remove(startId);
-        visited.add(startId);
-        return false;
-    }
-
-    /**
-     * Resolve the next nodeId for a given current nodeId using routing rules
-     * and gateway branches. Returns null if the current node has no outgoing
-     * edge (i.e. process terminates). Routing precedence:
-     *   1. node-level routingRules (skipTo / jumpTo) — first match wins
-     *   2. gateway branches (if current node is a gateway)
-     *   3. first outgoing edge whose condition evaluates true (no condition = always)
-     *   4. first outgoing edge unconditional fallback
-     */
     public String findNextNode(WorkflowGraph graph, String currentNodeId, Map<String, Object> ctx) {
-        if (graph == null || !graph.valid || currentNodeId == null) return null;
-        JSONObject current = graph.nodes.get(currentNodeId);
-        if (current == null) return null;
-
-        // 1. Node-level routing rules
-        JSONArray rules = current.getJSONArray("routingRules");
-        if (rules != null && ctx != null) {
-            for (int i = 0; i < rules.size(); i++) {
-                JSONObject rule = rules.getJSONObject(i);
-                if (evaluateRoutingRule(rule, ctx)) {
-                    String skipTo = rule.getStr("skipTo");
-                    if (skipTo != null && graph.nodes.containsKey(skipTo)) return skipTo;
-                    String jumpTo = rule.getStr("jumpTo");
-                    if (jumpTo != null && graph.nodes.containsKey(jumpTo)) return jumpTo;
-                }
-            }
-        }
-
-        // 2. Gateway branches
-        if ("gateway".equals(current.getStr("nodeType"))) {
-            return pickGatewayBranch(current, graph, ctx);
-        }
-
-        // 3 & 4. Outgoing edges
-        List<JSONObject> edges = graph.outgoing.getOrDefault(currentNodeId, java.util.Collections.emptyList());
-        for (JSONObject e : edges) {
-            if (evaluateEdgeCondition(e, ctx)) {
-                return e.getStr("target");
-            }
-        }
-        // 4. Unconditional fallback
-        if (!edges.isEmpty()) {
-            return edges.get(0).getStr("target");
-        }
-        return null;
-    }
-
-    private boolean evaluateEdgeCondition(JSONObject edge, Map<String, Object> ctx) {
-        JSONObject condition = edge.getJSONObject("condition");
-        if (condition == null) return true;
-        if (ctx == null || ctx.isEmpty()) return false;
-
-        String field = condition.getStr("field");
-        String operator = condition.getStr("operator");
-        Object thresholdObj = condition.get("value");
-        Object rawVal = ctx.get(field);
-        if (rawVal == null || thresholdObj == null) return false;
-
-        double actual = ((Number) rawVal).doubleValue();
-        double threshold = ((Number) thresholdObj).doubleValue();
-        switch (operator) {
-            case "<=": return actual <= threshold;
-            case "<": return actual < threshold;
-            case ">=": return actual >= threshold;
-            case ">": return actual > threshold;
-            case "==": return actual == threshold;
-            case "!=": return actual != threshold;
-            default: return false;
-        }
-    }
-
-    /**
-     * Evaluate a routing rule against the condition context. The rule format is:
-     *   { "when": "context.amount > 1000", "skipTo": "n_finance", "jumpTo": "n_gm" }
-     * Reuses the same operator set as evaluateConditions().
-     */
-    private boolean evaluateRoutingRule(JSONObject rule, Map<String, Object> ctx) {
-        String when = rule.getStr("when");
-        if (when == null || when.isBlank()) return false;
-        return evaluateExpression(when, ctx);
-    }
-
-    /** Parse and evaluate a boolean expression. Supports && / || plus a small
-     *  comparison operator set: ==, !=, <, <=, >, >=. Anything else returns false. */
-    private boolean evaluateExpression(String expr, Map<String, Object> ctx) {
-        if (ctx == null || ctx.isEmpty()) return false;
-        if (expr == null || expr.isBlank()) return false;
-
-        List<String> orParts = splitExpression(expr, "||");
-        if (orParts.size() > 1) {
-            for (String part : orParts) {
-                if (evaluateExpression(part, ctx)) return true;
-            }
-            return false;
-        }
-
-        List<String> andParts = splitExpression(expr, "&&");
-        if (andParts.size() > 1) {
-            for (String part : andParts) {
-                if (!evaluateExpression(part, ctx)) return false;
-            }
-            return true;
-        }
-
-        String[] operators = {"<=", ">=", "==", "!=", "<", ">"};
-        for (String op : operators) {
-            int idx = expr.indexOf(op);
-            if (idx <= 0) continue;
-            String lhs = expr.substring(0, idx).trim();
-            String rhs = expr.substring(idx + op.length()).trim();
-            Object lhsVal = resolveContextPath(lhs, ctx);
-            Object rhsVal = tryParseLiteral(rhs);
-            if (lhsVal == null || rhsVal == null) return false;
-            return compareNumeric(lhsVal, rhsVal, op);
-        }
-        return false;
-    }
-
-    private List<String> splitExpression(String expr, String delimiter) {
-        List<String> parts = new ArrayList<>();
-        int start = 0;
-        boolean inQuote = false;
-        char quote = 0;
-        for (int i = 0; i <= expr.length() - delimiter.length(); i++) {
-            char ch = expr.charAt(i);
-            if ((ch == '"' || ch == '\'') && (i == 0 || expr.charAt(i - 1) != '\\')) {
-                if (!inQuote) {
-                    inQuote = true;
-                    quote = ch;
-                } else if (quote == ch) {
-                    inQuote = false;
-                    quote = 0;
-                }
-            }
-            if (!inQuote && expr.startsWith(delimiter, i)) {
-                parts.add(expr.substring(start, i).trim());
-                i += delimiter.length() - 1;
-                start = i + 1;
-            }
-        }
-        if (start == 0) return java.util.Collections.singletonList(expr.trim());
-        parts.add(expr.substring(start).trim());
-        return parts;
-    }
-
-    /** Resolve a direct field ("amount") or context path ("context.amount") in the ctx map. */
-    private Object resolveContextPath(String path, Map<String, Object> ctx) {
-        if (path == null || ctx == null) return null;
-        if (ctx.containsKey(path)) return ctx.get(path);
-        if (path.startsWith("context.")) {
-            String contextKey = path.substring("context.".length());
-            if (ctx.containsKey(contextKey)) return ctx.get(contextKey);
-        }
-        String[] parts = path.split("\\.");
-        Object cur = ctx;
-        for (String p : parts) {
-            if (cur instanceof Map) {
-                cur = ((Map<?, ?>) cur).get(p);
-            } else {
-                return null;
-            }
-        }
-        return cur;
-    }
-
-    /** Try parsing a literal: number, boolean, or quoted string. */
-    private Object tryParseLiteral(String s) {
-        if (s == null) return null;
-        try { return Double.parseDouble(s); } catch (NumberFormatException ignored) {}
-        if (s.equals("true")) return Boolean.TRUE;
-        if (s.equals("false")) return Boolean.FALSE;
-        if (s.length() >= 2 && s.startsWith("\"") && s.endsWith("\"")) {
-            return s.substring(1, s.length() - 1);
-        }
-        return s;
-    }
-
-    private boolean compareNumeric(Object lhs, Object rhs, String op) {
-        double l = toDouble(lhs);
-        double r = toDouble(rhs);
-        switch (op) {
-            case "==": return l == r;
-            case "!=": return l != r;
-            case "<":  return l <  r;
-            case "<=": return l <= r;
-            case ">":  return l >  r;
-            case ">=": return l >= r;
-            default:   return false;
-        }
-    }
-
-    private double toDouble(Object o) {
-        if (o instanceof Number) return ((Number) o).doubleValue();
-        try { return Double.parseDouble(String.valueOf(o)); } catch (NumberFormatException e) { return Double.NaN; }
-    }
-
-    /** Pick the next node from a gateway's branches based on condition evaluation. */
-    private String pickGatewayBranch(JSONObject gateway, WorkflowGraph graph, Map<String, Object> ctx) {
-        JSONArray branches = gateway.getJSONArray("branches");
-        if (branches != null) {
-            for (int i = 0; i < branches.size(); i++) {
-                JSONObject b = branches.getJSONObject(i);
-                if (evaluateRoutingRule(b, ctx)) {
-                    String to = b.getStr("to");
-                    if (to != null && graph.nodes.containsKey(to)) return to;
-                }
-            }
-        }
-        // Fallback: first outgoing edge
-        String gid = gateway.getStr("nodeId");
-        List<JSONObject> edges = graph.outgoing.getOrDefault(gid, java.util.Collections.emptyList());
-        if (!edges.isEmpty()) return edges.get(0).getStr("target");
-        return null;
+        return workflowRuntimeEngine.findNextNode(graph, currentNodeId, ctx);
     }
 }

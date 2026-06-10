@@ -24,7 +24,7 @@ public class WfProcessDefinition {
     /** leave/trip/outing/purchase/expense/contract/overtime/loan */
     private String processType;
 
-    /** JSON array of approval nodes */
+    /** Graph JSON workflow definition, schemaVersion 2/3. */
     private String nodeConfig;
 
     private String status = "0";

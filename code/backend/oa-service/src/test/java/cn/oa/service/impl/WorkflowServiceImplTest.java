@@ -7,6 +7,8 @@ import cn.oa.common.exception.BusinessException;
 import cn.oa.entity.*;
 import cn.oa.mapper.*;
 import cn.oa.service.*;
+import cn.oa.service.workflow.WorkflowGraph;
+import cn.oa.service.workflow.WorkflowRuntimeEngine;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -54,6 +56,8 @@ class WorkflowServiceImplTest {
 
     @InjectMocks
     private WorkflowServiceImpl workflowService;
+
+    private final WorkflowRuntimeEngine workflowRuntimeEngine = new WorkflowRuntimeEngine();
 
     @Captor private ArgumentCaptor<WfProcessInstance> instanceCaptor;
     @Captor private ArgumentCaptor<WfTask> taskCaptor;
@@ -106,6 +110,19 @@ class WorkflowServiceImplTest {
                 + "],\"edges\":[{\"source\":\"start\",\"target\":\"n1\"},{\"source\":\"n1\",\"target\":\"end\"}]}";
     }
 
+    private String v3SingleApproverConfig() {
+        return v3SingleApproverConfig(2L, "Manager Approval");
+    }
+
+    private String v3SingleApproverConfig(Long assigneeId, String nodeName) {
+        return "{\"schemaVersion\":3,\"nodes\":["
+                + "{\"nodeId\":\"start\",\"nodeType\":\"start\",\"nodeName\":\"Start\"},"
+                + "{\"nodeId\":\"n1\",\"nodeType\":\"approval\",\"nodeName\":\"" + nodeName + "\","
+                + "\"approvalMode\":\"single\",\"assigneeRule\":{\"type\":\"specific\",\"userId\":\"" + assigneeId + "\"}},"
+                + "{\"nodeId\":\"end\",\"nodeType\":\"end\",\"nodeName\":\"End\"}"
+                + "],\"edges\":[{\"source\":\"start\",\"target\":\"n1\"},{\"source\":\"n1\",\"target\":\"end\"}]}";
+    }
+
     private String v2ConditionalApproverConfig() {
         return "{\"schemaVersion\":2,\"nodes\":["
                 + "{\"nodeId\":\"start\",\"nodeType\":\"start\",\"nodeName\":\"Node\"},"
@@ -125,6 +142,9 @@ class WorkflowServiceImplTest {
         Field baseMapperField = com.baomidou.mybatisplus.extension.repository.CrudRepository.class.getDeclaredField("baseMapper");
         baseMapperField.setAccessible(true);
         baseMapperField.set(workflowService, definitionMapper);
+        Field runtimeEngineField = WorkflowServiceImpl.class.getDeclaredField("workflowRuntimeEngine");
+        runtimeEngineField.setAccessible(true);
+        runtimeEngineField.set(workflowService, workflowRuntimeEngine);
     }
 
     // ==================== startProcess ====================
@@ -687,7 +707,7 @@ class WorkflowServiceImplTest {
         WfProcessDefinition def = new WfProcessDefinition();
         def.setProcessName("娴嬭瘯娴佺▼");
         def.setProcessType(businessType);
-        def.setNodeConfig("[]");
+        def.setNodeConfig(v3SingleApproverConfig());
 
         workflowService.saveDefinition(def);
 
@@ -699,14 +719,14 @@ class WorkflowServiceImplTest {
     @Test
     @DisplayName("workflow test")
     void saveDefinition_UpdateVersion() {
-        WfProcessDefinition existing = createDefinition("[]");
+        WfProcessDefinition existing = createDefinition(v3SingleApproverConfig());
         existing.setVersion(2);
 
         WfProcessDefinition newDef = new WfProcessDefinition();
         newDef.setId(10L);
         newDef.setProcessName("娴嬭瘯娴佺▼");
         newDef.setProcessType(businessType);
-        newDef.setNodeConfig("[]");
+        newDef.setNodeConfig(v3SingleApproverConfig());
 
         when(definitionMapper.selectById(10L)).thenReturn(existing);
 
@@ -718,6 +738,70 @@ class WorkflowServiceImplTest {
         assertThat(newDef.getVersion()).isEqualTo(3);
         verify(definitionMapper).updateById(existing);
         verify(definitionMapper).insert(newDef);
+    }
+
+    @Test
+    @DisplayName("saving a new definition activates it and deactivates previous active definitions")
+    void saveDefinition_NewDefinition_DeactivatesCurrentActiveDefinition() {
+        WfProcessDefinition latest = createDefinition(v3SingleApproverConfig(2L, "Old Approval"));
+        latest.setId(10L);
+        latest.setVersion(1);
+        latest.setStatus("0");
+
+        WfProcessDefinition newDef = new WfProcessDefinition();
+        newDef.setProcessName("Leave V2");
+        newDef.setProcessType(businessType);
+        newDef.setNodeConfig(v3SingleApproverConfig(3L, "New Approval"));
+
+        when(definitionMapper.selectOne(any(LambdaQueryWrapper.class), anyBoolean())).thenReturn(latest);
+        when(definitionMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Collections.singletonList(latest));
+
+        workflowService.saveDefinition(newDef);
+
+        assertThat(newDef.getVersion()).isEqualTo(2);
+        assertThat(newDef.getStatus()).isEqualTo("0");
+        assertThat(latest.getStatus()).isEqualTo("1");
+        verify(definitionMapper).updateById(latest);
+        verify(definitionMapper).insert(newDef);
+    }
+
+    @Test
+    @DisplayName("starting a process uses the latest active definition without service restart")
+    void startProcess_UsesLatestActiveDefinitionForNewInstances() {
+        WfProcessDefinition v1 = createDefinition(v3SingleApproverConfig(2L, "Old Approval"));
+        v1.setId(10L);
+        v1.setVersion(1);
+        v1.setStatus("0");
+
+        WfProcessDefinition v2 = createDefinition(v3SingleApproverConfig(3L, "New Approval"));
+        v2.setId(11L);
+        v2.setVersion(2);
+        v2.setStatus("0");
+
+        when(definitionMapper.selectOne(any(LambdaQueryWrapper.class), anyBoolean()))
+                .thenReturn(v1)
+                .thenReturn(v2);
+        when(instanceMapper.insert(any(WfProcessInstance.class))).thenReturn(1);
+        when(taskMapper.insert(any(WfTask.class))).thenReturn(1);
+
+        WfProcessInstance first = workflowService.startProcess(businessType, 100L, initiatorId);
+        WfProcessInstance second = workflowService.startProcess(businessType, 101L, initiatorId);
+
+        verify(instanceMapper, times(2)).insert(instanceCaptor.capture());
+        verify(taskMapper, times(2)).insert(taskCaptor.capture());
+
+        assertThat(first.getProcessId()).isEqualTo(10L);
+        assertThat(first.getProcessVersion()).isEqualTo(1);
+        assertThat(first.getSnapshotNodeConfig()).contains("Old Approval");
+        assertThat(second.getProcessId()).isEqualTo(11L);
+        assertThat(second.getProcessVersion()).isEqualTo(2);
+        assertThat(second.getSnapshotNodeConfig()).contains("New Approval");
+
+        List<WfTask> tasks = taskCaptor.getAllValues();
+        assertThat(tasks.get(0).getAssigneeId()).isEqualTo(2L);
+        assertThat(tasks.get(0).getNodeName()).isEqualTo("Old Approval");
+        assertThat(tasks.get(1).getAssigneeId()).isEqualTo(3L);
+        assertThat(tasks.get(1).getNodeName()).isEqualTo("New Approval");
     }
 
     // ==================== urgeTask ====================
@@ -791,7 +875,7 @@ class WorkflowServiceImplTest {
     @Test
     @DisplayName("workflow test")
     void parseNodeConfig_ArrayDefinition_Rejected() {
-        WorkflowServiceImpl.WorkflowGraph graph = workflowService.parseNodeConfig(
+        WorkflowGraph graph = workflowService.parseNodeConfig(
                 "[{\"nodeName\":\"Node\",\"nodeType\":\"approval\",\"assigneeType\":\"role\",\"assigneeValue\":\"DEPT_MANAGER\"}]");
 
         assertThat(graph.schemaVersion).isEqualTo(0);
@@ -812,12 +896,33 @@ class WorkflowServiceImplTest {
                 "  ],\n" +
                 "  \"edges\": [{\"source\":\"start\",\"target\":\"n1\"},{\"source\":\"n1\",\"target\":\"end\"}]\n" +
                 "}";
-        WorkflowServiceImpl.WorkflowGraph graph = workflowService.parseNodeConfig(cfg);
+        WorkflowGraph graph = workflowService.parseNodeConfig(cfg);
 
         assertThat(graph.isGraph()).isTrue();
         assertThat(graph.valid).isTrue();
         assertThat(graph.nodes).containsKeys("start", "n1", "end");
         assertThat(graph.outgoing.get("start")).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("workflow test")
+    void parseNodeConfig_GraphV3Valid() {
+        String cfg = "{\n" +
+                "  \"schemaVersion\": 3,\n" +
+                "  \"nodes\": [\n" +
+                "    {\"nodeId\":\"start\",\"nodeType\":\"start\",\"nodeName\":\"Node\"},\n" +
+                "    {\"nodeId\":\"n1\",\"nodeType\":\"approval\",\"nodeName\":\"Node\",\"approvalMode\":\"single\",\"assigneeRule\":{\"type\":\"role_global\",\"roleKey\":\"GM\"}},\n" +
+                "    {\"nodeId\":\"end\",\"nodeType\":\"end\",\"nodeName\":\"Node\"}\n" +
+                "  ],\n" +
+                "  \"edges\": [{\"source\":\"start\",\"target\":\"n1\"},{\"source\":\"n1\",\"target\":\"end\"}]\n" +
+                "}";
+        WorkflowGraph graph = workflowService.parseNodeConfig(cfg);
+
+        assertThat(graph.schemaVersion).isEqualTo(3);
+        assertThat(graph.isGraph()).isTrue();
+        assertThat(graph.valid).isTrue();
+        assertThat(graph.nodes.get("n1").getStr("assigneeType")).isEqualTo("role_global");
+        assertThat(graph.nodes.get("n1").getStr("assigneeValue")).isEqualTo("GM");
     }
 
     @Test
@@ -830,7 +935,7 @@ class WorkflowServiceImplTest {
                 "  ],\n" +
                 "  \"edges\": []\n" +
                 "}";
-        WorkflowServiceImpl.WorkflowGraph graph = workflowService.parseNodeConfig(cfg);
+        WorkflowGraph graph = workflowService.parseNodeConfig(cfg);
 
         assertThat(graph.valid).isFalse();
         assertThat(graph.errors).extracting(e -> e.type).contains("no_start", "no_end");
@@ -854,7 +959,7 @@ class WorkflowServiceImplTest {
                 "    {\"source\":\"b\",\"target\":\"end\"}\n" +
                 "  ]\n" +
                 "}";
-        WorkflowServiceImpl.WorkflowGraph graph = workflowService.parseNodeConfig(cfg);
+        WorkflowGraph graph = workflowService.parseNodeConfig(cfg);
 
         assertThat(graph.valid).isFalse();
         assertThat(graph.errors).extracting(e -> e.type).contains("cycle");
@@ -871,10 +976,59 @@ class WorkflowServiceImplTest {
                 "  ],\n" +
                 "  \"edges\": [{\"source\":\"start\",\"target\":\"ghost\"}]\n" +
                 "}";
-        WorkflowServiceImpl.WorkflowGraph graph = workflowService.parseNodeConfig(cfg);
+        WorkflowGraph graph = workflowService.parseNodeConfig(cfg);
 
         assertThat(graph.valid).isFalse();
         assertThat(graph.errors).extracting(e -> e.type).contains("unknown_edge_endpoint");
+    }
+
+    @Test
+    @DisplayName("workflow test")
+    void parseNodeConfig_EmptyGraphRejected() {
+        String cfg = "{\"schemaVersion\":3,\"nodes\":[],\"edges\":[]}";
+
+        WorkflowGraph graph = workflowService.parseNodeConfig(cfg);
+
+        assertThat(graph.valid).isFalse();
+        assertThat(graph.errors).extracting(e -> e.type)
+                .contains("no_nodes", "no_edges", "no_start", "no_end", "no_approval");
+    }
+
+    @Test
+    @DisplayName("workflow test")
+    void parseNodeConfig_StartEndOnlyRejected() {
+        String cfg = "{\n" +
+                "  \"schemaVersion\": 3,\n" +
+                "  \"nodes\": [\n" +
+                "    {\"nodeId\":\"start\",\"nodeType\":\"start\",\"nodeName\":\"Start\"},\n" +
+                "    {\"nodeId\":\"end\",\"nodeType\":\"end\",\"nodeName\":\"End\"}\n" +
+                "  ],\n" +
+                "  \"edges\": [{\"source\":\"start\",\"target\":\"end\"}]\n" +
+                "}";
+
+        WorkflowGraph graph = workflowService.parseNodeConfig(cfg);
+
+        assertThat(graph.valid).isFalse();
+        assertThat(graph.errors).extracting(e -> e.type).contains("no_approval");
+    }
+
+    @Test
+    @DisplayName("workflow test")
+    void parseNodeConfig_DisconnectedApprovalRejected() {
+        String cfg = "{\n" +
+                "  \"schemaVersion\": 3,\n" +
+                "  \"nodes\": [\n" +
+                "    {\"nodeId\":\"start\",\"nodeType\":\"start\",\"nodeName\":\"Start\"},\n" +
+                "    {\"nodeId\":\"n1\",\"nodeType\":\"approval\",\"nodeName\":\"Node\",\"assigneeType\":\"specific\",\"assigneeValue\":\"2\"},\n" +
+                "    {\"nodeId\":\"end\",\"nodeType\":\"end\",\"nodeName\":\"End\"}\n" +
+                "  ],\n" +
+                "  \"edges\": [{\"source\":\"start\",\"target\":\"end\"}]\n" +
+                "}";
+
+        WorkflowGraph graph = workflowService.parseNodeConfig(cfg);
+
+        assertThat(graph.valid).isFalse();
+        assertThat(graph.errors).extracting(e -> e.type).contains("unreachable_node");
     }
 
     @Test
@@ -895,7 +1049,7 @@ class WorkflowServiceImplTest {
                 "    {\"source\":\"n_director\",\"target\":\"end\"}\n" +
                 "  ]\n" +
                 "}";
-        WorkflowServiceImpl.WorkflowGraph graph = workflowService.parseNodeConfig(cfg);
+        WorkflowGraph graph = workflowService.parseNodeConfig(cfg);
         assertThat(graph.valid).isTrue();
 
         Map<String, Object> ctxSmall = new HashMap<>();
@@ -931,7 +1085,7 @@ class WorkflowServiceImplTest {
                 "    {\"source\":\"n_gm\",\"target\":\"end\"}\n" +
                 "  ]\n" +
                 "}";
-        WorkflowServiceImpl.WorkflowGraph graph = workflowService.parseNodeConfig(cfg);
+        WorkflowGraph graph = workflowService.parseNodeConfig(cfg);
         assertThat(graph.valid).isTrue();
 
         Map<String, Object> ctxMid = new HashMap<>();
@@ -982,22 +1136,14 @@ class WorkflowServiceImplTest {
     }
 
     private List<String> materializeApprovalNodeIds(String nodeConfig, Map<String, Object> ctx) {
-        try {
-            WorkflowServiceImpl.WorkflowGraph graph = workflowService.parseNodeConfig(nodeConfig);
-            assertThat(graph.valid).isTrue();
-            java.lang.reflect.Method m = WorkflowServiceImpl.class.getDeclaredMethod(
-                    "materializeGraphToRuntimePath", WorkflowServiceImpl.WorkflowGraph.class, Map.class);
-            m.setAccessible(true);
-            JSONArray nodes = (JSONArray) m.invoke(workflowService, graph, ctx);
-            List<String> nodeIds = new ArrayList<>();
-            for (Object obj : nodes) {
-                nodeIds.add(((JSONObject) obj).getStr("nodeId"));
-            }
-            return nodeIds;
-        } catch (Exception e) {
-            if (e.getCause() instanceof RuntimeException) throw (RuntimeException) e.getCause();
-            throw new RuntimeException(e);
+        WorkflowGraph graph = workflowService.parseNodeConfig(nodeConfig);
+        assertThat(graph.valid).isTrue();
+        JSONArray nodes = workflowRuntimeEngine.materializeGraphToRuntimePath(graph, ctx);
+        List<String> nodeIds = new ArrayList<>();
+        for (Object obj : nodes) {
+            nodeIds.add(((JSONObject) obj).getStr("nodeId"));
         }
+        return nodeIds;
     }
 
     private String amountTieredWorkflowConfig() {
@@ -1036,3 +1182,4 @@ class WorkflowServiceImplTest {
         return emp;
     }
 }
+

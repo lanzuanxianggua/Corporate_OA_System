@@ -35,6 +35,7 @@ public class WorkflowSchemaBootstrapInitializer implements ApplicationRunner {
         }
 
         createWorkflowTablesIfMissing();
+        enforceWorkflowDefinitionSchema();
         enforceWorkflowTaskSchema();
         enforceWorkflowDelegationSchema();
         dropRetiredWorkflowTables();
@@ -42,6 +43,30 @@ public class WorkflowSchemaBootstrapInitializer implements ApplicationRunner {
     }
 
     private void createWorkflowTablesIfMissing() {
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS wf_process_definition (
+                  id BIGINT NOT NULL AUTO_INCREMENT,
+                  process_name VARCHAR(100) NOT NULL,
+                  process_key VARCHAR(100) NOT NULL,
+                  process_type VARCHAR(50) NOT NULL,
+                  node_config LONGTEXT NOT NULL,
+                  designer_schema LONGTEXT DEFAULT NULL,
+                  runtime_schema LONGTEXT DEFAULT NULL,
+                  bpmn_xml LONGTEXT DEFAULT NULL,
+                  status VARCHAR(20) NOT NULL DEFAULT '0',
+                  version INT NOT NULL DEFAULT 1,
+                  create_by VARCHAR(64) DEFAULT NULL,
+                  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                  update_by VARCHAR(64) DEFAULT NULL,
+                  update_time DATETIME DEFAULT NULL,
+                  del_flag CHAR(1) NOT NULL DEFAULT '0',
+                  PRIMARY KEY (id),
+                  KEY idx_process_type_status (process_type, status, del_flag),
+                  KEY idx_process_key_version (process_key, version),
+                  KEY idx_process_type_version (process_type, version)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                """);
+
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS wf_task (
                   id BIGINT NOT NULL AUTO_INCREMENT,
@@ -85,6 +110,76 @@ public class WorkflowSchemaBootstrapInitializer implements ApplicationRunner {
                   KEY idx_delegate_id (delegate_id)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                 """);
+    }
+
+    private void enforceWorkflowDefinitionSchema() {
+        addColumnIfMissing("wf_process_definition", "process_key",
+                "ALTER TABLE wf_process_definition ADD COLUMN process_key VARCHAR(100) NOT NULL DEFAULT '' AFTER process_name");
+        addColumnIfMissing("wf_process_definition", "process_type",
+                "ALTER TABLE wf_process_definition ADD COLUMN process_type VARCHAR(50) NOT NULL DEFAULT '' AFTER process_key");
+        addColumnIfMissing("wf_process_definition", "node_config",
+                "ALTER TABLE wf_process_definition ADD COLUMN node_config LONGTEXT NULL AFTER process_type");
+        addColumnIfMissing("wf_process_definition", "designer_schema",
+                "ALTER TABLE wf_process_definition ADD COLUMN designer_schema LONGTEXT NULL COMMENT 'Frontend workflow designer schema JSON' AFTER node_config");
+        addColumnIfMissing("wf_process_definition", "runtime_schema",
+                "ALTER TABLE wf_process_definition ADD COLUMN runtime_schema LONGTEXT NULL COMMENT 'Backend normalized runtime schema JSON' AFTER designer_schema");
+        addColumnIfMissing("wf_process_definition", "bpmn_xml",
+                "ALTER TABLE wf_process_definition ADD COLUMN bpmn_xml LONGTEXT NULL COMMENT 'Optional BPMN 2.0 XML export' AFTER runtime_schema");
+
+        upgradeWorkflowJsonColumnToV3("node_config");
+        upgradeWorkflowJsonColumnToV3("designer_schema");
+        upgradeWorkflowJsonColumnToV3("runtime_schema");
+        jdbcTemplate.update("""
+                UPDATE wf_process_definition
+                   SET process_key = REPLACE(process_key, '_v2', '_v3'),
+                       update_by = 'system',
+                       update_time = NOW()
+                 WHERE del_flag = '0'
+                   AND process_key LIKE '%\\_v2'
+                """);
+
+        jdbcTemplate.update("""
+                UPDATE wf_process_definition
+                   SET designer_schema = COALESCE(designer_schema, node_config),
+                       runtime_schema = COALESCE(runtime_schema, node_config)
+                 WHERE del_flag = '0'
+                """);
+
+        jdbcTemplate.update("""
+                UPDATE wf_process_definition older
+                JOIN wf_process_definition newer
+                  ON older.process_type = newer.process_type
+                 AND older.del_flag = '0'
+                 AND newer.del_flag = '0'
+                 AND older.status = '0'
+                 AND newer.status = '0'
+                 AND older.version < newer.version
+                   SET older.status = '1',
+                       older.update_by = 'system',
+                       older.update_time = NOW()
+                """);
+
+        addIndexIfMissing("wf_process_definition", "idx_process_type_status",
+                "ALTER TABLE wf_process_definition ADD INDEX idx_process_type_status (process_type, status, del_flag)");
+        addIndexIfMissing("wf_process_definition", "idx_process_key_version",
+                "ALTER TABLE wf_process_definition ADD INDEX idx_process_key_version (process_key, version)");
+        addIndexIfMissing("wf_process_definition", "idx_process_type_version",
+                "ALTER TABLE wf_process_definition ADD INDEX idx_process_type_version (process_type, version)");
+    }
+
+    private void upgradeWorkflowJsonColumnToV3(String column) {
+        if (!columnExists("wf_process_definition", column)) {
+            return;
+        }
+        jdbcTemplate.update("""
+                UPDATE wf_process_definition
+                   SET %s = JSON_SET(%s, '$.schemaVersion', 3),
+                       update_by = 'system',
+                       update_time = NOW()
+                 WHERE del_flag = '0'
+                   AND JSON_VALID(%s) = 1
+                   AND JSON_UNQUOTE(JSON_EXTRACT(%s, '$.schemaVersion')) = '2'
+                """.formatted(column, column, column, column));
     }
 
     private void enforceWorkflowTaskSchema() {

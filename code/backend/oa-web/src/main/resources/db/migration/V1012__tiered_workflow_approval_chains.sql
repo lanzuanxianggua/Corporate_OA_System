@@ -18,7 +18,7 @@ INSERT INTO wf_process_definition
 VALUES
   ('请假审批流程(逐级分级)', 'leave_tiered_chain', 'leave',
    '{
-     "schemaVersion": 2,
+     "schemaVersion": 3,
      "nodes": [
        {"nodeId": "start", "nodeType": "start", "nodeName": "开始"},
        {"nodeId": "n_manager", "nodeType": "approval", "nodeName": "部门经理审批",
@@ -47,7 +47,7 @@ VALUES
 
   ('出差审批流程(逐级分级)', 'trip_tiered_chain', 'trip',
    '{
-     "schemaVersion": 2,
+     "schemaVersion": 3,
      "nodes": [
        {"nodeId": "start", "nodeType": "start", "nodeName": "开始"},
        {"nodeId": "n_manager", "nodeType": "approval", "nodeName": "部门经理审批",
@@ -76,7 +76,7 @@ VALUES
 
   ('外出审批流程(逐级分级)', 'outing_tiered_chain', 'outing',
    '{
-     "schemaVersion": 2,
+     "schemaVersion": 3,
      "nodes": [
        {"nodeId": "start", "nodeType": "start", "nodeName": "开始"},
        {"nodeId": "n_manager", "nodeType": "approval", "nodeName": "部门经理审批",
@@ -105,7 +105,7 @@ VALUES
 
   ('加班审批流程(逐级分级)', 'overtime_tiered_chain', 'overtime',
    '{
-     "schemaVersion": 2,
+     "schemaVersion": 3,
      "nodes": [
        {"nodeId": "start", "nodeType": "start", "nodeName": "开始"},
        {"nodeId": "n_manager", "nodeType": "approval", "nodeName": "部门经理审批",
@@ -133,7 +133,7 @@ VALUES
 
   ('采购审批流程(逐级分级)', 'purchase_tiered_chain', 'purchase',
    '{
-     "schemaVersion": 2,
+     "schemaVersion": 3,
      "nodes": [
        {"nodeId": "start", "nodeType": "start", "nodeName": "开始"},
        {"nodeId": "n_manager", "nodeType": "approval", "nodeName": "部门经理审批",
@@ -167,7 +167,7 @@ VALUES
 
   ('报销审批流程(逐级分级)', 'expense_tiered_chain', 'expense',
    '{
-     "schemaVersion": 2,
+     "schemaVersion": 3,
      "nodes": [
        {"nodeId": "start", "nodeType": "start", "nodeName": "开始"},
        {"nodeId": "n_manager", "nodeType": "approval", "nodeName": "部门经理审批",
@@ -201,7 +201,7 @@ VALUES
 
   ('借款审批流程(逐级分级)', 'loan_tiered_chain', 'loan',
    '{
-     "schemaVersion": 2,
+     "schemaVersion": 3,
      "nodes": [
        {"nodeId": "start", "nodeType": "start", "nodeName": "开始"},
        {"nodeId": "n_manager", "nodeType": "approval", "nodeName": "部门经理审批",
