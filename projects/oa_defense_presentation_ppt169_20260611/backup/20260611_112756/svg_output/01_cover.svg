@@ -1,0 +1,59 @@
+<svg viewBox="0 0 1280 720" width="1280" height="720" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="coverGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1565C0" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#0D47A1" stop-opacity="0.98"/>
+    </linearGradient>
+    <radialGradient id="coverGlow" cx="20%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="#4CAF50" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#4CAF50" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1280" height="720" fill="url(#coverGradient)"/>
+  <rect width="1280" height="720" fill="url(#coverGlow)"/>
+
+  <!-- Decorative circuit pattern -->
+  <g opacity="0.08">
+    <line x1="100" y1="150" x2="250" y2="150" stroke="#FFFFFF" stroke-width="2"/>
+    <circle cx="250" cy="150" r="5" fill="#FFFFFF"/>
+    <line x1="250" y1="150" x2="250" y2="220" stroke="#FFFFFF" stroke-width="2"/>
+    <line x1="1050" y1="400" x2="1180" y2="400" stroke="#FFFFFF" stroke-width="2"/>
+    <circle cx="1050" cy="400" r="5" fill="#FFFFFF"/>
+    <line x1="1050" y1="400" x2="1050" y2="520" stroke="#FFFFFF" stroke-width="2"/>
+    <rect x="900" y="580" width="60" height="60" fill="none" stroke="#FFFFFF" stroke-width="2" rx="8"/>
+  </g>
+
+  <!-- Main content -->
+  <g id="content">
+    <!-- Main title -->
+    <text x="640" y="280" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif"
+          font-size="72" font-weight="700" fill="#FFFFFF" text-anchor="middle">
+      企业 OA 办公自动化系统
+    </text>
+
+    <!-- Subtitle -->
+    <text x="640" y="350" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif"
+          font-size="27" font-weight="400" fill="#E3F2FD" text-anchor="middle">
+      基于 Spring Boot + Vue 3 的企业级办公管理平台
+    </text>
+
+    <!-- Divider line -->
+    <line x1="440" y1="400" x2="840" y2="400" stroke="#FFFFFF" stroke-width="2" opacity="0.3"/>
+
+    <!-- Info block -->
+    <text x="640" y="480" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif"
+          font-size="20" fill="#E3F2FD" text-anchor="middle">
+      答辩人：[姓名]
+    </text>
+    <text x="640" y="520" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif"
+          font-size="20" fill="#E3F2FD" text-anchor="middle">
+      指导老师：[教师姓名]
+    </text>
+    <text x="640" y="570" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif"
+          font-size="20" fill="#E3F2FD" text-anchor="middle">
+      答辩日期：2026 年 6 月
+    </text>
+  </g>
+</svg>

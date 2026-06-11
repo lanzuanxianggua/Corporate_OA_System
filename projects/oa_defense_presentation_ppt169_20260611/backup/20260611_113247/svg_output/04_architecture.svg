@@ -1,0 +1,38 @@
+<svg viewBox="0 0 1280 720" width="1280" height="720" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="headerGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1565C0"/>
+      <stop offset="100%" stop-color="#4CAF50"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="#FFFFFF"/>
+  <rect x="0" y="0" width="1280" height="80" fill="url(#headerGradient)"/>
+  <text x="60" y="50" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="36" font-weight="700" fill="#FFFFFF">系统架构设计</text>
+
+  <!-- 三层架构 -->
+  <g id="architecture">
+    <rect x="340" y="140" width="600" height="120" fill="#E3F2FD" rx="8"/>
+    <text x="640" y="185" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="24" font-weight="600" fill="#1565C0" text-anchor="middle">表现层</text>
+    <text x="640" y="215" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F" text-anchor="middle">Vue 3 + Element Plus + TypeScript</text>
+    <text x="640" y="240" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="15" fill="#6C757D" text-anchor="middle">前端 UI 展示层</text>
+
+    <line x1="640" y1="260" x2="640" y2="290" stroke="#1565C0" stroke-width="3"/>
+    <polygon points="640,290 635,280 645,280" fill="#1565C0"/>
+
+    <rect x="340" y="300" width="600" height="140" fill="#E8F5E9" rx="8"/>
+    <text x="640" y="350" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="24" font-weight="600" fill="#4CAF50" text-anchor="middle">业务层</text>
+    <text x="640" y="380" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F" text-anchor="middle">Spring Boot 3 + 自研工作流引擎</text>
+    <text x="640" y="405" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="15" fill="#6C757D" text-anchor="middle">REST API + JWT 认证 + 业务逻辑</text>
+    <text x="640" y="425" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="15" fill="#6C757D" text-anchor="middle">统一响应 R&lt;T&gt; + TraceID 追踪</text>
+
+    <line x1="640" y1="440" x2="640" y2="470" stroke="#4CAF50" stroke-width="3"/>
+    <polygon points="640,470 635,460 645,460" fill="#4CAF50"/>
+
+    <rect x="340" y="480" width="600" height="120" fill="#FFF3E0" rx="8"/>
+    <text x="640" y="525" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="24" font-weight="600" fill="#FF6B35" text-anchor="middle">数据层</text>
+    <text x="640" y="555" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F" text-anchor="middle">MySQL 8 + Redis 7 + Flyway</text>
+    <text x="640" y="580" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="15" fill="#6C757D" text-anchor="middle">数据持久化 + 缓存 + 版本管理</text>
+  </g>
+
+  <text x="1220" y="705" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="12" fill="#ADB5BD" text-anchor="end">4</text>
+</svg>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720">
+<defs><linearGradient id="hg" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#1565C0" /><stop offset="100%" stop-color="#4CAF50" /></linearGradient></defs>
+<rect width="1280" height="720" fill="#FFF" /><rect width="1280" height="80" fill="url(#hg)" />
+<text x="60" y="50" font-family="Microsoft YaHei" font-size="36" font-weight="700" fill="#FFF">系统演示:工作台首页</text>
+<path fill="#F5F7FA" d="M92,140 H628 A12,12 0 0 1 640,152 V608 A12,12 0 0 1 628,620 H92 A12,12 0 0 1 80,608 V152 A12,12 0 0 1 92,140 Z" /><text x="360" y="190" font-family="Microsoft YaHei" font-size="22" font-weight="600" fill="#1565C0" text-anchor="middle">功能</text><text x="120" y="240" font-family="Microsoft YaHei" font-size="18" fill="#1D1D1F">• 待办任务中心</text><text x="120" y="275" font-family="Microsoft YaHei" font-size="18" fill="#1D1D1F">• 快捷入口</text><text x="120" y="310" font-family="Microsoft YaHei" font-size="18" fill="#1D1D1F">• 最近访问</text><text x="120" y="345" font-family="Microsoft YaHei" font-size="18" fill="#1D1D1F">• 消息通知</text><text x="120" y="380" font-family="Microsoft YaHei" font-size="18" fill="#1D1D1F">• 数据看板</text>
+<text x="1220" y="705" font-family="Microsoft YaHei" font-size="12" fill="#ADB5BD" text-anchor="end">19</text>
+</svg>

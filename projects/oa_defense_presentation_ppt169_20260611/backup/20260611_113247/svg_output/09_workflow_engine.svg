@@ -1,0 +1,26 @@
+<svg viewBox="0 0 1280 720" width="1280" height="720" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="headerGradient" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#1565C0"/><stop offset="100%" stop-color="#4CAF50"/></linearGradient></defs>
+  <rect width="1280" height="720" fill="#FFFFFF"/><rect x="0" y="0" width="1280" height="80" fill="url(#headerGradient)"/>
+  <text x="60" y="50" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="36" font-weight="700" fill="#FFFFFF">自研工作流引擎设计</text>
+  <rect x="200" y="140" width="880" height="80" fill="#E3F2FD" rx="8"/><text x="640" y="190" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="20" font-weight="600" fill="#1565C0" text-anchor="middle">核心表: wf_process_definitions | wf_process_instances | wf_tasks | wf_task_delegations</text>
+  <line x1="640" y1="220" x2="640" y2="250" stroke="#1565C0" stroke-width="3"/><polygon points="640,250 635,240 645,240" fill="#1565C0"/>
+  <rect x="100" y="260" width="180" height="100" fill="#E8F5E9" rx="8"/><text x="190" y="300" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" font-weight="600" fill="#4CAF50" text-anchor="middle">发起</text><text x="190" y="330" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="14" fill="#6C757D" text-anchor="middle">创建实例</text>
+  <line x1="280" y1="310" x2="330" y2="310" stroke="#4CAF50" stroke-width="3"/><polygon points="330,310 320,305 320,315" fill="#4CAF50"/>
+  <rect x="340" y="260" width="180" height="100" fill="#E8F5E9" rx="8"/><text x="430" y="300" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" font-weight="600" fill="#4CAF50" text-anchor="middle">生成任务</text><text x="430" y="330" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="14" fill="#6C757D" text-anchor="middle">路由审批人</text>
+  <line x1="520" y1="310" x2="570" y2="310" stroke="#4CAF50" stroke-width="3"/><polygon points="570,310 560,305 560,315" fill="#4CAF50"/>
+  <rect x="580" y="260" width="180" height="100" fill="#E8F5E9" rx="8"/><text x="670" y="300" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" font-weight="600" fill="#4CAF50" text-anchor="middle">审批处理</text><text x="670" y="330" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="14" fill="#6C757D" text-anchor="middle">同意/驳回</text>
+  <line x1="760" y1="310" x2="810" y2="310" stroke="#4CAF50" stroke-width="3"/><polygon points="810,310 800,305 800,315" fill="#4CAF50"/>
+  <rect x="820" y="260" width="180" height="100" fill="#E8F5E9" rx="8"/><text x="910" y="300" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" font-weight="600" fill="#4CAF50" text-anchor="middle">路由下一节点</text><text x="910" y="330" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="14" fill="#6C757D" text-anchor="middle">条件判断</text>
+  <line x1="1000" y1="310" x2="1050" y2="310" stroke="#4CAF50" stroke-width="3"/><polygon points="1050,310 1040,305 1040,315" fill="#4CAF50"/>
+  <rect x="1060" y="260" width="150" height="100" fill="#4CAF50" rx="8"/><text x="1135" y="315" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" font-weight="600" fill="#FFFFFF" text-anchor="middle">完成</text>
+  <rect x="80" y="400" width="560" height="220" fill="#FFF3E0" rx="12"/><text x="360" y="440" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="22" font-weight="600" fill="#FF6B35" text-anchor="middle">支持特性</text>
+  <text x="120" y="485" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">✓ 条件路由(金额/天数/层级)</text>
+  <text x="120" y="520" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">✓ 会签/或签</text>
+  <text x="120" y="555" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">✓ 任务委派/转交/超时提醒/撤回</text>
+  <rect x="680" y="400" width="540" height="220" fill="#E3F2FD" rx="12"/><text x="950" y="440" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="22" font-weight="600" fill="#1565C0" text-anchor="middle">4维分层路由</text>
+  <text x="720" y="485" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">• 金额维度: 报销/借款金额分层</text>
+  <text x="720" y="520" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">• 天数维度: 请假天数分层</text>
+  <text x="720" y="555" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">• 层级维度: 发起人层级匹配</text>
+  <text x="720" y="590" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">• 工时维度: 加班工时分层</text>
+  <text x="1220" y="705" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="12" fill="#ADB5BD" text-anchor="end">9</text>
+</svg>

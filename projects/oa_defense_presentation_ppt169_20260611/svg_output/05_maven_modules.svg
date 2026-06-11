@@ -1,0 +1,41 @@
+<svg viewBox="0 0 1280 720" width="1280" height="720" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="headerGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1565C0"/>
+      <stop offset="100%" stop-color="#4CAF50"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="#FFFFFF"/>
+  <rect x="0" y="0" width="1280" height="80" fill="url(#headerGradient)"/>
+  <text x="60" y="50" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="36" font-weight="700" fill="#FFFFFF">Maven 多模块设计</text>
+
+  <g id="modules">
+    <rect x="80" y="120" width="350" height="160" fill="#E3F2FD" rx="8"/>
+    <text x="255" y="155" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="20" font-weight="600" fill="#1565C0" text-anchor="middle">平台层模块</text>
+    <text x="110" y="190" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="16" fill="#1D1D1F">• oa-platform-common</text>
+    <text x="110" y="215" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="16" fill="#1D1D1F">• oa-platform-security</text>
+    <text x="110" y="240" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="16" fill="#1D1D1F">• oa-platform-web</text>
+    <text x="110" y="265" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="14" fill="#6C757D">(启动模块)</text>
+
+    <rect x="470" y="120" width="350" height="160" fill="#E8F5E9" rx="8"/>
+    <text x="645" y="155" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="20" font-weight="600" fill="#4CAF50" text-anchor="middle">引擎层</text>
+    <text x="500" y="200" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="16" fill="#1D1D1F">• oa-workflow</text>
+    <text x="500" y="225" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="14" fill="#6C757D">(自研工作流引擎)</text>
+
+    <rect x="860" y="120" width="350" height="160" fill="#FFF3E0" rx="8"/>
+    <text x="1035" y="155" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="20" font-weight="600" fill="#FF6B35" text-anchor="middle">业务层 (14模块)</text>
+    <text x="890" y="190" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="16" fill="#1D1D1F">• oa-system</text>
+    <text x="890" y="215" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="16" fill="#1D1D1F">• oa-admin, oa-document</text>
+    <text x="890" y="240" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="16" fill="#1D1D1F">• oa-finance, oa-hr-*</text>
+    <text x="890" y="265" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="14" fill="#6C757D">…</text>
+
+    <rect x="80" y="320" width="1130" height="300" fill="#F5F7FA" rx="8"/>
+    <text x="120" y="360" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="20" font-weight="600" fill="#1565C0">设计原则</text>
+    <text x="120" y="410" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">✓ 业务模块横向隔离，禁止横向依赖</text>
+    <text x="120" y="445" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">✓ 跨模块通信走 Spring Event</text>
+    <text x="120" y="480" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">✓ 平台层和引擎层是所有业务模块的通用依赖</text>
+    <text x="120" y="515" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">✓ oa-platform-web 统一启动，包含全局配置和 Flyway 脚本</text>
+  </g>
+
+  <text x="1220" y="705" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="12" fill="#ADB5BD" text-anchor="end">5</text>
+</svg>

@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720">
+  <defs>
+    <linearGradient id="headerGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1565C0" />
+      <stop offset="100%" stop-color="#4CAF50" />
+    </linearGradient>
+  </defs>
+
+  
+  <rect width="1280" height="720" fill="#FFFFFF" />
+
+  
+  <rect x="0" y="0" width="1280" height="80" fill="url(#headerGradient)" />
+  <text x="60" y="50" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="36" font-weight="700" fill="#FFFFFF">
+    项目概述
+  </text>
+
+  
+  <g id="content">
+    
+    <g id="left-column">
+      <path fill="#F5F7FA" d="M72,120 H568 A12,12 0 0 1 580,132 V628 A12,12 0 0 1 568,640 H72 A12,12 0 0 1 60,628 V132 A12,12 0 0 1 72,120 Z" />
+
+      <text x="90" y="170" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="27" font-weight="600" fill="#1565C0">
+        系统定位
+      </text>
+
+      <text fill="#1D1D1F" font-size="18" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" x="90" y="220">面向 200-5000 人企业的</text><text fill="#1D1D1F" font-size="18" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" x="90" y="249">办公自动化系统</text><text fill="#1D1D1F" font-size="18" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" x="90" y="300">覆盖 8 大业务域：</text><text fill="#1D1D1F" font-size="18" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" x="90" y="329">行政、人事、财务、审批、</text><text fill="#1D1D1F" font-size="18" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" x="90" y="358">协同、资产、知识、报表</text><text fill="#1D1D1F" font-size="18" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" x="90" y="410">核心价值：</text><text fill="#1D1D1F" font-size="18" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" x="90" y="439">减少线下审批和人工统计成本，</text><text fill="#1D1D1F" font-size="18" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" x="90" y="468">实现办公流程线上化</text></g>
+
+    
+    <g id="right-column">
+      <path fill="#F5F7FA" d="M632,120 H1208 A12,12 0 0 1 1220,132 V628 A12,12 0 0 1 1208,640 H632 A12,12 0 0 1 620,628 V132 A12,12 0 0 1 632,120 Z" />
+
+      <text x="650" y="170" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="27" font-weight="600" fill="#1565C0">
+        核心目标
+      </text>
+
+      
+      <circle cx="670" cy="230" r="8" fill="#4CAF50" />
+      <text x="700" y="237" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">
+        业务模块清晰，职责分明
+      </text>
+
+      
+      <circle cx="670" cy="290" r="8" fill="#4CAF50" />
+      <text fill="#1D1D1F" font-size="18" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" x="700" y="297">审批流程可配置，</text><text fill="#1D1D1F" font-size="18" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" x="700" y="326">灵活适配企业需求</text><circle cx="670" cy="360" r="8" fill="#4CAF50" />
+      <text x="700" y="367" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">
+        权限可控、数据可追溯
+      </text>
+
+      
+      <circle cx="670" cy="420" r="8" fill="#4CAF50" />
+      <text fill="#1D1D1F" font-size="18" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" x="700" y="427">接口统一、</text><text fill="#1D1D1F" font-size="18" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" x="700" y="456">前端页面可快速扩展</text></g>
+  </g>
+
+  
+  <text x="1220" y="705" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="12" fill="#ADB5BD" text-anchor="end">
+    2
+  </text>
+</svg>

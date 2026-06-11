@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720">
+  <defs><linearGradient id="headerGradient" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#1565C0" /><stop offset="100%" stop-color="#4CAF50" /></linearGradient></defs>
+  <rect width="1280" height="720" fill="#FFFFFF" />
+  <rect x="0" y="0" width="1280" height="80" fill="url(#headerGradient)" />
+  <text x="60" y="50" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="36" font-weight="700" fill="#FFFFFF">典型业务流程:请假审批</text>
+  <path fill="#F5F7FA" d="M92,120 H588 A12,12 0 0 1 600,132 V628 A12,12 0 0 1 588,640 H92 A12,12 0 0 1 80,628 V132 A12,12 0 0 1 92,120 Z" />
+  <text x="340" y="170" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="24" font-weight="600" fill="#1565C0" text-anchor="middle">流程步骤</text>
+  <circle cx="120" cy="230" r="20" fill="#1565C0" /><text x="120" y="238" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" font-weight="700" fill="#FFFFFF" text-anchor="middle">1</text><text x="160" y="238" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">员工提交请假申请</text>
+  <circle cx="120" cy="300" r="20" fill="#1565C0" /><text x="120" y="308" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" font-weight="700" fill="#FFFFFF" text-anchor="middle">2</text><text x="160" y="308" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">系统创建工作流实例</text>
+  <circle cx="120" cy="370" r="20" fill="#1565C0" /><text x="120" y="378" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" font-weight="700" fill="#FFFFFF" text-anchor="middle">3</text><text x="160" y="378" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">工作流引擎路由审批人</text>
+  <circle cx="120" cy="440" r="20" fill="#1565C0" /><text x="120" y="448" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" font-weight="700" fill="#FFFFFF" text-anchor="middle">4</text><text x="160" y="448" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">审批通过后扣减年假额度</text>
+  <circle cx="120" cy="510" r="20" fill="#1565C0" /><text x="120" y="518" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" font-weight="700" fill="#FFFFFF" text-anchor="middle">5</text><text x="160" y="518" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">发送消息通知相关人员</text>
+  <path fill="#F5F7FA" d="M652,120 H1208 A12,12 0 0 1 1220,132 V628 A12,12 0 0 1 1208,640 H652 A12,12 0 0 1 640,628 V132 A12,12 0 0 1 652,120 Z" />
+  <text x="930" y="170" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="24" font-weight="600" fill="#4CAF50" text-anchor="middle">技术实现要点</text>
+  <text x="680" y="230" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">✓ Spring Event 解耦工作流与业务</text>
+  <text x="680" y="280" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">✓ 审批路由支持条件表达式</text>
+  <text x="700" y="310" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="16" fill="#6C757D">(天数/金额/层级)</text>
+  <text x="680" y="360" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">✓ 额度扣减使用悲观锁防并发</text>
+  <text x="680" y="410" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">✓ 消息通知异步发送</text>
+  <text x="700" y="440" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="16" fill="#6C757D">(站内信/邮件/钉钉)</text>
+  <text x="1220" y="705" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="12" fill="#ADB5BD" text-anchor="end">7</text>
+</svg>

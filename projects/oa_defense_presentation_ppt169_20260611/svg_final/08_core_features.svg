@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720">
+  <defs><linearGradient id="headerGradient" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#1565C0" /><stop offset="100%" stop-color="#4CAF50" /></linearGradient></defs>
+  <rect width="1280" height="720" fill="#FFFFFF" /><rect x="0" y="0" width="1280" height="80" fill="url(#headerGradient)" />
+  <text x="60" y="50" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="36" font-weight="700" fill="#FFFFFF">核心功能亮点</text>
+  <path fill="#F5F7FA" d="M92,140 H608 A12,12 0 0 1 620,152 V608 A12,12 0 0 1 608,620 H92 A12,12 0 0 1 80,608 V152 A12,12 0 0 1 92,140 Z" />
+  <text x="350" y="200" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="24" font-weight="600" fill="#1565C0" text-anchor="middle">统一审批抽象</text>
+  <text x="120" y="250" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">所有审批业务共享同一套工作流引擎</text>
+  <text x="660" y="200" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="24" font-weight="600" fill="#4CAF50" text-anchor="middle">灵活路由策略</text>
+  <path fill="#E8F5E9" d="M668,220 H1192 A8,8 0 0 1 1200,228 V392 A8,8 0 0 1 1192,400 H668 A8,8 0 0 1 660,392 V228 A8,8 0 0 1 668,220 Z" />
+  <text x="700" y="270" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">✓ 固定审批人/角色/部门主管</text>
+  <text x="700" y="310" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">✓ 条件路由(金额/天数/层级)</text>
+  <text x="700" y="350" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">✓ 会签/或签/委派/转交</text>
+  <path fill="#FFF3E0" d="M668,430 H1192 A8,8 0 0 1 1200,438 V612 A8,8 0 0 1 1192,620 H668 A8,8 0 0 1 660,612 V438 A8,8 0 0 1 668,430 Z" />
+  <text x="930" y="470" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="22" font-weight="600" fill="#FF6B35" text-anchor="middle">实时消息推送</text>
+  <text x="700" y="510" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">WebSocket + 轮询降级</text>
+  <text x="700" y="545" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="18" fill="#1D1D1F">保证消息必达</text>
+  <path fill="#E3F2FD" d="M88,340 H612 A8,8 0 0 1 620,348 V462 A8,8 0 0 1 612,470 H88 A8,8 0 0 1 80,462 V348 A8,8 0 0 1 88,340 Z" />
+  <text x="120" y="380" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="20" font-weight="600" fill="#1565C0">数据权限隔离</text>
+  <text x="120" y="415" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="16" fill="#1D1D1F">5级权限(本人/本部门/下级/公司/全部)</text>
+  <path fill="#FCE4EC" d="M88,490 H612 A8,8 0 0 1 620,498 V612 A8,8 0 0 1 612,620 H88 A8,8 0 0 1 80,612 V498 A8,8 0 0 1 88,490 Z" />
+  <text x="120" y="530" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="20" font-weight="600" fill="#C2185B">全链路追踪</text>
+  <text x="120" y="565" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="16" fill="#1D1D1F">分布式 TraceID 快速定位问题</text>
+  <text x="1220" y="705" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-size="12" fill="#ADB5BD" text-anchor="end">8</text>
+</svg>

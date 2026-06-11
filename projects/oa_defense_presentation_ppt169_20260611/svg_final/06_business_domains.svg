@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720">
+  <defs>
+    <linearGradient id="hg" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1565C0" />
+      <stop offset="100%" stop-color="#4CAF50" />
+    </linearGradient>
+    <filter id="shadow">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+      <feOffset dx="0" dy="2" result="offsetblur" />
+      <feComponentTransfer><feFuncA type="linear" slope="0.3" /></feComponentTransfer>
+      <feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1280" height="720" fill="#F8F9FA" />
+  <rect width="1280" height="80" fill="url(#hg)" />
+  <text x="60" y="50" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="36" font-weight="700" fill="#FFF">8大业务域全景</text>
+
+  
+  <g filter="url(#shadow)">
+    <path fill="#E3F2FD" d="M76,120 H324 A16,16 0 0 1 340,136 V344 A16,16 0 0 1 324,360 H76 A16,16 0 0 1 60,344 V136 A16,16 0 0 1 76,120 Z" />
+    <path fill="#1565C0" d="M76,120 H324 A16,16 0 0 1 340,136 V164 A16,16 0 0 1 324,180 H76 A16,16 0 0 1 60,164 V136 A16,16 0 0 1 76,120 Z" />
+    <rect x="60" y="150" width="280" height="30" fill="#1565C0" />
+    <circle cx="100" cy="150" r="20" fill="#FFF" opacity="0.3" />
+    <text x="200" y="160" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="24" font-weight="700" fill="#FFF" text-anchor="middle">系统管理</text>
+    <text x="80" y="220" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="17" fill="#1D1D1F">✓ 用户/角色管理</text>
+    <text x="80" y="255" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="17" fill="#1D1D1F">✓ 部门/岗位管理</text>
+    <text x="80" y="290" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="17" fill="#1D1D1F">✓ 权限/字典管理</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <path fill="#E8F5E9" d="M386,120 H634 A16,16 0 0 1 650,136 V344 A16,16 0 0 1 634,360 H386 A16,16 0 0 1 370,344 V136 A16,16 0 0 1 386,120 Z" />
+    <path fill="#4CAF50" d="M386,120 H634 A16,16 0 0 1 650,136 V164 A16,16 0 0 1 634,180 H386 A16,16 0 0 1 370,164 V136 A16,16 0 0 1 386,120 Z" />
+    <rect x="370" y="150" width="280" height="30" fill="#4CAF50" />
+    <text x="510" y="160" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="24" font-weight="700" fill="#FFF" text-anchor="middle">行政管理</text>
+    <text x="390" y="220" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="17" fill="#1D1D1F">✓ 印章使用管理</text>
+    <text x="390" y="255" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="17" fill="#1D1D1F">✓ 资产登记盘点</text>
+    <text x="390" y="290" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="17" fill="#1D1D1F">✓ 办公用品申领</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <path fill="#FFF3E0" d="M696,120 H944 A16,16 0 0 1 960,136 V344 A16,16 0 0 1 944,360 H696 A16,16 0 0 1 680,344 V136 A16,16 0 0 1 696,120 Z" />
+    <path fill="#FF6B35" d="M696,120 H944 A16,16 0 0 1 960,136 V164 A16,16 0 0 1 944,180 H696 A16,16 0 0 1 680,164 V136 A16,16 0 0 1 696,120 Z" />
+    <rect x="680" y="150" width="280" height="30" fill="#FF6B35" />
+    <text x="820" y="160" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="24" font-weight="700" fill="#FFF" text-anchor="middle">文档管理</text>
+    <text x="700" y="220" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="17" fill="#1D1D1F">✓ 发文/收文管理</text>
+    <text x="700" y="255" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="17" fill="#1D1D1F">✓ 签报审批流转</text>
+    <text x="700" y="290" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="17" fill="#1D1D1F">✓ 文档归档检索</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <path fill="#FCE4EC" d="M1006,120 H1254 A16,16 0 0 1 1270,136 V344 A16,16 0 0 1 1254,360 H1006 A16,16 0 0 1 990,344 V136 A16,16 0 0 1 1006,120 Z" />
+    <path fill="#C2185B" d="M1006,120 H1254 A16,16 0 0 1 1270,136 V164 A16,16 0 0 1 1254,180 H1006 A16,16 0 0 1 990,164 V136 A16,16 0 0 1 1006,120 Z" />
+    <rect x="990" y="150" width="280" height="30" fill="#C2185B" />
+    <text x="1130" y="160" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="24" font-weight="700" fill="#FFF" text-anchor="middle">财务管理</text>
+    <text x="1010" y="220" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="17" fill="#1D1D1F">✓ 预算编制/报销</text>
+    <text x="1010" y="255" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="17" fill="#1D1D1F">✓ 借款/合同管理</text>
+    <text x="1010" y="290" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="17" fill="#1D1D1F">✓ 付款流程审批</text>
+  </g>
+
+  
+  <g filter="url(#shadow)">
+    <path fill="#F3E5F5" d="M76,390 H324 A16,16 0 0 1 340,406 V614 A16,16 0 0 1 324,630 H76 A16,16 0 0 1 60,614 V406 A16,16 0 0 1 76,390 Z" />
+    <path fill="#7B1FA2" d="M76,390 H324 A16,16 0 0 1 340,406 V434 A16,16 0 0 1 324,450 H76 A16,16 0 0 1 60,434 V406 A16,16 0 0 1 76,390 Z" />
+    <rect x="60" y="420" width="280" height="30" fill="#7B1FA2" />
+    <text x="200" y="430" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="24" font-weight="700" fill="#FFF" text-anchor="middle">人事管理</text>
+    <text x="80" y="490" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="17" fill="#1D1D1F">✓ 员工档案管理</text>
+    <text x="80" y="525" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="17" fill="#1D1D1F">✓ 入职/离职流程</text>
+    <text x="80" y="560" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="17" fill="#1D1D1F">✓ 薪资社保管理</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <path fill="#E0F2F1" d="M386,390 H634 A16,16 0 0 1 650,406 V614 A16,16 0 0 1 634,630 H386 A16,16 0 0 1 370,614 V406 A16,16 0 0 1 386,390 Z" />
+    <path fill="#00796B" d="M386,390 H634 A16,16 0 0 1 650,406 V434 A16,16 0 0 1 634,450 H386 A16,16 0 0 1 370,434 V406 A16,16 0 0 1 386,390 Z" />
+    <rect x="370" y="420" width="280" height="30" fill="#00796B" />
+    <text x="510" y="430" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="24" font-weight="700" fill="#FFF" text-anchor="middle">考勤请假</text>
+    <text x="390" y="490" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="17" fill="#1D1D1F">✓ 打卡签到统计</text>
+    <text x="390" y="525" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="17" fill="#1D1D1F">✓ 请假/加班审批</text>
+    <text x="390" y="560" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="17" fill="#1D1D1F">✓ 年假额度管理</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <path fill="#E8EAF6" d="M696,390 H944 A16,16 0 0 1 960,406 V614 A16,16 0 0 1 944,630 H696 A16,16 0 0 1 680,614 V406 A16,16 0 0 1 696,390 Z" />
+    <path fill="#3F51B5" d="M696,390 H944 A16,16 0 0 1 960,406 V434 A16,16 0 0 1 944,450 H696 A16,16 0 0 1 680,434 V406 A16,16 0 0 1 696,390 Z" />
+    <rect x="680" y="420" width="280" height="30" fill="#3F51B5" />
+    <text x="820" y="430" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="24" font-weight="700" fill="#FFF" text-anchor="middle">知识协同</text>
+    <text x="700" y="490" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="17" fill="#1D1D1F">✓ 知识库管理</text>
+    <text x="700" y="525" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="17" fill="#1D1D1F">✓ 会议室预约</text>
+    <text x="700" y="560" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="17" fill="#1D1D1F">✓ 任务协作分配</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <path fill="#FFF9C4" d="M1006,390 H1254 A16,16 0 0 1 1270,406 V614 A16,16 0 0 1 1254,630 H1006 A16,16 0 0 1 990,614 V406 A16,16 0 0 1 1006,390 Z" />
+    <path fill="#F57F17" d="M1006,390 H1254 A16,16 0 0 1 1270,406 V434 A16,16 0 0 1 1254,450 H1006 A16,16 0 0 1 990,434 V406 A16,16 0 0 1 1006,390 Z" />
+    <rect x="990" y="420" width="280" height="30" fill="#F57F17" />
+    <text x="1130" y="430" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="24" font-weight="700" fill="#FFF" text-anchor="middle">消息报表</text>
+    <text x="1010" y="490" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="17" fill="#1D1D1F">✓ 站内消息推送</text>
+    <text x="1010" y="525" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="17" fill="#1D1D1F">✓ 邮件通知服务</text>
+    <text x="1010" y="560" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="17" fill="#1D1D1F">✓ 数据报表生成</text>
+  </g>
+
+  <text x="1220" y="705" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="12" fill="#ADB5BD" text-anchor="end">6</text>
+</svg>
