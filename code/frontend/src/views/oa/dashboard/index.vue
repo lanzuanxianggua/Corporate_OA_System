@@ -593,7 +593,7 @@ function initDailyTrendChart() {
     xAxis: { type: "category", data: data.map((item) => item.date || ""), ...axisStyle() },
     yAxis: [
       { type: "value", name: "人数/次数", minInterval: 1, ...axisStyle() },
-      { type: "value", name: "工时(h)", axisLabel: { formatter: "{value}h", color: chartMutedColor() }, splitLine: { show: false } }
+      { type: "value", name: "工时(h)", nameGap: 18, axisLabel: { formatter: "{value}h", color: chartMutedColor() }, splitLine: { show: false } }
     ],
     series: [
       {
