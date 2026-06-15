@@ -95,4 +95,26 @@ public class EmployeeServiceImpl extends ServiceImpl<SysEmployeeMapper, SysEmplo
         }
         this.save(employee);
     }
+
+    @Override
+    public SysEmployee getByEmpCode(String empCode) {
+        if (!StringUtils.hasText(empCode)) {
+            return null;
+        }
+        return this.lambdaQuery()
+                .eq(SysEmployee::getEmpCode, empCode)
+                .eq(SysEmployee::getDelFlag, "0")
+                .one();
+    }
+
+    @Override
+    public SysEmployee getByEmail(String email) {
+        if (!StringUtils.hasText(email)) {
+            return null;
+        }
+        return this.lambdaQuery()
+                .eq(SysEmployee::getEmail, email)
+                .eq(SysEmployee::getDelFlag, "0")
+                .one();
+    }
 }

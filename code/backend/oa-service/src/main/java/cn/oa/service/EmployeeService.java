@@ -20,4 +20,14 @@ public interface EmployeeService extends IService<SysEmployee> {
      * 新增员工（密码加密）
      */
     void addEmployee(SysEmployee employee);
+
+    /**
+     * 根据员工编号查询员工
+     */
+    SysEmployee getByEmpCode(String empCode);
+
+    /**
+     * 根据邮箱查询员工
+     */
+    SysEmployee getByEmail(String email);
 }

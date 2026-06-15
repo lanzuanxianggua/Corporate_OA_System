@@ -119,6 +119,77 @@ public class AuthController {
         return R.ok();
     }
 
+    @PostMapping("/api/auth/register")
+    @Operation(summary = "用户注册")
+    @OperationLog(module = "认证管理", operation = "用户注册")
+    public R<Void> register(@RequestBody @Valid RegisterDTO dto) {
+        // 验证用户名是否已存在
+        SysEmployee existingUser = employeeService.getByEmpCode(dto.getUsername());
+        if (existingUser != null) {
+            return R.fail("用户名已存在");
+        }
+
+        // 验证邮箱是否已存在
+        SysEmployee existingEmail = employeeService.getByEmail(dto.getEmail());
+        if (existingEmail != null) {
+            return R.fail("邮箱已被注册");
+        }
+
+        // 密码长度验证
+        if (dto.getPassword().length() < 6) {
+            return R.fail("密码长度至少6位");
+        }
+
+        // 创建新用户
+        SysEmployee employee = new SysEmployee();
+        employee.setEmpCode(dto.getUsername()); // 使用 empCode 作为登录用户名
+        employee.setEmpName(dto.getUsername()); // 默认员工姓名为用户名
+        employee.setEmail(dto.getEmail());
+        employee.setPassword(BCrypt.hashpw(dto.getPassword()));
+        employee.setStatus(1); // 默认启用
+
+        authService.register(employee);
+        log.info("User registered: username={}", dto.getUsername());
+        return R.ok();
+    }
+
+    @PostMapping("/api/auth/forgot-password")
+    @Operation(summary = "忘记密码")
+    @OperationLog(module = "认证管理", operation = "忘记密码")
+    public R<Void> forgotPassword(@RequestBody @Valid ForgotPasswordDTO dto) {
+        // 验证邮箱是否存在
+        SysEmployee employee = employeeService.getByEmail(dto.getEmail());
+        if (employee == null) {
+            return R.fail("该邮箱未注册");
+        }
+
+        // TODO: 发送重置密码邮件
+        // 1. 生成重置令牌
+        // 2. 保存到 Redis（设置过期时间 30 分钟）
+        // 3. 发送包含重置链接的邮件
+
+        log.info("Password reset requested: email={}", dto.getEmail());
+        return R.ok();
+    }
+
+    @Data
+    public static class RegisterDTO {
+        @NotBlank(message = "用户名不能为空")
+        private String username;
+
+        @NotBlank(message = "邮箱不能为空")
+        private String email;
+
+        @NotBlank(message = "密码不能为空")
+        private String password;
+    }
+
+    @Data
+    public static class ForgotPasswordDTO {
+        @NotBlank(message = "邮箱不能为空")
+        private String email;
+    }
+
     @Data
     public static class RefreshTokenDTO {
         @NotBlank(message = "refreshToken不能为空")

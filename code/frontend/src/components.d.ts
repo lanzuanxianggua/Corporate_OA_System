@@ -61,8 +61,10 @@ declare module 'vue' {
     ElTree: typeof import('element-plus/es')['ElTree']
     ElTreeSelect: typeof import('element-plus/es')['ElTreeSelect']
     ElUpload: typeof import('element-plus/es')['ElUpload']
+    EyeBall: typeof import('./components/EyeBall.vue')['default']
     FlowDesigner: typeof import('./components/flow-designer/FlowDesigner.vue')['default']
     OaPagination: typeof import('./components/OaPagination.vue')['default']
+    Pupil: typeof import('./components/Pupil.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
   }

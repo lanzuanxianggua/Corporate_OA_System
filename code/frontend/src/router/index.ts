@@ -14,6 +14,18 @@ const staticRoutes: RouteRecordRaw[] = [
     meta: { title: "登录", icon: "Lock" }
   },
   {
+    path: "/register",
+    name: "Register",
+    component: () => import("@/views/login/register.vue"),
+    meta: { title: "注册", icon: "User" }
+  },
+  {
+    path: "/forgot-password",
+    name: "ForgotPassword",
+    component: () => import("@/views/login/forgot-password.vue"),
+    meta: { title: "忘记密码", icon: "Lock" }
+  },
+  {
     path: "/",
     component: Layout,
     redirect: "/welcome",
@@ -464,7 +476,7 @@ router.beforeEach((to, _from, next) => {
     : "OA办公系统";
 
   // Public routes
-  if (to.path === "/login") {
+  if (to.path === "/login" || to.path === "/register" || to.path === "/forgot-password") {
     next();
     return;
   }
