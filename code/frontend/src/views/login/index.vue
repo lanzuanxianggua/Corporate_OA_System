@@ -263,23 +263,10 @@
             </div>
           </div>
 
-          <!-- Remember & Forgot -->
-          <div class="flex items-center justify-between">
-            <el-checkbox v-model="loginForm.remember" class="dark-checkbox">
-              <span class="text-sm text-gray-300">记住 30 天</span>
-            </el-checkbox>
-            <router-link
-              to="/forgot-password"
-              class="text-sm text-blue-400 hover:text-blue-300 hover:underline font-medium"
-            >
-              忘记密码？
-            </router-link>
-          </div>
-
           <!-- Submit Button -->
           <button
             type="submit"
-            class="login-button"
+            class="login-button mt-6"
             :disabled="loading"
           >
             <span v-if="loading" class="inline-flex items-center">
@@ -436,12 +423,6 @@ onMounted(() => {
   schedulePurpleBlink();
   scheduleBlackBlink();
   refreshCaptcha();
-
-  const saved = localStorage.getItem("remembered_username");
-  if (saved) {
-    loginForm.username = saved;
-    loginForm.remember = true;
-  }
 });
 
 onUnmounted(() => {
@@ -483,11 +464,6 @@ const handleLogin = async () => {
   loading.value = true;
   try {
     await userStore.loginAction(loginForm.username, loginForm.password, captchaUuid.value, loginForm.captchaCode);
-    if (loginForm.remember) {
-      localStorage.setItem("remembered_username", loginForm.username);
-    } else {
-      localStorage.removeItem("remembered_username");
-    }
     ElMessage.success("登录成功");
 
     // 清空验证码，防止跳转后误触发
