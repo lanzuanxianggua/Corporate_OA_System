@@ -43,7 +43,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addMapping("/**")
                 .allowedOriginPatterns(
                         "http://localhost:*",
-                        "http://127.0.0.1:*"
+                        "http://127.0.0.1:*",
+                        "http://10.*:*",          // 支持 10.x.x.x 局域网段（公司/校园网）
+                        "http://192.168.*:*",     // 支持 192.168.x.x 局域网段（家庭路由器）
+                        "http://172.*:*"          // 支持 172.x.x.x 局域网段（部分企业网络）
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
