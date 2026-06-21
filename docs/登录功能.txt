@@ -1,0 +1,510 @@
+登录功能完整实现
+
+  整体流程概览
+
+  ① 用户输入账号密码 → ② 获取图形验证码 → ③ 点击登录 → ④ 后端验证
+  → ⑤ 生成 JWT Token → ⑥ 存 Redis → ⑦ 返回登录信息 → ⑧ 前端跳转首页
+
+  下面逐步拆解每一环节。
+
+  ---
+  步骤 1：用户打开登录页
+
+  文件: code/frontend/src/views/login/index.vue
+
+  页面分为左右两栏：
+  - 左侧（灰白渐变）：卡通动画角色区域，4个角色（Purple、Black、Orange、Yellow）的眼球会跟随鼠标移动
+  - 右侧（深色背景）：登录表单
+
+  其中，Pupil（瞳孔）和 EyeBall（眼球）是封装好的 Vue 组件，通过在 onMounted 中注册全局的 mousemove 事件监听器来跟踪鼠标位置，再利用 computed 计算瞳孔的偏移量并应用 transform:
+  translate() 实现动画。
+
+  打开页面时，onMounted 触发三件事：
+  1. 注册鼠标追踪
+  2. 启动 Purple 和 Black 的随机眨眼定时器（每隔 3-7 秒眨眼一次，持续 150ms）
+  3. 请求图形验证码
+
+  ---
+  步骤 2：获取图形验证码
+
+  请求链路：
+  前端 GET /api/auth/captcha → 后端 CaptchaUtil.generate() → 返回 Base64 图片 + uuid
+
+  后端代码 - 文件: cn.oa.controller.AuthController
+
+  @GetMapping("/api/auth/captcha")
+  public R<Map<String, String>> captcha() {
+      CaptchaResult result = CaptchaUtil.generate(redisService);
+      return R.ok(Map.of("uuid", result.getUuid(), "img", result.getImg()));
+  }
+
+  验证码生成工具 - 文件: cn.oa.common.utils.CaptchaUtil
+
+  public static CaptchaResult generate(RedisService redisService) {
+      // 1. 生成 4 位随机数字
+      String code = String.format("%04d", (int)(Math.random() * 10000));
+      // 2. 生成唯一标识 UUID
+      String uuid = UUID.randomUUID().toString().replace("-", "");
+      // 3. 将验证码存入 Redis，key="captcha:"+uuid，5分钟过期
+      redisService.set("captcha:" + uuid, code, 300);
+      // 4. 把验证码画成图片，转 Base64 编码
+      String imgBase64 = generateBase64Image(code);
+      // 5. 返回 uuid（用于提交验证）+ 图片数据（用于前端显示）
+      return new CaptchaResult(uuid, imgBase64);
+  }
+
+  前端接收 - 文件: code/frontend/src/views/login/index.vue
+
+  const refreshCaptcha = async () => {
+      const res = await getCaptcha();
+      captchaImg.value = res.data.img;       // Base64 图片，直接给 <img :src="captchaImg">
+      captchaUuid.value = res.data.uuid;     // uuid，登录时提交
+      loginForm.captchaCode = "";            // 清空输入框
+  };
+
+  关键点：为什么要用 uuid + code 两段式设计？验证码图片在浏览器上展示给用户看，用户输入的是 code，但提交时要把 uuid 也带回后端。后端通过 uuid 从 Redis 中取出正确的 code
+  进行比对，防止验证码被篡改。
+
+  ---
+  步骤 3：用户填写并提交表单
+
+  表单结构（三个输入框）：
+  用户名  [________________]
+  密码    [_____________👁️ ]
+  验证码  [_________] [图片]
+
+  - 用户名为员工编号（对应数据库 sys_employee.emp_code 字段）
+  - 密码输入框右侧有眼睛图标：点击可切换 type="text" / type="password" 显示/隐藏密码
+  - 验证码图片点击可刷新
+
+  提交前的防重复检查：
+
+  const handleLogin = async () => {
+      if (loading.value) return;          // 防止重复提交
+      if (!loginForm.username || !loginForm.password) {
+          ElMessage.warning("请填写完整的登录信息");
+          return;
+      }
+      if (!loginForm.captchaCode) {
+          ElMessage.warning("请输入验证码");
+          return;
+      }
+      loading.value = true;
+      // ... 发起请求
+  };
+
+  这里 loading.value 是前端层面的防重复提交锁——按钮被点击后变成 disabled 状态并显示"登录中..."。
+
+  然后调用 store 的 loginAction：
+
+  await userStore.loginAction(loginForm.username, loginForm.password, captchaUuid.value, loginForm.captchaCode);
+
+  store 方法 - 文件: code/frontend/src/store/user.ts
+
+  const loginAction = async (username, password, captchaUuid, captchaCode) => {
+      const res = await loginApi({ username, password, captchaUuid, captchaCode });
+      // res 格式：{ code: 0, message: "操作成功", data: { accessToken, refreshToken, ... } }
+      if (res.data) {
+          const data = res.data as LoginVO;
+          token.value = data.accessToken;
+          // 解析 JWT Payload 获取用户信息
+          const claims = parseJwtPayload(data.accessToken);
+          userInfo.value = { ...data, empId: claims?.empId };
+          // 持久化到 localStorage
+          localStorage.setItem("token", data.accessToken);
+          localStorage.setItem("refreshToken", data.refreshToken);
+          localStorage.setItem("userInfo", JSON.stringify(userInfo.value));
+      }
+  };
+
+  ---
+  步骤 4：Axios 请求发出
+
+  文件: code/frontend/src/utils/request.ts
+
+  const request = axios.create({
+      baseURL: "",          // 相对路径，开发时由 Vite 代理转发
+      timeout: 15000
+  });
+
+  axios 拦截器执行顺序：
+
+  ① 请求拦截器：自动检查 Token 有效性
+  request.interceptors.request.use(async (config) => {
+      showLoading();                  // 显示全局 loading
+      let token = localStorage.getItem("token");
+      if (token && isTokenExpiringSoon(token)) {
+          // Token 即将过期（少于5分钟），自动调用 refreshToken 续期
+          const res = await axios.post("/refresh-token", { refreshToken });
+          token = res.data.data.accessToken;
+          localStorage.setItem("token", token);
+      }
+      // 在请求头自动携带 Token
+      if (token) config.headers.Authorization = `Bearer ${token}`;
+      return config;
+  });
+
+  不过这里是登录请求，此时 Token 还不存在，所以直接跳过，不加 Authorization 头。
+
+  ② Vite 代理转发 - 文件: code/frontend/vite.config.ts
+
+  请求路径：POST /api/auth/login
+  代理规则：/api  →  http://localhost:8080
+  最终目标：POST http://localhost:8080/api/auth/login
+
+  开发环境下手机访问时，前端的 Vite 代理也可以反向代理到后端；如果手机直接访问后端 API，则通过 CORS 配置放行。
+
+  ---
+  步骤 5：后端拦截器链
+
+  请求到达后端后，先经过 Servlet Filter，然后进入 Spring 拦截器链：
+
+  5.1 限流拦截器
+
+  文件: cn.oa.common.interceptor.RateLimitInterceptor
+
+  public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+      String ip = IpUtil.getClientIp(request);
+      String key = "rate:login:" + ip;
+
+      long count = redisService.increment(key);     // Redis INCR 命令
+      if (count == 1) {
+          redisService.expire(key, 60, TimeUnit.SECONDS); // 设置 60 秒过期
+      }
+      if (count > 5) {  // 同一 IP 每分钟超过 5 次
+          response.setStatus(429);
+          response.getWriter().write("{\"code\":429,\"message\":\"请求过于频繁\"}");
+          return false;  // 拦截
+      }
+      return true;  // 放行
+  }
+
+  这里利用了 Redis INCR 原子操作：首次请求 key 不存在 → INCR 返回 1 → 设置过期时间 60 秒。后续请求递增计数，超过 5 次就限流。如果用户暴力破解密码，60 秒内最多试 5 次。
+
+  5.2 认证拦截器（登录接口跳过）
+
+  文件: cn.oa.common.config.WebMvcConfig
+
+  registry.addInterceptor(authInterceptor)
+      .addPathPatterns("/**")
+      .excludePathPatterns(
+          "/login", "/api/auth/login",     // 登录接口不拦截
+          "/api/auth/register",             // 注册不拦截
+          "/api/auth/captcha",             // 验证码不拦截
+          "/api/auth/forgot-password",     // 忘记密码不拦截
+          "/refresh-token",                // Token 刷新不拦截
+          "/doc.html", "/webjars/**",       // Swagger 文档跳过
+          "/error"
+      );
+
+  ---
+  步骤 6：Controller 层 — 接口入口
+
+  文件: cn.oa.controller.AuthController
+
+  @PostMapping({"/login", "/api/auth/login"})
+  @OperationLog(module = "认证管理", operation = "用户登录")
+  public R<LoginVO> login(@RequestBody @Valid LoginDTO dto, HttpServletRequest request) {
+      // ① 校验验证码
+      if (!CaptchaUtil.verify(redisService, dto.getCaptchaUuid(), dto.getCaptchaCode())) {
+          return R.fail("验证码错误或已过期");
+      }
+      // ② 调用业务层登录
+      LoginVO vo = authService.login(dto.getUsername(), dto.getPassword(), request);
+      log.info("User logged in: username={}", dto.getUsername());
+      return R.ok(vo);
+  }
+
+  @Valid 注解触发参数校验 - 文件: cn.oa.entity.dto.LoginDTO
+
+  @Data
+  public class LoginDTO {
+      @NotBlank(message = "用户名不能为空")
+      private String username;
+
+      @NotBlank(message = "密码不能为空")
+      private String password;
+
+      @NotBlank(message = "验证码标识不能为空")
+      private String captchaUuid;
+
+      @NotBlank(message = "验证码不能为空")
+      private String captchaCode;
+  }
+
+  如果前端没有传用户名，Spring 的 @Valid 会自动触发 MethodArgumentNotValidException，然后被全局异常处理器捕获并返回错误消息给前端，不需要在代码里手动写参数校验。
+
+  验证码校验逻辑：
+
+  public static boolean verify(RedisService redisService, String uuid, String code) {
+      if (uuid == null || code == null) return false;
+      String key = "captcha:" + uuid;
+      String stored = redisService.get(key);   // 从 Redis 取出
+      redisService.delete(key);                // 一次性使用，立即删除（防止重复利用）
+      return stored != null && stored.equalsIgnoreCase(code);  // 忽略大小写比对
+  }
+
+  验证码是一次性的：
+  - 验证完成后立即从 Redis 删除，防止同一验证码被重复使用
+  - 登录失败刷新验证码时，旧的 uuid 自动过期（5 分钟），无法再利用
+
+  ---
+  步骤 7：Service 层 — 核心业务逻辑
+
+  文件: cn.oa.service.impl.AuthServiceImpl 的 login() 方法
+
+  public LoginVO login(String username, String password, HttpServletRequest request) {
+      // ① 根据用户名查询员工
+      LambdaQueryWrapper<SysEmployee> wrapper = new LambdaQueryWrapper<>();
+      wrapper.eq(SysEmployee::getEmpCode, username);
+      SysEmployee employee = employeeMapper.selectOne(wrapper);
+
+      // ② 检查用户是否存在
+      if (employee == null) {
+          recordLoginLog(null, username, request, 0, "用户名不存在");
+          throw new BusinessException("用户名不存在");
+      }
+
+      // ③ BCrypt 比对密码（BCrypt 是单向哈希，不能解密，只能用 checkpw 比对）
+      if (!BCrypt.checkpw(password, employee.getPassword())) {
+          recordLoginLog(employee.getId(), username, request, 0, "密码错误");
+          throw new BusinessException("密码错误");
+      }
+
+      // ④ 检查是否被逻辑删除或禁用
+      if ("1".equals(employee.getDelFlag())) {
+          throw new BusinessException("该账号已被禁用");
+      }
+      if (employee.getStatus() == null || employee.getStatus() == 0) {
+          throw new BusinessException("该账号已被禁用");
+      }
+
+  关于 BCrypt：用户的密码在注册/管理员添加时经过 BCrypt.hashpw(password) 加密存储。BCrypt 的特点：
+  - 每次哈希结果都不同（内置随机 salt）
+  - 无法反向解密
+  - 验证只能用 BCrypt.checkpw(明文, 哈希值)，由 BCrypt 库从哈希中提取 salt 重新计算比对
+
+  注册时：password "123456" → BCrypt.hashpw() → "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy"
+  登录时：输入 "123456" → BCrypt.checkpw("123456", 数据库中的hash) → true/false
+
+      // ⑤ 查询用户的角色列表
+      LambdaQueryWrapper<SysEmpRole> empRoleWrapper = new LambdaQueryWrapper<>();
+      empRoleWrapper.eq(SysEmpRole::getEmpId, employee.getId());
+      List<SysEmpRole> empRoles = empRoleMapper.selectList(empRoleWrapper);
+
+      List<String> roleKeys = new ArrayList<>();
+      if (!empRoles.isEmpty()) {
+          List<Long> roleIds = empRoles.stream()
+              .map(SysEmpRole::getRoleId)
+              .collect(Collectors.toList());
+          List<SysRole> roles = roleMapper.selectBatchIds(roleIds);
+          roleKeys = roles.stream()
+              .map(SysRole::getRoleKey)
+              .collect(Collectors.toList());
+      }
+      if (roleKeys.isEmpty()) {
+          roleKeys.add("USER");  // 至少有一个基础角色
+      }
+
+  权限查询链路：sys_employee → sys_emp_role（多对多关联表）→ sys_role → 取出 role_key
+
+      // ⑥ 生成 JWT Token
+      String token = jwtUtil.generateToken(employee.getId(), employee.getEmpName());
+
+      // ⑦ Token + 角色信息存入 Redis
+      redisTemplate.opsForValue().set("token:" + employee.getId(), token, 7200, TimeUnit.SECONDS);
+      redisTemplate.opsForValue().set("roles:" + employee.getId(), roleKeys, 7200, TimeUnit.SECONDS);
+
+      // ⑧ 记录在线用户
+      String ip = IpUtil.getClientIp(request);
+      onlineUserService.userLogin(employee.getId(), employee.getEmpName(), ip, browser);
+
+      // ⑨ 记录登录日志（IP、浏览器、操作系统、时间）
+      recordLoginLog(employee.getId(), username, request, 1, "登录成功");
+
+      // ⑩ 组装返回数据
+      LoginVO vo = new LoginVO();
+      vo.setAccessToken(token);                    // JWT Token
+      vo.setRefreshToken(token);                   // 刷新用 Token
+      vo.setExpires("2026/06/16 22:00:00");        // 过期时间
+      vo.setUsername(employee.getEmpCode());        // 员工编号
+      vo.setNickname(employee.getEmpName());        // 员工姓名
+      vo.setAvatar(employee.getAvatar() != null ? employee.getAvatar() : "");
+      vo.setRoles(roleKeys);                        // 角色列表
+      vo.setPermissions(resolvePermissions(roles, roleKeys)); // 权限码列表
+      return vo;
+  }
+
+  ---
+  步骤 8：JWT Token 生成
+
+  文件: cn.oa.common.utils.JwtUtil
+
+  @Component
+  public class JwtUtil {
+
+      private static final long EXPIRATION = 7200L;  // 2 小时
+      private final SecretKey signingKey;
+
+      public JwtUtil(@Value("${jwt.secret}") String secret) {
+          // 从 application.yml 读取密钥，用 HMAC-SHA256 算法签名
+          this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+      }
+
+      public String generateToken(Long empId, String empName) {
+          Date now = new Date();
+          Date expiration = new Date(now.getTime() + EXPIRATION * 1000);  // 2小时后
+
+          return Jwts.builder()
+              .claim("empId", empId)         // 自定义声明：员工ID
+              .claim("empName", empName)     // 自定义声明：员工姓名
+              .issuedAt(now)                 // 签发时间
+              .expiration(expiration)        // 过期时间
+              .signWith(signingKey, Jwts.SIG.HS256)  // HMAC-SHA256 签名
+              .compact();
+      }
+  }
+
+  生成的 JWT 示例：
+  eyJhbGciOiJIUzI1NiJ9.eyJlbXBJZCI6MSwiZW1wTmFtZSI6IuW8oOS4iSIsImlhdCI6MTcxODAwMDAwMCwiZXhwIjoxNzE4MDA3MjAwfQ.xxxxxxxx
+
+  解码后的 Payload：
+  {
+      "empId": 1,
+      "empName": "张三",
+      "iat": 1718000000,
+      "exp": 1718007200
+  }
+
+  ---
+  步骤 9：统一响应包装
+
+  文件: cn.oa.common.result.R
+
+  @Data
+  public class R<T> {
+      private int code;
+      private String message;
+      private T data;
+
+      public static <T> R<T> ok(T data) {
+          return new R<>(0, "操作成功", data);
+      }
+  }
+
+  最终返回给前端的 JSON 数据：
+
+  {
+      "code": 0,
+      "message": "操作成功",
+      "data": {
+          "accessToken": "eyJhbGciOiJ...",
+          "refreshToken": "eyJhbGciOiJ...",
+          "expires": "2026/06/16 22:00:00",
+          "username": "admin",
+          "nickname": "管理员",
+          "avatar": "",
+          "roles": ["ADMIN"],
+          "permissions": ["*:*:*"]
+      }
+  }
+
+  ---
+  步骤 10：前端接收响应 & 跳转
+
+  const handleLogin = async () => {
+      loading.value = true;
+      try {
+          await userStore.loginAction(...);  // Token 已存到 localStorage
+          ElMessage.success("登录成功");
+          loginForm.captchaCode = "";         // 清空验证码
+          captchaUuid.value = "";
+          router.push("/welcome");            // 跳转首页
+      } catch (error: any) {
+          ElMessage.error(error.message || "登录失败");
+          refreshCaptcha();                   // 刷新验证码
+      } finally {
+          loading.value = false;
+      }
+  };
+
+  ---
+  步骤 11：后续请求自动携带 Token
+
+  此后，该用户的所有 API 请求，都会通过 axios 请求拦截器 自动在 Authorization 头携带 JWT Token：
+
+  request.interceptors.request.use((config) => {
+      const token = localStorage.getItem("token");
+      if (token) config.headers.Authorization = `Bearer ${token}`;
+      return config;
+  });
+
+  后端 AuthInterceptor 对每个请求（登录等白名单路径除外）都会：
+  1. 从请求头拿到 Token
+  2. 解析 JWT 获取 empId
+  3. 查 Redis 核对 Token 是否有效（未被管理员踢下线）
+  4. 将用户信息放入 UserContext（ThreadLocal），供业务代码随时获取
+
+  ---
+  完整时序图
+
+  前端                           后端                              Redis
+   │                              │                                │
+   │ GET /api/auth/captcha        │                                │
+   │ ──────────────────────────> │ 生成 4位随机码                 │
+   │                             │ ─────────────────────────────> │ set captcha:uuid=code EX 300
+   │ <───────── Base64图片+uuid ─│                                │
+   │                              │                                │
+   │ 用户输入账号密码+验证码      │                                │
+   │                              │                                │
+   │ POST /api/auth/login         │                                │
+   │ ──────────────────────────> │ RateLimitInterceptor(检查IP)   │
+   │                             │ ─────────────────────────────> │ INCR rate:login:ip
+   │                             │ AuthInterceptor(跳过-白名单)   │
+   │                             │ verify(redis, uuid, code)     │
+   │                             │ ─────────────────────────────> │ GET captcha:uuid / DELETE
+   │                             │                                │
+   │                             │ 查员工表(sys_employee)         │
+   │                             │ BCrypt.checkpw(密码比对)        │
+   │                             │ 查角色(sys_role)                │
+   │                             │                                │
+   │                             │ generateToken(empId, empName)  │
+   │                             │ ─────────────────────────────> │ set token:empId=JWT EX 7200
+   │                             │                                │ set roles:empId=["ADMIN"] EX 7200
+   │                             │                                │
+   │                             │ 记录在线用户+登录日志            │
+   │ <───── { token, roles } ───│                                │
+   │                              │                                │
+   │ 存 localStorage              │                                │
+   │ 跳转 /welcome                │                                │
+
+  ---
+  总结：登录功能用到了哪些技术
+
+  ┌───────────────────────┬─────────────────────────────────┐
+  │         技术          │              作用               │
+  ├───────────────────────┼─────────────────────────────────┤
+  │ Vue 3 + TypeScript    │ 前端响应式表单 + 类型安全       │
+  ├───────────────────────┼─────────────────────────────────┤
+  │ Element Plus          │ 按钮样式、弹窗提示（ElMessage） │
+  ├───────────────────────┼─────────────────────────────────┤
+  │ Axios                 │ 请求拦截器自动携带 Token        │
+  ├───────────────────────┼─────────────────────────────────┤
+  │ Vite Proxy            │ 开发环境跨域转发                │
+  ├───────────────────────┼─────────────────────────────────┤
+  │ BCrypt                │ 密码单向哈希存储和比对          │
+  ├───────────────────────┼─────────────────────────────────┤
+  │ JWT (jjwt)            │ 生成无状态认证令牌              │
+  ├───────────────────────┼─────────────────────────────────┤
+  │ Redis                 │ 验证码存储、Token 管理、IP 限流 │
+  ├───────────────────────┼─────────────────────────────────┤
+  │ MyBatis-Plus Lambda   │ 类型安全的数据库查询            │
+  ├───────────────────────┼─────────────────────────────────┤
+  │ @Valid / @Validated   │ DTO 参数自动校验                │
+  ├───────────────────────┼─────────────────────────────────┤
+  │ @RestControllerAdvice │ 全局统一异常处理                │
+  ├───────────────────────┼─────────────────────────────────┤
+  │ AOP @OperationLog     │ 自动记录登录日志                │
+  ├───────────────────────┼─────────────────────────────────┤
+  │ Spring Interceptor    │ 限流 + 认证拦截链               │
+  └───────────────────────┴─────────────────────────────────┘

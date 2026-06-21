@@ -4,13 +4,7 @@ import ElementPlus from "element-plus";
 import "element-plus/dist/index.css";
 import "element-plus/theme-chalk/dark/css-vars.css";
 import zhCn from "element-plus/es/locale/lang/zh-cn";
-import {
-  User, Menu, Setting, Bell, Search, Edit, Delete, Plus, Download,
-  Upload, Refresh, Files, Document, Message, ChatDotSquare, Check,
-  Close, HomeFilled, Folder, DataAnalysis, Timer, Calendar, Clock, List,
-  Notification, Star, WarnTriangleFilled, InfoFilled, SuccessFilled,
-  CircleCloseFilled, Expand, Fold, ArrowDown
-} from "@element-plus/icons-vue";
+import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import App from "./App.vue";
 import router from "./router";
 import { useThemeStore } from "@/store/theme";
@@ -19,15 +13,10 @@ import "./style.css";
 const app = createApp(App);
 const pinia = createPinia();
 
-// 按需注册实际使用的图标
-const icons = [
-  User, Menu, Setting, Bell, Search, Edit, Delete, Plus, Download,
-  Upload, Refresh, Files, Document, Message, ChatDotSquare, Check,
-  Close, HomeFilled, Folder, DataAnalysis, Timer, Calendar, Clock, List,
-  Notification, Star, WarnTriangleFilled, InfoFilled, SuccessFilled,
-  CircleCloseFilled, Expand, Fold, ArrowDown
-];
-icons.forEach(component => app.component(component.name!, component));
+// 全量注册 Element Plus 图标，避免按需注册遗漏导致图标不显示
+for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+  if (key !== "default") app.component(key, component);
+}
 
 app.use(pinia);
 useThemeStore().initTheme();

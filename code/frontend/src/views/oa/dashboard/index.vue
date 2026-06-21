@@ -50,7 +50,7 @@
           <div class="oa-panel-header">
             <div>
               <h2 class="oa-panel-title">日活跃员工与有效工时趋势</h2>
-              <p class="oa-panel-subtitle">近 30 天活跃员工、有效工时与审批处理量</p>
+              <p class="oa-panel-subtitle">近 30 天活跃员工数与有效工时趋势</p>
             </div>
             <el-tag effect="light" type="success">30 天</el-tag>
           </div>
@@ -586,23 +586,21 @@ function initDailyTrendChart() {
 
   chart.setOption({
     textStyle: chartTextStyle(),
-    color: ["#2563eb", "#14b8a6", "#f97316"],
+    color: ["#2563eb", "#14b8a6"],
     tooltip: axisTooltip(),
     legend: { top: 0, right: 0, icon: "circle", itemWidth: 8, itemHeight: 8, textStyle: { color: chartMutedColor() } },
     grid: { top: 42, right: 52, bottom: 32, left: 42, containLabel: true },
     xAxis: { type: "category", data: data.map((item) => item.date || ""), ...axisStyle() },
     yAxis: [
-      { type: "value", name: "人数/次数", minInterval: 1, ...axisStyle() },
-      { type: "value", name: "工时(h)", nameGap: 18, axisLabel: { formatter: "{value}h", color: chartMutedColor() }, splitLine: { show: false } }
+      { type: "value", name: "员工数", minInterval: 1, ...axisStyle() },
+      { type: "value", name: "工时(h)", nameGap: 10, axisLabel: { formatter: "{value}h", color: chartMutedColor() }, splitLine: { show: false } }
     ],
     series: [
       {
         name: "活跃员工",
-        type: "line",
-        smooth: true,
-        symbolSize: 6,
-        lineStyle: { width: 3 },
-        areaStyle: { color: createGradient("rgba(37, 99, 235, 0.22)", "rgba(37, 99, 235, 0.02)") },
+        type: "bar",
+        barWidth: 14,
+        itemStyle: { borderRadius: [6, 6, 0, 0], color: createGradient("#facc15", "#f59e0b") },
         data: data.map((item) => Number(item.activeEmployees) || 0)
       },
       {
@@ -614,13 +612,6 @@ function initDailyTrendChart() {
         lineStyle: { width: 3 },
         areaStyle: { color: createGradient("rgba(20, 184, 166, 0.18)", "rgba(20, 184, 166, 0.02)") },
         data: data.map((item) => Number(item.workHours) || 0)
-      },
-      {
-        name: "审批处理",
-        type: "bar",
-        barWidth: 14,
-        data: data.map((item) => Number(item.approvalActions) || 0),
-        itemStyle: { borderRadius: [6, 6, 0, 0], color: createGradient("#f97316", "#facc15") }
       }
     ]
   });
