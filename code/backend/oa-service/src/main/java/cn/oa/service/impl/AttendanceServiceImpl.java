@@ -40,7 +40,7 @@ public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAtt
         AttendanceSchedule schedule = attendanceGroupService.getScheduleForEmployee(empId);
         if (existing != null) {
             if (existing.getClockIn() != null) {
-                throw new BusinessException("?????");
+                throw new BusinessException("今日已打卡");
             }
             existing.setClockIn(now);
             if (!Integer.valueOf(5).equals(existing.getStatus()) && !Integer.valueOf(4).equals(existing.getStatus())) {
@@ -62,10 +62,10 @@ public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAtt
     public void clockOut(Long empId) {
         OaAttendance attendance = getTodayAttendance(empId);
         if (attendance == null) {
-            throw new BusinessException("??????????");
+            throw new BusinessException("今日未打卡，请先签到");
         }
         if (attendance.getClockOut() != null) {
-            throw new BusinessException("?????");
+            throw new BusinessException("今日已签退");
         }
         LocalDateTime now = LocalDateTime.now();
         attendance.setClockOut(now);
@@ -167,13 +167,13 @@ public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAtt
     @Override
     @Transactional
     public void markLeaveAttendance(Long empId, LocalDate startDate, LocalDate endDate) {
-        markAutoAttendance(empId, startDate, endDate, 5, "??????");
+        markAutoAttendance(empId, startDate, endDate, 5, "请假自动标记");
     }
 
     @Override
     @Transactional
     public void markTripAttendance(Long empId, LocalDate startDate, LocalDate endDate) {
-        markAutoAttendance(empId, startDate, endDate, 6, "??????");
+        markAutoAttendance(empId, startDate, endDate, 6, "出差自动标记");
     }
 
     @Override
@@ -183,7 +183,7 @@ public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAtt
                 .eq(OaAttendance::getEmpId, empId)
                 .between(OaAttendance::getWorkDate, startDate, endDate)
                 .eq(OaAttendance::getStatus, status)
-                .like(OaAttendance::getRemark, "????"));
+                .like(OaAttendance::getRemark, "自动标记"));
     }
 
     private void markAutoAttendance(Long empId, LocalDate startDate, LocalDate endDate, int status, String remark) {

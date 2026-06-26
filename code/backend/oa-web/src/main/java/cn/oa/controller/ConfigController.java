@@ -69,3 +69,4 @@ public class ConfigController {
         return R.ok();
     }
 }
+

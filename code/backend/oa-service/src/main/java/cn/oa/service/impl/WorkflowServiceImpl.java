@@ -342,9 +342,7 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
     public IPage<WfTask> myPendingTasks(Long assigneeId, int pageNum, int pageSize) {
         Page<WfTask> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<WfTask> wrapper = new LambdaQueryWrapper<>();
-        if (!isAdminUser(assigneeId)) {
-            wrapper.eq(WfTask::getAssigneeId, assigneeId);
-        }
+        wrapper.eq(WfTask::getAssigneeId, assigneeId);
         wrapper.eq(WfTask::getStatus, "0")
                .orderByDesc(WfTask::getCreateTime);
         IPage<WfTask> result = taskMapper.selectPage(page, wrapper);
@@ -1302,15 +1300,6 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
         if (instance == null) {
             log.warn("findPendingTask: no instance found for businessType={}, businessId={}", businessType, businessId);
             return null;
-        }
-
-        if (isAdminUser(assigneeId)) {
-            WfTask adminTask = findAnyPendingTask(instance.getId());
-            if (adminTask != null) {
-                log.debug("findPendingTask: admin match taskId={} for businessType={}, businessId={}",
-                        adminTask.getId(), businessType, businessId);
-                return adminTask;
-            }
         }
 
         // 1. Direct match: task assigned to this user

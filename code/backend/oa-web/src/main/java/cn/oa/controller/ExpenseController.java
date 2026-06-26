@@ -6,6 +6,7 @@ import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
 import cn.oa.common.utils.PageParamUtil;
 import cn.oa.common.utils.WebUtil;
+import cn.oa.support.QueryScopeService;
 import cn.oa.entity.dto.ApproveDTO;
 import cn.oa.utils.ExcelExportUtil;
 import cn.oa.entity.OaExpense;
@@ -50,6 +51,9 @@ public class ExpenseController {
     @Autowired
     private SysEmployeeMapper employeeMapper;
 
+    @Autowired
+    private QueryScopeService queryScopeService;
+
     @PostMapping("/submit")
     @Operation(summary = "提交经费申请")
     @OperationLog(module = "经费管理", operation = "提交经费申请")
@@ -76,8 +80,8 @@ public class ExpenseController {
     public R<PageResult<OaExpense>> page(@RequestParam int pageNum,
                                           @RequestParam int pageSize,
                                           @RequestParam(required = false) Long empId,
-                                          @RequestParam(required = false) Integer status) {
-        IPage<OaExpense> page = expenseService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), empId, status);
+                                          @RequestParam(required = false) Integer status, HttpServletRequest request) {
+        IPage<OaExpense> page = expenseService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), queryScopeService.resolveEmpId(request, empId), status);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 
@@ -87,8 +91,9 @@ public class ExpenseController {
     public void exportExpense(
             @RequestParam(required = false) Long empId,
             @RequestParam(required = false) Integer status,
+            HttpServletRequest request,
             HttpServletResponse response) throws IOException {
-        IPage<OaExpense> page = expenseService.pageList(1, 5000, empId, status);
+        IPage<OaExpense> page = expenseService.pageList(1, 5000, queryScopeService.resolveEmpId(request, empId), status);
         List<OaExpense> records = page.getRecords();
         if (records.size() > 1000) {
             log.warn("Export result count: {}, consider async export", records.size());
@@ -124,3 +129,4 @@ public class ExpenseController {
         ExcelExportUtil.export(response, "经费数据", ExpenseExportVO.class, exportList);
     }
 }
+

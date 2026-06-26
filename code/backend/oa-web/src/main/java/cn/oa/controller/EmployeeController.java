@@ -40,6 +40,22 @@ public class EmployeeController {
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
+
+    @GetMapping("/me")
+    @Operation(summary = "????????")
+    public R<SysEmployee> me(HttpServletRequest request) {
+        Long empId = WebUtil.getEmpId(request);
+        if (empId == null) {
+            return R.fail("???");
+        }
+        SysEmployee employee = employeeService.getById(empId);
+        if (employee == null) {
+            return R.fail("?????");
+        }
+        employee.setPassword(null);
+        return R.ok(employee);
+    }
+
     @GetMapping("/page")
     @Operation(summary = "分页查询员工")
     public R<PageResult<SysEmployee>> page(@RequestParam int pageNum,
@@ -107,6 +123,7 @@ public class EmployeeController {
             redisTemplate.delete("token:" + disabledEmpId);
             redisTemplate.delete("refreshToken:" + disabledEmpId);
             redisTemplate.delete("roles:" + disabledEmpId);
+            redisTemplate.delete("permissions:" + disabledEmpId);
             redisTemplate.delete("online:user:" + disabledEmpId);
             log.info("Employee disabled, Redis session cleaned: empId={}", disabledEmpId);
         }
@@ -145,3 +162,6 @@ public class EmployeeController {
         return R.ok();
     }
 }
+
+
+

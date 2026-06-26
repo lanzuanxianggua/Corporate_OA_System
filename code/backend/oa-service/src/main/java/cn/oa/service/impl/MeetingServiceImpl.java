@@ -47,7 +47,7 @@ public class MeetingServiceImpl extends ServiceImpl<OaMeetingMapper, OaMeeting> 
         if (meeting.getRoomId() != null) {
             Long lockedRoomId = roomMapper.lockById(meeting.getRoomId());
             if (lockedRoomId == null) {
-                throw new BusinessException("??????");
+                throw new BusinessException("\u4f1a\u8bae\u5ba4\u4e0d\u5b58\u5728");
             }
             assertNoRoomConflict(meeting.getRoomId(), meeting.getStartTime(), meeting.getEndTime(), null);
         }
@@ -57,7 +57,7 @@ public class MeetingServiceImpl extends ServiceImpl<OaMeetingMapper, OaMeeting> 
         if (meeting.getParticipants() != null) {
             List<Long> participantIds = JSONUtil.toList(meeting.getParticipants(), Long.class);
             for (Long empId : participantIds) {
-                todoService.addTodo(empId, "????: " + meeting.getTitle(), "meeting", meeting.getId(), "meeting");
+                todoService.addTodo(empId, "\u4f1a\u8bae\u901a\u77e5: " + meeting.getTitle(), "meeting", meeting.getId(), "meeting");
             }
         }
     }
@@ -67,10 +67,10 @@ public class MeetingServiceImpl extends ServiceImpl<OaMeetingMapper, OaMeeting> 
     public void cancel(Long meetingId, Long organizerId) {
         OaMeeting meeting = this.getById(meetingId);
         if (meeting == null) {
-            throw new BusinessException("?????");
+            throw new BusinessException("\u4f1a\u8bae\u4e0d\u5b58\u5728");
         }
         if (!meeting.getOrganizerId().equals(organizerId)) {
-            throw new BusinessException("???????????");
+            throw new BusinessException("\u53ea\u6709\u7ec4\u7ec7\u8005\u624d\u80fd\u53d6\u6d88\u4f1a\u8bae");
         }
         meeting.setStatus("3");
         meeting.setUpdateTime(LocalDateTime.now());
@@ -92,10 +92,10 @@ public class MeetingServiceImpl extends ServiceImpl<OaMeetingMapper, OaMeeting> 
 
     private void validateMeetingTime(OaMeeting meeting) {
         if (meeting.getStartTime() == null || meeting.getEndTime() == null) {
-            throw new BusinessException("?????????????");
+            throw new BusinessException("\u4f1a\u8bae\u5f00\u59cb\u548c\u7ed3\u675f\u65f6\u95f4\u4e0d\u80fd\u4e3a\u7a7a");
         }
         if (!meeting.getEndTime().isAfter(meeting.getStartTime())) {
-            throw new BusinessException("??????????????");
+            throw new BusinessException("\u4f1a\u8bae\u7ed3\u675f\u65f6\u95f4\u5fc5\u987b\u665a\u4e8e\u5f00\u59cb\u65f6\u95f4");
         }
     }
 
@@ -109,7 +109,7 @@ public class MeetingServiceImpl extends ServiceImpl<OaMeetingMapper, OaMeeting> 
             conflictQuery.ne(OaMeeting::getId, excludeMeetingId);
         }
         if (this.count(conflictQuery) > 0) {
-            throw new BusinessException("??????????????");
+            throw new BusinessException("\u8be5\u4f1a\u8bae\u5ba4\u5728\u6307\u5b9a\u65f6\u95f4\u6bb5\u5df2\u88ab\u9884\u5b9a");
         }
     }
 

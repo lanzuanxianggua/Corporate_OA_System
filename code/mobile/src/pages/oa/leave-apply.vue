@@ -64,7 +64,7 @@ import { LEAVE_TYPE_OPTIONS } from "@/utils/constants";
 /** Labels for picker (skip index 0 placeholder) */
 const leaveTypeLabels = LEAVE_TYPE_OPTIONS.slice(1);
 /** Maps picker index (0-based) to backend leaveType value (1-based string) */
-const leaveTypeValueMap = ["1", "2", "3", "4", "5", "6"];
+const leaveTypeValueMap = ["1", "2", "3", "4", "5", "6", "7"];
 
 const form = ref({
   leaveType: "0",

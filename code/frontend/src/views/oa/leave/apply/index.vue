@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="h-full">
     <el-row :gutter="20" class="h-full">
       <!-- 左列：我的请假记录 -->
@@ -28,7 +28,7 @@
               <template #default="{ row }">{{ formatTime(row.endTime) }}</template>
             </el-table-column>
             <el-table-column label="天数" width="60" align="center">
-              <template #default="{ row }">{{ calcDays(row.startTime, row.endTime) }}</template>
+              <template #default="{ row }">{{ row.days ?? calcDays(row) }}</template>
             </el-table-column>
             <el-table-column label="原因" min-width="120" show-overflow-tooltip>
               <template #default="{ row }">{{ row.reason || "-" }}</template>
@@ -124,10 +124,10 @@ const fetchList = async () => {
   }
 };
 
-const calcDays = (startTime?: string, endTime?: string) => {
-  if (!startTime || !endTime) return "-";
-  const diff = new Date(endTime).getTime() - new Date(startTime).getTime();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+const calcDays = (row: LeaveApply) => {
+  if (row.days != null) return row.days;
+  if (!row.startTime || !row.endTime) return "-";
+  return row.days ?? "-";
 };
 
 // --- 详情 ---
@@ -223,3 +223,4 @@ onMounted(() => {
   fetchList();
 });
 </script>
+

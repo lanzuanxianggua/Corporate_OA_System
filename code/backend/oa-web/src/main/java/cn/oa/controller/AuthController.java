@@ -1,4 +1,4 @@
-﻿package cn.oa.controller;
+package cn.oa.controller;
 
 import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.result.R;
@@ -121,7 +121,7 @@ public class AuthController {
         employee.setEmpCode(dto.getUsername());
         employee.setEmpName(dto.getUsername());
         employee.setEmail(dto.getEmail());
-        employee.setPassword(BCrypt.hashpw(dto.getPassword()));
+        employee.setPassword(dto.getPassword());
         employee.setStatus(0);
 
         authService.register(employee);
@@ -185,6 +185,8 @@ public class AuthController {
         private String newPassword;
     }
 }
+
+
 
 
 

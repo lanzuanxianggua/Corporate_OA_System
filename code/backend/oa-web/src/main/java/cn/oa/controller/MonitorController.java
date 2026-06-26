@@ -198,3 +198,4 @@ public class MonitorController {
         return R.ok(detail);
     }
 }
+

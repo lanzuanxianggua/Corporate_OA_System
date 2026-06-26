@@ -113,3 +113,4 @@ public class AssetController {
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 }
+

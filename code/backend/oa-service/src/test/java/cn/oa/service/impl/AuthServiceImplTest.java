@@ -100,6 +100,7 @@ class AuthServiceImplTest {
         when(roleMapper.selectBatchIds(any())).thenReturn(Arrays.asList(role));
 
         when(jwtUtil.generateToken(100L, "张三")).thenReturn("access-token");
+        when(jwtUtil.generateRefreshToken(100L, employee.getEmpName())).thenReturn("refresh-token");
         when(redisTemplate.opsForValue()).thenReturn(valueOps);
         when(request.getHeader("User-Agent")).thenReturn("Mozilla/5.0");
 
@@ -107,12 +108,12 @@ class AuthServiceImplTest {
 
         assertNotNull(vo);
         assertEquals("access-token", vo.getAccessToken());
-        assertEquals("access-token", vo.getRefreshToken());
+        assertEquals("refresh-token", vo.getRefreshToken());
         assertEquals("张三", vo.getNickname());
         assertEquals("EMP001", vo.getUsername());
         assertTrue(vo.getRoles().contains("USER"));
 
-        verify(redisTemplate, times(3)).opsForValue();
+        verify(redisTemplate, times(4)).opsForValue();
         verify(onlineUserService).userLogin(eq(100L), eq("张三"), any(), any());
         verify(loginLogMapper).insert(any(OaLoginLog.class));
     }
@@ -142,6 +143,7 @@ class AuthServiceImplTest {
         when(employeeMapper.selectOne(any())).thenReturn(employee);
         when(empRoleMapper.selectList(any())).thenReturn(new ArrayList<>()); // no roles
         when(jwtUtil.generateToken(100L, "张三")).thenReturn("access-token");
+        when(jwtUtil.generateRefreshToken(100L, employee.getEmpName())).thenReturn("refresh-token");
         when(redisTemplate.opsForValue()).thenReturn(valueOps);
         when(request.getHeader("User-Agent")).thenReturn("Mozilla/5.0");
 
@@ -167,6 +169,7 @@ class AuthServiceImplTest {
         when(roleMapper.selectBatchIds(any())).thenReturn(Arrays.asList(adminRole));
 
         when(jwtUtil.generateToken(100L, "张三")).thenReturn("access-token");
+        when(jwtUtil.generateRefreshToken(100L, employee.getEmpName())).thenReturn("refresh-token");
         when(redisTemplate.opsForValue()).thenReturn(valueOps);
         when(request.getHeader("User-Agent")).thenReturn("Mozilla/5.0");
 
@@ -185,7 +188,7 @@ class AuthServiceImplTest {
 
         authService.logout(100L);
 
-        verify(redisTemplate, times(2)).delete(anyString());
+        verify(redisTemplate, times(4)).delete(anyString());
         verify(onlineUserService).userLogout(100L);
     }
 
@@ -196,21 +199,21 @@ class AuthServiceImplTest {
         String oldRefresh = "old-refresh-token";
 
         when(redisTemplate.opsForValue()).thenReturn(valueOps);
-        when(valueOps.get("token:" + 100L)).thenReturn(oldRefresh);
+        when(valueOps.get("refreshToken:" + 100L)).thenReturn(oldRefresh);
 
         Claims claims = mock(Claims.class);
         when(claims.get("empId", Long.class)).thenReturn(100L);
         when(claims.get("empName", String.class)).thenReturn("张三");
-        when(claims.get("tokenType", String.class)).thenReturn("refresh");
         when(jwtUtil.parseToken(oldRefresh)).thenReturn(claims);
 
         when(jwtUtil.generateToken(100L, "张三")).thenReturn("new-access-token");
+        when(jwtUtil.generateRefreshToken(100L, "张三")).thenReturn("new-refresh-token");
 
         LoginVO vo = authService.refreshToken(oldRefresh);
 
         assertNotNull(vo);
         assertEquals("new-access-token", vo.getAccessToken());
-        assertEquals("new-access-token", vo.getRefreshToken());
+        assertEquals("new-refresh-token", vo.getRefreshToken());
     }
 
     @Test
@@ -218,7 +221,6 @@ class AuthServiceImplTest {
         String staleToken = "access-token";
 
         Claims claims = mock(Claims.class);
-        when(claims.get("tokenType", String.class)).thenReturn("access");
         when(jwtUtil.parseToken(staleToken)).thenReturn(claims);
 
         BusinessException ex = assertThrows(BusinessException.class,
@@ -233,7 +235,6 @@ class AuthServiceImplTest {
         Claims claims = mock(Claims.class);
         when(claims.get("empId", Long.class)).thenReturn(100L);
         when(claims.get("empName", String.class)).thenReturn("张三");
-        when(claims.get("tokenType", String.class)).thenReturn("refresh");
         when(jwtUtil.parseToken(oldRefresh)).thenReturn(claims);
 
         when(redisTemplate.opsForValue()).thenReturn(valueOps);

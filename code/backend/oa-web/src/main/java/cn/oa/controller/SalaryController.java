@@ -89,3 +89,4 @@ public class SalaryController {
         private String password;
     }
 }
+

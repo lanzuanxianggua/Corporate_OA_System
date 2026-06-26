@@ -73,3 +73,4 @@ public class BudgetController {
         return R.ok(budgetService.getByDeptMonth(deptId, year, month));
     }
 }
+

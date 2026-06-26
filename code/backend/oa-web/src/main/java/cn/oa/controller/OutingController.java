@@ -6,6 +6,7 @@ import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
 import cn.oa.common.utils.PageParamUtil;
 import cn.oa.common.utils.WebUtil;
+import cn.oa.support.QueryScopeService;
 import cn.oa.entity.OaOuting;
 import cn.oa.entity.SysEmployee;
 import cn.oa.entity.dto.ApproveDTO;
@@ -48,6 +49,9 @@ public class OutingController {
     @Autowired
     private SysEmployeeMapper employeeMapper;
 
+    @Autowired
+    private QueryScopeService queryScopeService;
+
     private static final String[] STATUS_TEXT = {"待审批", "已通过", "已驳回", "已撤回"};
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
@@ -77,8 +81,8 @@ public class OutingController {
     public R<PageResult<OaOuting>> page(@RequestParam int pageNum,
                                          @RequestParam int pageSize,
                                          @RequestParam(required = false) Long empId,
-                                         @RequestParam(required = false) Integer status) {
-        IPage<OaOuting> page = outingService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), empId, status);
+                                         @RequestParam(required = false) Integer status, HttpServletRequest request) {
+        IPage<OaOuting> page = outingService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), queryScopeService.resolveEmpId(request, empId), status);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 
@@ -114,3 +118,4 @@ public class OutingController {
         ExcelExportUtil.export(response, "外出数据", OutingExportVO.class, exportList);
     }
 }
+

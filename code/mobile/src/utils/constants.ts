@@ -34,7 +34,8 @@ export const LEAVE_TYPE_MAP: Record<number, string> = {
   3: "病假",
   4: "婚假",
   5: "产假",
-  6: "丧假"
+  6: "丧假",
+  7: "调休"
 };
 
 /** Leave type labels as array for picker component (index maps to leaveType value) */
@@ -45,7 +46,8 @@ export const LEAVE_TYPE_OPTIONS: string[] = [
   "病假", // 3
   "婚假", // 4
   "产假", // 5
-  "丧假"  // 6
+  "丧假", // 6
+  "调休"  // 7
 ];
 
 /** Expense category labels (aligned with backend OaExpense.category) */

@@ -6,6 +6,7 @@ import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
 import cn.oa.common.utils.PageParamUtil;
 import cn.oa.common.utils.WebUtil;
+import cn.oa.support.QueryScopeService;
 import cn.oa.entity.OaPurchase;
 import cn.oa.entity.SysEmployee;
 import cn.oa.entity.dto.ApproveDTO;
@@ -47,6 +48,9 @@ public class PurchaseController {
     @Autowired
     private SysEmployeeMapper employeeMapper;
 
+    @Autowired
+    private QueryScopeService queryScopeService;
+
     private static final String[] STATUS_TEXT = {"待审批", "已通过", "已驳回", "已撤回"};
 
     @PostMapping("/submit")
@@ -75,8 +79,8 @@ public class PurchaseController {
     public R<PageResult<OaPurchase>> page(@RequestParam int pageNum,
                                            @RequestParam int pageSize,
                                            @RequestParam(required = false) Long empId,
-                                           @RequestParam(required = false) Integer status) {
-        IPage<OaPurchase> page = purchaseService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), empId, status);
+                                           @RequestParam(required = false) Integer status, HttpServletRequest request) {
+        IPage<OaPurchase> page = purchaseService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), queryScopeService.resolveEmpId(request, empId), status);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 
@@ -86,8 +90,9 @@ public class PurchaseController {
     public void exportPurchase(
             @RequestParam(required = false) Long empId,
             @RequestParam(required = false) Integer status,
+            HttpServletRequest request,
             HttpServletResponse response) throws IOException {
-        IPage<OaPurchase> page = purchaseService.pageList(1, 5000, empId, status);
+        IPage<OaPurchase> page = purchaseService.pageList(1, 5000, queryScopeService.resolveEmpId(request, empId), status);
         List<OaPurchase> records = page.getRecords();
         if (records.size() > 5000) records = records.subList(0, 5000);
 
@@ -112,3 +117,4 @@ public class PurchaseController {
         ExcelExportUtil.export(response, "采购数据", PurchaseExportVO.class, exportList);
     }
 }
+

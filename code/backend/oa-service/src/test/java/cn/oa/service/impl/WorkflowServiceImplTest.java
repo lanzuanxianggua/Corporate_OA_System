@@ -299,9 +299,7 @@ class WorkflowServiceImplTest {
         task.setInstanceId(200L);
 
         when(taskMapper.selectById(task.getId())).thenReturn(task);
-        // No delegation, no admin role (resolveDelegate defaults to null from setUp)
         when(delegationService.findActiveDelegationForDelegate(otherUserId)).thenReturn(null);
-        when(empRoleMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Collections.emptyList());
 
         assertThatThrownBy(() -> workflowService.handleTask(task.getId(), otherUserId, 1, "鍚屾剰"))
                 .isInstanceOf(BusinessException.class)
@@ -436,30 +434,17 @@ class WorkflowServiceImplTest {
 
     @Test
     @DisplayName("workflow test")
-    void findPendingTask_AdminReturnsAnyPendingTask() {
+    void findPendingTask_AdminDoesNotBypassAssignee() {
         Long adminId = 1L;
+        Long otherAssignee = 2L;
         WfProcessInstance inst = createRunningInstance();
-        inst.setId(200L);
-        WfTask task = createPendingTask(200L, approverId, 0);
-
-        SysEmpRole empRole = new SysEmpRole();
-        empRole.setEmpId(adminId);
-        empRole.setRoleId(10L);
-        SysRole adminRole = new SysRole();
-        adminRole.setId(10L);
-        adminRole.setRoleKey("ADMIN");
-
+        WfTask otherTask = createPendingTask(inst.getId(), otherAssignee, 0);
         when(instanceMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(inst);
-        when(empRoleMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Collections.singletonList(empRole));
-        when(roleMapper.selectBatchIds(anyCollection())).thenReturn(Collections.singletonList(adminRole));
-        when(taskMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(task);
-
+        when(taskMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null);
         WfTask result = workflowService.findPendingTask(businessType, businessId, adminId);
-
-        assertThat(result).isNotNull();
-        assertThat(result.getId()).isEqualTo(task.getId());
-        assertThat(result.getAssigneeId()).isEqualTo(approverId);
+        assertThat(result).isNull();
     }
+
 
     @Test
     @DisplayName("workflow test")
@@ -505,7 +490,7 @@ class WorkflowServiceImplTest {
 
     @Test
     @DisplayName("workflow test")
-    void myPendingTasks_AdminReturnsAllPendingTasks() {
+    void myPendingTasks_AdminOnlyOwnTasks() {
         Long adminId = 1L;
         WfTask task = createPendingTask(200L, approverId, 0);
         WfProcessInstance inst = createRunningInstance();
@@ -514,15 +499,6 @@ class WorkflowServiceImplTest {
         page.setRecords(Collections.singletonList(task));
         page.setTotal(1);
 
-        SysEmpRole empRole = new SysEmpRole();
-        empRole.setEmpId(adminId);
-        empRole.setRoleId(10L);
-        SysRole adminRole = new SysRole();
-        adminRole.setId(10L);
-        adminRole.setRoleKey("ADMIN");
-
-        when(empRoleMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Collections.singletonList(empRole));
-        when(roleMapper.selectBatchIds(anyCollection())).thenReturn(Collections.singletonList(adminRole));
         when(taskMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class))).thenReturn(page);
         when(instanceMapper.selectBatchIds(anyCollection())).thenReturn(Collections.singletonList(inst));
 

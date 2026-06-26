@@ -8,6 +8,7 @@ import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
 import cn.oa.common.utils.PageParamUtil;
 import cn.oa.common.utils.WebUtil;
+import cn.oa.support.QueryScopeService;
 import cn.oa.entity.dto.ApproveDTO;
 import cn.oa.utils.ExcelExportUtil;
 import cn.oa.entity.OaLeaveApply;
@@ -56,6 +57,9 @@ public class LeaveApplyController {
     @Autowired
     private SysEmployeeMapper employeeMapper;
 
+    @Autowired
+    private QueryScopeService queryScopeService;
+
     @PostMapping("/submit")
     @Operation(summary = "提交请假申请")
     @OperationLog(module = "请假管理", operation = "提交请假申请")
@@ -82,8 +86,8 @@ public class LeaveApplyController {
     public R<PageResult<OaLeaveApply>> page(@RequestParam int pageNum,
                                             @RequestParam int pageSize,
                                             @RequestParam(required = false) Long empId,
-                                            @RequestParam(required = false) Integer status) {
-        IPage<OaLeaveApply> page = leaveApplyService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), empId, status);
+                                            @RequestParam(required = false) Integer status, HttpServletRequest request) {
+        IPage<OaLeaveApply> page = leaveApplyService.pageList(PageParamUtil.pageNum(pageNum), PageParamUtil.pageSize(pageSize), queryScopeService.resolveEmpId(request, empId), status);
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 
@@ -93,8 +97,9 @@ public class LeaveApplyController {
     public void exportLeave(
             @RequestParam(required = false) Long empId,
             @RequestParam(required = false) Integer status,
+            HttpServletRequest request,
             HttpServletResponse response) throws IOException {
-        IPage<OaLeaveApply> page = leaveApplyService.pageList(1, 5000, empId, status);
+        IPage<OaLeaveApply> page = leaveApplyService.pageList(1, 5000, queryScopeService.resolveEmpId(request, empId), status);
         List<OaLeaveApply> records = page.getRecords();
         if (records.size() > 1000) {
             log.warn("Export result count: {}, consider async export", records.size());
@@ -136,3 +141,4 @@ public class LeaveApplyController {
         return LeaveDurationUtil.calculateLeaveDays(leave.getStartTime(), leave.getEndTime(), leave.getLeavePeriod());
     }
 }
+

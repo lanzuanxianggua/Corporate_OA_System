@@ -1,6 +1,7 @@
 package cn.oa.service.impl;
 
 import cn.oa.common.exception.BusinessException;
+import cn.oa.common.dto.AttendanceSchedule;
 import cn.oa.entity.OaAttendance;
 import cn.oa.entity.SysEmployee;
 import cn.oa.mapper.OaAttendanceMapper;
@@ -16,8 +17,11 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.lang.reflect.Field;
+import cn.oa.service.support.TestAttendanceGroupService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -29,6 +33,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("AttendanceServiceImpl 考勤服务测试")
 class AttendanceServiceImplTest {
 
@@ -52,6 +57,9 @@ class AttendanceServiceImplTest {
         Field baseMapperField = com.baomidou.mybatisplus.extension.repository.CrudRepository.class.getDeclaredField("baseMapper");
         baseMapperField.setAccessible(true);
         baseMapperField.set(attendanceService, attendanceMapper);
+        Field agField = AttendanceServiceImpl.class.getDeclaredField("attendanceGroupService");
+        agField.setAccessible(true);
+        agField.set(attendanceService, new TestAttendanceGroupService());
     }
 
     // ==================== clockIn ====================

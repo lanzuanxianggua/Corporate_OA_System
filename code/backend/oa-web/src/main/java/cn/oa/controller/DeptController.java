@@ -67,3 +67,4 @@ public class DeptController {
         return R.ok();
     }
 }
+

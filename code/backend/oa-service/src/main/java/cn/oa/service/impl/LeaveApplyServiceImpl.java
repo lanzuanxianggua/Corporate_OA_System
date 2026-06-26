@@ -107,16 +107,17 @@ public class LeaveApplyServiceImpl extends BaseApprovalServiceImpl<OaLeaveApplyM
     @Transactional
     public void submit(OaLeaveApply apply) {
         if (apply.getStartTime() == null || apply.getEndTime() == null) {
-            throw new BusinessException("??????????");
+            throw new BusinessException("\u8bf7\u5047\u8d77\u6b62\u65f6\u95f4\u4e0d\u80fd\u4e3a\u7a7a");
         }
         if (apply.getStartTime().isAfter(apply.getEndTime())) {
-            throw new BusinessException("??????????????");
+            throw new BusinessException("\u8bf7\u5047\u7ed3\u675f\u65f6\u95f4\u4e0d\u80fd\u65e9\u4e8e\u5f00\u59cb\u65f6\u95f4");
         }
         apply.setDays(calculateLeaveDays(apply));
-        if (String.valueOf(LeaveType.ANNUAL).equals(String.valueOf(apply.getLeaveType()))) {
+        Integer leaveType = parseLeaveType(apply.getLeaveType());
+        if (leaveType != null && (LeaveType.ANNUAL == leaveType || LeaveType.COMPENSATORY == leaveType)) {
             leaveBalanceService.assertSufficientBalance(
                     apply.getEmpId(),
-                    LeaveType.ANNUAL,
+                    leaveType,
                     apply.getStartTime().toLocalDate().getYear(),
                     apply.getDays());
         }

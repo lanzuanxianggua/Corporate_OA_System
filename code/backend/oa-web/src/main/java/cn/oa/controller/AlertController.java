@@ -145,3 +145,4 @@ public class AlertController {
         return Character.digit(value, 10);
     }
 }
+

@@ -161,7 +161,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void register(SysEmployee employee) {
-        employee.setPassword(BCrypt.hashpw(employee.getPassword()));
+        String rawPassword = employee.getPassword(); if (rawPassword != null && !rawPassword.startsWith("$2a$") && !rawPassword.startsWith("$2b$")) { employee.setPassword(BCrypt.hashpw(rawPassword)); }
         employeeMapper.insert(employee);
     }
 
@@ -271,3 +271,4 @@ public class AuthServiceImpl implements AuthService {
                 .collect(Collectors.toList());
     }
 }
+
