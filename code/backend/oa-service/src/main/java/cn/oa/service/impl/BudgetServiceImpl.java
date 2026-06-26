@@ -43,7 +43,6 @@ public class BudgetServiceImpl extends ServiceImpl<OaBudgetMapper, OaBudget> imp
     public void updateUsedAmount(Long budgetId, BigDecimal amount) {
         boolean updated;
         if (amount.compareTo(BigDecimal.ZERO) > 0) {
-            // 原子扣减：扣减 + 余额校验一步完成，避免 TOCTOU 问题
             updated = lambdaUpdate()
                     .setSql("used_amount = used_amount + " + amount)
                     .eq(OaBudget::getId, budgetId)
@@ -57,7 +56,6 @@ public class BudgetServiceImpl extends ServiceImpl<OaBudgetMapper, OaBudget> imp
         }
         if (!updated) {
             if (amount.compareTo(BigDecimal.ZERO) > 0) {
-                // 可能是预算不存在或预算不足，重新查询以获得准确原因
                 OaBudget budget = this.getById(budgetId);
                 if (budget == null) {
                     throw new BusinessException("预算不存在");
@@ -66,6 +64,21 @@ public class BudgetServiceImpl extends ServiceImpl<OaBudgetMapper, OaBudget> imp
                 throw new BusinessException("超出预算余额，剩余预算：" + remaining);
             }
             throw new BusinessException("预算不存在或已被删除");
+        }
+    }
+
+    @Override
+    public void assertSufficientBudget(Long deptId, Integer year, Integer month, BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+        OaBudget budget = getByDeptMonth(deptId, year, month);
+        if (budget == null) {
+            throw new BusinessException("当前月份未配置部门预算");
+        }
+        BigDecimal remaining = budget.getAmount().subtract(budget.getUsedAmount() == null ? BigDecimal.ZERO : budget.getUsedAmount());
+        if (remaining.compareTo(amount) < 0) {
+            throw new BusinessException("超出预算余额，剩余预算：" + remaining);
         }
     }
 }

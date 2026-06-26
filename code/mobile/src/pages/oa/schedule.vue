@@ -10,8 +10,8 @@
         <text class="text-danger" @click="handleDelete(item.id)">删除</text>
       </view>
       <view class="item-time mt-20">
-        <text class="text-gray">{{ item.scheduleDate || item.date }}</text>
-        <text class="text-gray ml-20">{{ item.startTime }} ~ {{ item.endTime }}</text>
+        <text class="text-gray">{{ (item.startTime || '').substring(0, 10) }}</text>
+        <text class="text-gray ml-20">{{ formatTime(item.startTime) }} ~ {{ formatTime(item.endTime) }}</text>
       </view>
     </view>
 
@@ -74,7 +74,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { onShow, onPullDownRefresh } from "@dcloudio/uni-app";
 import { getSchedulePage, addSchedule, deleteSchedule } from "@/api/schedule";
 
 const list = ref<any[]>([]);
@@ -84,6 +84,13 @@ const finished = ref(false);
 const showDialog = ref(false);
 const submitting = ref(false);
 
+/** Extract HH:mm from "2026-06-24 09:00:00" or return as-is */
+const formatTime = (dt: string) => {
+  if (!dt) return "";
+  const parts = dt.split(" ");
+  return parts.length > 1 ? parts[1].substring(0, 5) : dt;
+};
+
 const form = ref({
   title: "",
   date: "",
@@ -92,7 +99,6 @@ const form = ref({
 });
 
 const fetchList = async () => {
-  if (loading.value || finished.value) return;
   loading.value = true;
   try {
     const res: any = await getSchedulePage({ pageNum: pageNum.value, pageSize: 20 });
@@ -108,6 +114,7 @@ const fetchList = async () => {
     // silently handle
   } finally {
     loading.value = false;
+    uni.stopPullDownRefresh();
   }
 };
 
@@ -123,7 +130,7 @@ const handleSubmit = async () => {
   }
   submitting.value = true;
   try {
-    await addSchedule({ title, scheduleDate: date, startTime, endTime });
+    await addSchedule({ title, startTime: date + " " + startTime + ":00", endTime: date + " " + endTime + ":00" });
     uni.showToast({ title: "添加成功", icon: "success" });
     showDialog.value = false;
     form.value = { title: "", date: "", startTime: "", endTime: "" };
@@ -138,8 +145,8 @@ const handleSubmit = async () => {
 };
 
 const handleDelete = async (id: number) => {
-  const [, res] = await uni.showModal({ title: "提示", content: "确定删除该日程？" }) as any;
-  if (!res?.confirm) return;
+  const modalRes = await uni.showModal({ title: "提示", content: "确定删除该日程？" });
+  if (!(modalRes as any)?.confirm) return;
   try {
     await deleteSchedule(id);
     uni.showToast({ title: "删除成功", icon: "success" });
@@ -150,6 +157,11 @@ const handleDelete = async (id: number) => {
 };
 
 onShow(fetchList);
+onPullDownRefresh(() => {
+  pageNum.value = 1;
+  finished.value = false;
+  fetchList();
+});
 </script>
 
 <style scoped>

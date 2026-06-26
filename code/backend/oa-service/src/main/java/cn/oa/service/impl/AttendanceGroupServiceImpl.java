@@ -1,5 +1,6 @@
 package cn.oa.service.impl;
 
+import cn.oa.common.dto.AttendanceSchedule;
 import cn.oa.common.exception.BusinessException;
 import cn.oa.entity.OaAttendanceGroup;
 import cn.oa.entity.OaAttendanceGroupEmp;
@@ -14,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -39,7 +41,7 @@ public class AttendanceGroupServiceImpl extends ServiceImpl<OaAttendanceGroupMap
     public void assignEmployees(Long groupId, List<Long> empIds) {
         OaAttendanceGroup group = this.getById(groupId);
         if (group == null) {
-            throw new BusinessException("考勤组不存在");
+            throw new BusinessException("??????");
         }
         List<OaAttendanceGroupEmp> existing = groupEmpMapper.selectList(
                 new LambdaQueryWrapper<OaAttendanceGroupEmp>().eq(OaAttendanceGroupEmp::getGroupId, groupId));
@@ -47,6 +49,7 @@ public class AttendanceGroupServiceImpl extends ServiceImpl<OaAttendanceGroupMap
 
         for (Long empId : empIds) {
             if (!existingEmpIds.contains(empId)) {
+                groupEmpMapper.delete(new LambdaQueryWrapper<OaAttendanceGroupEmp>().eq(OaAttendanceGroupEmp::getEmpId, empId));
                 OaAttendanceGroupEmp ge = new OaAttendanceGroupEmp();
                 ge.setGroupId(groupId);
                 ge.setEmpId(empId);
@@ -59,11 +62,34 @@ public class AttendanceGroupServiceImpl extends ServiceImpl<OaAttendanceGroupMap
     @Transactional
     public void removeEmployees(Long groupId, List<Long> empIds) {
         if (empIds == null || empIds.isEmpty()) {
-            throw new BusinessException("员工列表不能为空");
+            throw new BusinessException("????????");
         }
         groupEmpMapper.delete(
                 new LambdaQueryWrapper<OaAttendanceGroupEmp>()
                         .eq(OaAttendanceGroupEmp::getGroupId, groupId)
                         .in(OaAttendanceGroupEmp::getEmpId, empIds));
+    }
+
+    @Override
+    public AttendanceSchedule getScheduleForEmployee(Long empId) {
+        if (empId == null) {
+            return AttendanceSchedule.defaultSchedule();
+        }
+        OaAttendanceGroupEmp relation = groupEmpMapper.selectOne(
+                new LambdaQueryWrapper<OaAttendanceGroupEmp>()
+                        .eq(OaAttendanceGroupEmp::getEmpId, empId)
+                        .orderByDesc(OaAttendanceGroupEmp::getId)
+                        .last("LIMIT 1"));
+        if (relation == null || relation.getGroupId() == null) {
+            return AttendanceSchedule.defaultSchedule();
+        }
+        OaAttendanceGroup group = this.getById(relation.getGroupId());
+        if (group == null || group.getStatus() == null || group.getStatus() != '0') {
+            return AttendanceSchedule.defaultSchedule();
+        }
+        LocalTime workStart = group.getWorkStart() != null ? group.getWorkStart() : LocalTime.of(9, 0);
+        LocalTime workEnd = group.getWorkEnd() != null ? group.getWorkEnd() : LocalTime.of(18, 0);
+        int lateThreshold = group.getLateThreshold() != null ? group.getLateThreshold() : 0;
+        return new AttendanceSchedule(workStart, workEnd, lateThreshold);
     }
 }

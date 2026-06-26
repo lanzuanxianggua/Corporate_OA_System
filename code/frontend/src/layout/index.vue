@@ -198,10 +198,10 @@ onMounted(() => {
   fetchUnreadCount();
   unreadTimer = setInterval(fetchUnreadCount, 60000);
 
-  // WebSocket real-time notifications
-  const empId = userStore.userInfo?.id;
-  if (empId) {
-    wsClient.connect(empId);
+  // WebSocket real-time notifications — use JWT token for auth
+  const token = userStore.token;
+  if (token) {
+    wsClient.connect(token);
     wsClient.on("*", (data) => {
       unreadCount.value++;
       const actionMap: Record<string, string> = {

@@ -41,6 +41,7 @@ public class AutoFillHandler implements MetaObjectHandler {
         } catch (Exception e) {
             log.debug("获取当前用户ID失败: {}", e.getMessage());
         }
-        return null;
+        // 在定时任务、事件监听等非HTTP上下文中使用 "system" 作为回退
+        return "system";
     }
 }

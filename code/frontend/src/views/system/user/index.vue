@@ -13,7 +13,7 @@
       <el-button type="primary" @click="handleSearch">查询</el-button>
       <el-button @click="resetSearch">重置</el-button>
       <div class="flex-1" />
-      <el-button type="primary" :icon="Plus" @click="openDialog()">新增员工</el-button>
+      <el-button v-if="userStore.hasPermission('system:user:add')" type="primary" :icon="Plus" @click="openDialog()">新增员工</el-button>
       <el-button type="danger" :icon="Delete" :disabled="!selectedIds.length" @click="handleBatchDelete">批量删除</el-button>
       <el-button type="warning" :disabled="!selectedIds.length" @click="handleBatchStatus(0)">批量禁用</el-button>
       <el-button type="success" :disabled="!selectedIds.length" @click="handleBatchStatus(1)">批量启用</el-button>
@@ -174,6 +174,7 @@ import { ref, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import type { FormInstance, FormRules } from "element-plus";
 import { Plus, Delete, Search } from "@element-plus/icons-vue";
+import { useUserStore } from "@/store/user";
 import { getEmployeePage, addEmployee, updateEmployee, deleteEmployee } from "@/api/employee";
 import { getAllRoles, getEmpRoles, assignRoles } from "@/api/system";
 import { getDeptTree } from "@/api/dept";
@@ -188,6 +189,7 @@ function generateRandomPassword(length = 10): string {
   return pwd;
 }
 
+const userStore = useUserStore();
 const loading = ref(false);
 const searchName = ref("");
 const searchDeptId = ref<number | undefined>(undefined);

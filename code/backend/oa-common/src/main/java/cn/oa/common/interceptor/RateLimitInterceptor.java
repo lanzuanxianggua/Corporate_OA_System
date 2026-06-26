@@ -27,9 +27,14 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         String ip = IpUtil.getClientIp(request);
         String key = "rate:login:" + ip;
 
-        long count = redisService.increment(key);
-        if (count == 1) {
-            redisService.expire(key, WINDOW_SECONDS, TimeUnit.SECONDS);
+        // 原子操作：用 SET NX EX（setIfAbsent）初始创建带 TTL 的 Key
+        // 后续请求直接用 INCR（TTL 已在第一步设好）
+        Boolean created = redisService.setIfAbsent(key, 1, WINDOW_SECONDS, TimeUnit.SECONDS);
+        long count;
+        if (Boolean.TRUE.equals(created)) {
+            count = 1;  // 首次请求
+        } else {
+            count = redisService.increment(key);  // 已有 Key，TTL 已在创建时设好
         }
 
         if (count > MAX_REQUESTS) {

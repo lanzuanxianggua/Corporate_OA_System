@@ -85,7 +85,8 @@ const handleSubmit = async () => {
   }
   submitting.value = true;
   try {
-    await submitOuting({ destination, outingDate, startTime, endTime, reason });
+    // Backend expects startTime/endTime as full datetime
+    await submitOuting({ destination, startTime: outingDate + " " + startTime + ":00", endTime: outingDate + " " + endTime + ":00", reason });
     uni.showToast({ title: "提交成功", icon: "success" });
     setTimeout(() => uni.navigateBack(), 1500);
   } catch {

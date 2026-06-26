@@ -1,7 +1,19 @@
 <template>
   <view class="container">
+    <!-- Loading skeleton -->
+    <view class="card" v-if="loading">
+      <view class="skeleton-block" style="width:40%;height:32rpx;margin-bottom:24rpx"></view>
+      <view v-for="i in 3" :key="i" class="timeline-item">
+        <view class="timeline-dot" style="background:#e4e7ed"></view>
+        <view class="timeline-content">
+          <view class="skeleton-block" style="width:50%;height:28rpx;margin-bottom:12rpx"></view>
+          <view class="skeleton-block" style="width:30%;height:24rpx"></view>
+        </view>
+      </view>
+    </view>
+
     <!-- Approval chain timeline -->
-    <view class="card">
+    <view class="card" v-else>
       <text class="section-title">审批进度</text>
       <view v-for="(record, idx) in chain" :key="idx" class="timeline-item">
         <view class="timeline-dot" :class="'dot-' + getDotClass(record.approveStatus)"></view>
@@ -58,13 +70,17 @@ const canApprove = ref(false);
 const remark = ref("");
 const submitting = ref(false);
 const rejectVisible = ref(false);
+const loading = ref(false);
 
 const fetchChain = async (bt: string, bid: string) => {
+  loading.value = true;
   try {
     const res: any = await getApprovalChain({ businessType: bt, businessId: Number(bid) });
     chain.value = res.data || [];
   } catch {
     uni.showToast({ title: "加载审批记录失败", icon: "none" });
+  } finally {
+    loading.value = false;
   }
 };
 
@@ -173,4 +189,16 @@ onLoad((query) => {
 .dialog-btn.cancel { background: #f4f4f5; color: #909399; }
 .dialog-btn.danger { background: #F56C6C; color: #fff; }
 .dialog-btn.danger[disabled] { background: #f89898; }
+
+/* Skeleton loading */
+.skeleton-block {
+  height: 28rpx; border-radius: 8rpx;
+  background: linear-gradient(90deg, #f2f2f2 25%, #e6e6e6 50%, #f2f2f2 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+}
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
 </style>

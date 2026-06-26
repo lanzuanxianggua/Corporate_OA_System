@@ -42,6 +42,12 @@ public class AssetBorrowServiceImpl extends ServiceImpl<OaAssetBorrowMapper, OaA
         if (!"0".equals(asset.getStatus())) {
             throw new BusinessException("资产当前不可借出");
         }
+        long activeBorrowCount = this.count(new LambdaQueryWrapper<OaAssetBorrow>()
+                .eq(OaAssetBorrow::getAssetId, borrow.getAssetId())
+                .eq(OaAssetBorrow::getStatus, "0"));
+        if (activeBorrowCount > 0) {
+            throw new BusinessException("该资产已有未归还的借出记录");
+        }
         borrow.setStatus("0");
         borrow.setBorrowTime(LocalDateTime.now());
         this.save(borrow);

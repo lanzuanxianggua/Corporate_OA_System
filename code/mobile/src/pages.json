@@ -1,14 +1,14 @@
 {
   "pages": [
-    { "path": "pages/home/index", "style": { "navigationBarTitleText": "工作台" } },
-    { "path": "pages/todo/index", "style": { "navigationBarTitleText": "待办" } },
-    { "path": "pages/approval/list", "style": { "navigationBarTitleText": "审批" } },
+    { "path": "pages/home/index", "style": { "navigationBarTitleText": "工作台", "enablePullDownRefresh": true } },
+    { "path": "pages/todo/index", "style": { "navigationBarTitleText": "待办", "enablePullDownRefresh": true } },
+    { "path": "pages/approval/list", "style": { "navigationBarTitleText": "审批", "enablePullDownRefresh": true } },
     { "path": "pages/mine/index", "style": { "navigationBarTitleText": "我的" } },
     { "path": "pages/login/index", "style": { "navigationBarTitleText": "登录", "navigationStyle": "custom" } },
     { "path": "pages/approval/detail", "style": { "navigationBarTitleText": "审批详情" } },
     { "path": "pages/oa/attendance", "style": { "navigationBarTitleText": "考勤打卡" } },
     { "path": "pages/oa/leave-apply", "style": { "navigationBarTitleText": "请假申请" } },
-    { "path": "pages/oa/leave-list", "style": { "navigationBarTitleText": "请假记录" } },
+    { "path": "pages/oa/leave-list", "style": { "navigationBarTitleText": "请假记录", "enablePullDownRefresh": true } },
     { "path": "pages/oa/business-trip", "style": { "navigationBarTitleText": "出差申请" } },
     { "path": "pages/oa/outing", "style": { "navigationBarTitleText": "外出申请" } },
     { "path": "pages/oa/overtime", "style": { "navigationBarTitleText": "加班申请" } },
@@ -17,9 +17,9 @@
     { "path": "pages/oa/loan", "style": { "navigationBarTitleText": "借支申请" } },
     { "path": "pages/oa/notice-list", "style": { "navigationBarTitleText": "公告通知" } },
     { "path": "pages/oa/notice-detail", "style": { "navigationBarTitleText": "公告详情" } },
-    { "path": "pages/oa/document", "style": { "navigationBarTitleText": "文档中心" } },
-    { "path": "pages/oa/schedule", "style": { "navigationBarTitleText": "我的日程" } },
-    { "path": "pages/oa/message", "style": { "navigationBarTitleText": "消息中心" } }
+    { "path": "pages/oa/document", "style": { "navigationBarTitleText": "文档中心", "enablePullDownRefresh": true } },
+    { "path": "pages/oa/schedule", "style": { "navigationBarTitleText": "我的日程", "enablePullDownRefresh": true } },
+    { "path": "pages/oa/message", "style": { "navigationBarTitleText": "消息中心", "enablePullDownRefresh": true } }
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",

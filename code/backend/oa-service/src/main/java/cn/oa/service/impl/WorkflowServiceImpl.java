@@ -113,6 +113,10 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
     @Override
     @Transactional
     public WfProcessInstance startProcess(String businessType, Long businessId, Long initiatorId, Map<String, Object> conditionContext) {
+        WfProcessInstance running = getRunningInstance(businessType, businessId);
+        if (running != null) {
+            throw new BusinessException("该业务已存在进行中的审批流程");
+        }
         LambdaQueryWrapper<WfProcessDefinition> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(WfProcessDefinition::getProcessType, businessType)
                 .eq(WfProcessDefinition::getStatus, "0")
@@ -120,92 +124,24 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
                 .last("LIMIT 1");
         WfProcessDefinition definition = this.getOne(wrapper);
         if (definition == null) {
-            log.warn("No workflow definition found for businessType={}, auto-approving businessId={}", businessType, businessId);
-            WfProcessInstance instance = new WfProcessInstance();
-            instance.setProcessId(null);
-            instance.setBusinessType(businessType);
-            instance.setBusinessId(businessId);
-            instance.setInitiatorId(initiatorId);
-            instance.setCurrentNode(0);
-            instance.setStatus("1"); // approved
-            instance.setStartTime(LocalDateTime.now());
-            instance.setEndTime(LocalDateTime.now());
-            instanceMapper.insert(instance);
-            // Auto-approve the business entity since no workflow is configured
-            try {
-                callbackDispatcher.onApproved(businessType, businessId);
-            } catch (Exception e) {
-                log.error("Auto-approve callback failed for businessType={}, businessId={}: {}", businessType, businessId, e.getMessage(), e);
-            }
-            return instance;
+            throw new BusinessException("未配置审批流程，无法提交申请");
         }
 
         JSONArray nodes;
         try {
             nodes = materializeExecutableNodes(definition, null, conditionContext);
         } catch (Exception e) {
-            log.error("Failed to parse nodeConfig for processType={}, auto-approving businessId={}: {}", businessType, businessId, e.getMessage());
-            WfProcessInstance instance = new WfProcessInstance();
-            instance.setProcessId(definition.getId());
-            instance.setBusinessType(businessType);
-            instance.setBusinessId(businessId);
-            instance.setInitiatorId(initiatorId);
-            instance.setCurrentNode(0);
-            instance.setStatus("1"); // approved
-            instance.setStartTime(LocalDateTime.now());
-            instance.setEndTime(LocalDateTime.now());
-            instance.setProcessVersion(definition.getVersion());
-            instanceMapper.insert(instance);
-            try {
-                callbackDispatcher.onApproved(businessType, businessId);
-            } catch (Exception ex) {
-                log.error("Auto-approve callback failed for businessType={}, businessId={}: {}", businessType, businessId, ex.getMessage(), ex);
-            }
-            return instance;
+            log.error("Failed to parse nodeConfig for processType={}, businessId={}: {}", businessType, businessId, e.getMessage());
+            throw new BusinessException("流程定义解析失败，无法提交申请");
         }
 
         if (nodes == null || nodes.isEmpty()) {
-            log.warn("Workflow definition has empty nodeConfig for businessType={}, auto-approving businessId={}", businessType, businessId);
-            WfProcessInstance instance = new WfProcessInstance();
-            instance.setProcessId(definition.getId());
-            instance.setBusinessType(businessType);
-            instance.setBusinessId(businessId);
-            instance.setInitiatorId(initiatorId);
-            instance.setCurrentNode(0);
-            instance.setStatus("1"); // approved
-            instance.setStartTime(LocalDateTime.now());
-            instance.setEndTime(LocalDateTime.now());
-            instance.setProcessVersion(definition.getVersion());
-            instanceMapper.insert(instance);
-            try {
-                callbackDispatcher.onApproved(businessType, businessId);
-            } catch (Exception e) {
-                log.error("Auto-approve callback failed for businessType={}, businessId={}: {}", businessType, businessId, e.getMessage(), e);
-            }
-            return instance;
+            throw new BusinessException("流程定义为空，无法提交申请");
         }
 
-        // Filter nodes by conditions
         List<JSONObject> applicableNodes = filterApplicableNodes(nodes, conditionContext);
         if (applicableNodes.isEmpty()) {
-            log.warn("No applicable approval nodes for businessType={}, auto-approving businessId={}", businessType, businessId);
-            WfProcessInstance instance = new WfProcessInstance();
-            instance.setProcessId(definition.getId());
-            instance.setBusinessType(businessType);
-            instance.setBusinessId(businessId);
-            instance.setInitiatorId(initiatorId);
-            instance.setCurrentNode(0);
-            instance.setStatus("1"); // approved
-            instance.setStartTime(LocalDateTime.now());
-            instance.setEndTime(LocalDateTime.now());
-            instance.setProcessVersion(definition.getVersion());
-            instanceMapper.insert(instance);
-            try {
-                callbackDispatcher.onApproved(businessType, businessId);
-            } catch (Exception e) {
-                log.error("Auto-approve callback failed for businessType={}, businessId={}: {}", businessType, businessId, e.getMessage(), e);
-            }
-            return instance;
+            throw new BusinessException("未匹配到可用审批节点，无法提交申请");
         }
 
         WfProcessInstance instance = new WfProcessInstance();
@@ -227,19 +163,9 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
             createTaskForNode(instance, applicableNodes.get(0), 0);
         } catch (Exception e) {
             log.error("Failed to create task for first node of businessType={}, businessId={}: {}", businessType, businessId, e.getMessage(), e);
-            // Roll back the instance to auto-approved since task creation failed
-            instance.setStatus("1");
-            instance.setEndTime(LocalDateTime.now());
-            instanceMapper.updateById(instance);
-            try {
-                callbackDispatcher.onApproved(businessType, businessId);
-            } catch (Exception ex) {
-                log.error("Auto-approve callback failed for businessType={}, businessId={}: {}", businessType, businessId, ex.getMessage(), ex);
-            }
-            return instance;
+            throw new BusinessException("创建审批任务失败，请检查流程配置");
         }
         log.info("Process started: businessType={}, businessId={}, initiatorId={}", businessType, businessId, initiatorId);
-
         return instance;
     }
 
@@ -281,16 +207,10 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
                 }
             }
             if (!authorized) {
-                // Check admin role
-                boolean isAdmin = isAdminUser(handlerId);
-                if (!isAdmin) {
-                    log.warn("handleTask: user {} not authorized for task {} assigned to {}, rejecting", handlerId, taskId, task.getAssigneeId());
-                    throw new BusinessException("无权处理此任务");
-                }
-                log.info("handleTask: admin override - user {} handling task {} assigned to {}", handlerId, taskId, task.getAssigneeId());
-            } else {
-                log.info("handleTask: delegation approval - user {} acting on task {} assigned to {}", handlerId, taskId, task.getAssigneeId());
+                log.warn("handleTask: user {} not authorized for task {} assigned to {}, rejecting", handlerId, taskId, task.getAssigneeId());
+                throw new BusinessException("无权处理此任务");
             }
+            log.info("handleTask: delegation approval - user {} acting on task {} assigned to {}", handlerId, taskId, task.getAssigneeId());
         }
 
         // === Acquire distributed lock to prevent TOCTOU race on countersign/orsign ===
@@ -303,6 +223,11 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
                 throw new BusinessException("系统繁忙，请稍后重试");
             }
 
+            // Re-fetch task AFTER acquiring lock to prevent TOCTOU race
+            task = taskMapper.selectById(taskId);
+            if (task == null) {
+                throw new BusinessException("任务不存在");
+            }
             if (!"0".equals(task.getStatus())) {
                 throw new BusinessException("任务已处理");
             }
@@ -568,6 +493,16 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
         };
     }
 
+    private WfProcessInstance getRunningInstance(String businessType, Long businessId) {
+        LambdaQueryWrapper<WfProcessInstance> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(WfProcessInstance::getBusinessType, businessType)
+                .eq(WfProcessInstance::getBusinessId, businessId)
+                .eq(WfProcessInstance::getStatus, "0")
+                .orderByDesc(WfProcessInstance::getCreateTime)
+                .last("LIMIT 1");
+        return instanceMapper.selectOne(wrapper);
+    }
+
     @Override
     public WfProcessInstance getByBusiness(String businessType, Long businessId) {
         LambdaQueryWrapper<WfProcessInstance> wrapper = new LambdaQueryWrapper<>();
@@ -723,29 +658,44 @@ public class WorkflowServiceImpl extends ServiceImpl<WfProcessDefinitionMapper, 
         if (definition.getProcessType() == null || definition.getProcessType().isBlank()) {
             throw new BusinessException("流程分类不能为空");
         }
-        if (definition.getProcessKey() == null || definition.getProcessKey().isBlank()) {
-            definition.setProcessKey(definition.getProcessType() + "_process");
-        }
 
-        if (definition.getId() != null) {
-            WfProcessDefinition existing = this.getById(definition.getId());
-            if (existing != null) {
-                existing.setStatus("1");
-                this.updateById(existing);
-                definition.setId(null);
-                definition.setVersion(existing.getVersion() + 1);
-                definition.setStatus("0");
-                definition.setCreateTime(LocalDateTime.now());
-                deactivateActiveDefinitions(definition.getProcessType(), existing.getId());
-                this.save(definition);
-                return;
+        // 同一 processType 下串行化，避免并发创建多个激活定义
+        synchronized (("wf:save:" + definition.getProcessType()).intern()) {
+            if (definition.getProcessKey() == null || definition.getProcessKey().isBlank()) {
+                definition.setProcessKey(definition.getProcessType() + "_process");
             }
+
+            if (definition.getId() != null) {
+                WfProcessDefinition existing = this.getById(definition.getId());
+                if (existing != null) {
+                    existing.setStatus("1");
+                    this.updateById(existing);
+                    definition.setId(null);
+                    definition.setVersion(existing.getVersion() + 1);
+                    definition.setStatus("0");
+                    definition.setCreateTime(LocalDateTime.now());
+                    // 追加版本号到 processKey 避免唯一键冲突
+                    String baseKey = existing.getProcessKey() != null ? existing.getProcessKey()
+                        : (definition.getProcessType() + "_process");
+                    baseKey = baseKey.replaceAll("_v\\d+$", "");
+                    definition.setProcessKey(baseKey + "_v" + definition.getVersion());
+                    deactivateActiveDefinitions(definition.getProcessType(), existing.getId());
+                    this.save(definition);
+                    return;
+                }
+            }
+            definition.setVersion(nextDefinitionVersion(definition.getProcessType()));
+            definition.setStatus("0");
+            definition.setCreateTime(LocalDateTime.now());
+            String rawKey = definition.getProcessKey();
+            if (rawKey == null || rawKey.isBlank()) {
+                rawKey = definition.getProcessType() + "_process";
+            }
+            rawKey = rawKey.replaceAll("_v\\d+$", "");
+            definition.setProcessKey(rawKey + "_v" + definition.getVersion());
+            deactivateActiveDefinitions(definition.getProcessType(), null);
+            this.save(definition);
         }
-        definition.setVersion(nextDefinitionVersion(definition.getProcessType()));
-        definition.setStatus("0");
-        definition.setCreateTime(LocalDateTime.now());
-        deactivateActiveDefinitions(definition.getProcessType(), null);
-        this.save(definition);
     }
 
     private int nextDefinitionVersion(String processType) {

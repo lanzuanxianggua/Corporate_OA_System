@@ -3,6 +3,7 @@ package cn.oa.common.interceptor;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.annotation.RequirePermission;
 import cn.oa.common.annotation.RequireRole;
+import cn.oa.common.resolver.PermissionResolver;
 import cn.oa.common.resolver.RoleResolver;
 import cn.oa.common.utils.JwtUtil;
 import io.jsonwebtoken.Claims;
@@ -31,22 +32,11 @@ public class AuthInterceptor implements HandlerInterceptor {
     @Autowired(required = false)
     private RoleResolver roleResolver;
 
+    @Autowired(required = false)
+    private PermissionResolver permissionResolver;
+
     private static final String ONLINE_KEY_PREFIX = "online:user:";
     private static final long ONLINE_TTL_MINUTES = 30;
-
-    private static final Map<String, Set<String>> ROLE_PERMISSIONS = new HashMap<>();
-
-    static {
-        ROLE_PERMISSIONS.put("USER", Set.of(
-                "attendance:checkin", "attendance:list",
-                "leave:apply", "leave:list",
-                "notice:list", "notice:read",
-                "document:list", "document:download",
-                "schedule:list", "schedule:add",
-                "message:list", "message:read",
-                "report:personal"
-        ));
-    }
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -78,6 +68,13 @@ public class AuthInterceptor implements HandlerInterceptor {
         }
 
         Object empIdObj = claims.get("empId");
+        if (empIdObj == null) {
+            log.warn("Token 缺少 empId 字段");
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"code\":401,\"message\":\"Token 无效\",\"data\":null}");
+            return false;
+        }
         Long empId = (empIdObj instanceof Number) ? ((Number) empIdObj).longValue() : Long.valueOf(empIdObj.toString());
         String redisTokenKey = "token:" + empId;
         Object cachedToken = redisTemplate.opsForValue().get(redisTokenKey);
@@ -133,12 +130,13 @@ public class AuthInterceptor implements HandlerInterceptor {
                 }
             }
 
-            // 细粒度权限校验
+            // 细粒度权限校验（从 Redis/DB 获取 permissions，不再使用硬编码映射）
             RequirePermission requirePermission = handlerMethod.getMethodAnnotation(RequirePermission.class);
             if (requirePermission != null && !requirePermission.value().isEmpty()) {
-                List<String> roles = getRoles(empId);
-                if (roles == null || roles.stream().noneMatch(r ->
-                        hasPermission(r, requirePermission.value()))) {
+                List<String> permissions = getPermissions(empId);
+                boolean hasRequiredPerm = permissions != null && permissions.stream()
+                        .anyMatch(p -> "*:*:*".equals(p) || p.equals(requirePermission.value()));
+                if (!hasRequiredPerm) {
                     log.warn("用户 {} (empId={}) 缺少权限: {}", empName, empId, requirePermission.value());
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                     response.setContentType("application/json;charset=UTF-8");
@@ -157,12 +155,20 @@ public class AuthInterceptor implements HandlerInterceptor {
         return true;
     }
 
-    private boolean hasPermission(String role, String permission) {
-        Set<String> perms = ROLE_PERMISSIONS.get(role);
-        if (perms == null) return false;
-        if (perms.contains(permission)) return true;
-        if ("ADMIN".equalsIgnoreCase(role)) return true;
-        return false;
+    /**
+     * Get permissions (perms identifiers) for the given employee from Redis with database fallback.
+     * If Redis cache misses and a PermissionResolver is available, queries the database
+     * (sys_emp_role → sys_role → sys_role_menu → sys_menu.perms) and backfills the cache.
+     */
+    @SuppressWarnings("unchecked")
+    private List<String> getPermissions(Long empId) {
+        String permKey = "permissions:" + empId;
+        List<String> permissions = (List<String>) redisTemplate.opsForValue().get(permKey);
+        if (permissions == null && permissionResolver != null) {
+            log.debug("Permission cache miss for empId={}, falling back to database", empId);
+            permissions = permissionResolver.resolvePermissions(empId);
+        }
+        return permissions;
     }
 
     /**

@@ -25,7 +25,7 @@
 
       <view class="form-item">
         <text class="form-label">申请原因</text>
-        <textarea class="form-textarea" v-model="form.reason" placeholder="请输入经费用途说明" :maxlength="200" />
+        <textarea class="form-textarea" v-model="form.description" placeholder="请输入经费用途说明" :maxlength="200" />
       </view>
     </view>
 
@@ -47,7 +47,7 @@ const form = ref({
   title: "",
   category: -1,
   amount: "",
-  reason: ""
+  description: ""
 });
 
 const submitting = ref(false);
@@ -57,8 +57,8 @@ const onCategoryChange = (e: any) => {
 };
 
 const handleSubmit = async () => {
-  const { title, category, amount, reason } = form.value;
-  if (!title || category < 0 || !amount || !reason) {
+  const { title, category, amount, description } = form.value;
+  if (!title || category < 0 || !amount || !description) {
     uni.showToast({ title: "请填写完整信息", icon: "none" });
     return;
   }
@@ -71,9 +71,13 @@ const handleSubmit = async () => {
     uni.showToast({ title: "申请金额必须大于0", icon: "none" });
     return;
   }
+  if (description.trim().length < 2) {
+    uni.showToast({ title: "经费用途至少2个字", icon: "none" });
+    return;
+  }
   submitting.value = true;
   try {
-    await submitExpense({ title, category: categoryOptions[category], amount: numAmount, reason });
+    await submitExpense({ title, category: String(category), amount: numAmount, description });
     uni.showToast({ title: "提交成功", icon: "success" });
     setTimeout(() => uni.navigateBack(), 1500);
   } catch {

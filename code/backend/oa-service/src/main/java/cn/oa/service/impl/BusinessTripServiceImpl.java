@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import cn.oa.common.utils.LeaveDurationUtil;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
@@ -53,8 +54,7 @@ public class BusinessTripServiceImpl extends BaseApprovalServiceImpl<OaBusinessT
 
     @Override
     protected Map<String, Object> buildConditionContext(OaBusinessTrip entity) {
-        long days = java.time.temporal.ChronoUnit.DAYS.between(
-                entity.getStartTime().toLocalDate(), entity.getEndTime().toLocalDate()) + 1;
+        long days = LeaveDurationUtil.calculateBusinessTripDays(entity.getStartTime(), entity.getEndTime());
         Map<String, Object> ctx = new HashMap<>();
         ctx.put("days", days);
         return ctx;

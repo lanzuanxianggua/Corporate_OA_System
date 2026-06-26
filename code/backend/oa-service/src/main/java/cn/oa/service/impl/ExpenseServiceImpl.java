@@ -65,8 +65,8 @@ public class ExpenseServiceImpl extends BaseApprovalServiceImpl<OaExpenseMapper,
         SysEmployee emp = employeeMapper.selectById(entity.getEmpId());
         if (emp == null || emp.getDeptId() == null) return;
 
-        LocalDate now = LocalDate.now();
-        OaBudget budget = budgetService.getByDeptMonth(emp.getDeptId(), now.getYear(), now.getMonthValue());
+        LocalDate budgetDate = entity.getCreateTime() != null ? entity.getCreateTime().toLocalDate() : LocalDate.now();
+        OaBudget budget = budgetService.getByDeptMonth(emp.getDeptId(), budgetDate.getYear(), budgetDate.getMonthValue());
 
         if (newStatus == 1 && !Integer.valueOf(1).equals(oldStatus)) {
             if (budget != null) {
@@ -87,6 +87,12 @@ public class ExpenseServiceImpl extends BaseApprovalServiceImpl<OaExpenseMapper,
         if (expense.getAmount() == null) {
             throw new BusinessException("经费金额不能为空");
         }
+        SysEmployee emp = employeeMapper.selectById(expense.getEmpId());
+        if (emp == null || emp.getDeptId() == null) {
+            throw new BusinessException("员工部门信息不存在，无法校验预算");
+        }
+        LocalDate budgetDate = expense.getCreateTime() != null ? expense.getCreateTime().toLocalDate() : LocalDate.now();
+        budgetService.assertSufficientBudget(emp.getDeptId(), budgetDate.getYear(), budgetDate.getMonthValue(), expense.getAmount());
         doSubmit(expense);
     }
 

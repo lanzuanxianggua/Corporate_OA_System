@@ -10,5 +10,7 @@ public interface SalaryRecordService extends IService<OaSalaryRecord> {
 
     OaSalaryRecord myLatestRecord(Long empId);
 
+    OaSalaryRecord myLatestRecord(Long empId, String salaryMonth, String password);
+
     void generateMonthlyRecord(Long empId, String month);
 }

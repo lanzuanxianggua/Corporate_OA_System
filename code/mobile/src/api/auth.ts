@@ -7,3 +7,6 @@ export const login = (data: { username: string; password: string; captchaUuid: s
 
 export const refreshToken = (refreshToken: string) =>
   post("/refresh-token", { refreshToken });
+
+export const changePassword = (data: { oldPassword: string; newPassword: string; confirmPassword: string }) =>
+  post("/api/auth/change-password", data);

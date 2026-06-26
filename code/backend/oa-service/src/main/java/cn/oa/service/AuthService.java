@@ -12,6 +12,8 @@ public interface AuthService {
 
     void logout(Long empId);
 
+    void changePassword(Long empId, String oldPassword, String newPassword);
+
     void register(SysEmployee employee);
 
     LoginVO refreshToken(String refreshToken);

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="min-h-screen grid lg:grid-cols-2">
     <!-- Left Content Section - 灰白色背景 -->
     <div class="relative hidden lg:flex flex-col justify-between bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 p-12 text-gray-800">
@@ -310,7 +310,8 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { register } from "@/api/auth";
 import EyeBall from "@/components/EyeBall.vue";
 import Pupil from "@/components/Pupil.vue";
 
@@ -439,13 +440,16 @@ const handleRegister = async () => {
 
   loading.value = true;
   try {
-    // TODO: 调用注册 API
-    // await register(registerForm);
-
-    // 模拟 API 调用
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    ElMessage.success("注册成功！请登录");
+    const res = await register({
+      username: registerForm.username,
+      email: registerForm.email,
+      password: registerForm.password
+    });
+    const message = res.data?.message || "注册成功，账号待管理员激活后可登录";
+    await ElMessageBox.alert(message, "注册成功", {
+      confirmButtonText: "返回登录",
+      type: "success"
+    });
     router.push("/login");
   } catch (error: any) {
     ElMessage.error(error.message || "注册失败");
@@ -533,3 +537,5 @@ const handleRegister = async () => {
   }
 }
 </style>
+
+

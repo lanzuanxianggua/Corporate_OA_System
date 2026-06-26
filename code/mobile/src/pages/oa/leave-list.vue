@@ -6,7 +6,7 @@
         <text :class="statusClass(item.status)">{{ statusText(item.status) }}</text>
       </view>
       <view class="item-dates mt-20">
-        <text class="text-gray">{{ item.startDate }} ~ {{ item.endDate }}</text>
+        <text class="text-gray">{{ formatDate(item.startTime) }} ~ {{ formatDate(item.endTime) }}</text>
         <text class="text-gray ml-20">{{ item.days }}天</text>
       </view>
       <text class="item-reason text-gray mt-20">{{ item.reason }}</text>
@@ -24,7 +24,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { onShow, onPullDownRefresh } from "@dcloudio/uni-app";
 import { getLeavePage } from "@/api/leave";
 import { STATUS_MAP, STATUS_CLASS_MAP, LEAVE_TYPE_MAP } from "@/utils/constants";
 
@@ -35,10 +35,11 @@ const finished = ref(false);
 
 const statusText = (status: number) => STATUS_MAP[status] ?? "未知";
 const statusClass = (status: number) => STATUS_CLASS_MAP[status] ?? "text-gray";
-const formatLeaveType = (type: number) => LEAVE_TYPE_MAP[type] || "请假";
+const formatLeaveType = (type: string | number) => LEAVE_TYPE_MAP[Number(type)] || "请假";
+/** Format backend datetime string "2026-06-24 09:00:00" to "2026-06-24" */
+const formatDate = (dt: string) => dt ? dt.substring(0, 10) : "";
 
 const fetchList = async () => {
-  if (loading.value || finished.value) return;
   loading.value = true;
   try {
     const res: any = await getLeavePage({ pageNum: pageNum.value, pageSize: 20 });
@@ -54,10 +55,16 @@ const fetchList = async () => {
     // silently handle
   } finally {
     loading.value = false;
+    uni.stopPullDownRefresh();
   }
 };
 
 onShow(fetchList);
+onPullDownRefresh(() => {
+  pageNum.value = 1;
+  finished.value = false;
+  fetchList();
+});
 </script>
 
 <style scoped>

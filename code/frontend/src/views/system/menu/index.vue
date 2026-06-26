@@ -133,7 +133,18 @@ const fetchMenuTree = async () => {
   loading.value = true;
   try {
     const res: any = await getMenuTree();
-    menuTree.value = res.data || [];
+    // 后端 SysMenu 字段 → 前端模板字段映射
+    const typeMap: Record<string, number> = { M: 0, C: 1, F: 2 };
+    const transform = (items: any[]): any[] =>
+      (items || []).map((item: any) => ({
+        ...item,
+        name: item.menuName,           // menuName → name
+        sort: item.orderNum,           // orderNum → sort
+        type: typeMap[item.menuType] !== undefined ? typeMap[item.menuType] : (item.menuType ?? 1),
+        permission: item.perms,         // perms → permission
+        children: transform(item.children)
+      }));
+    menuTree.value = transform(res.data || []);
   } catch {
     ElMessage.error("获取菜单树失败");
   } finally {
@@ -191,10 +202,22 @@ const handleSave = async () => {
   await formRef.value.validate();
   saving.value = true;
   try {
+    // 前端字段 → 后端 SysMenu 字段映射
+    const typeMap: Record<number, string> = { 0: 'M', 1: 'C', 2: 'F' };
+    const payload: Record<string, any> = {
+      id: form.id,
+      parentId: form.parentId,
+      menuName: form.name,             // name → menuName
+      menuType: typeMap[form.type] || 'C', // type(0/1/2) → menuType(M/C/F)
+      path: form.path,
+      component: form.component,
+      orderNum: form.sort,             // sort → orderNum
+      perms: form.permission           // permission → perms
+    };
     if (form.id) {
-      await updateMenu(form);
+      await updateMenu(payload);
     } else {
-      await addMenu(form);
+      await addMenu(payload);
     }
     ElMessage.success("保存成功");
     dialogVisible.value = false;

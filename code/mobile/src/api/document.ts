@@ -1,5 +1,4 @@
-import { del, get } from "@/utils/request";
-import { upload } from "@/utils/request";
+import { del, get, upload } from "@/utils/request";
 
 export const getDocumentPage = (params: any) => get("/api/document/page", params);
 

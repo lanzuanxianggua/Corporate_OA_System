@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -17,14 +18,17 @@ public class WfProcessDefinition {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    @NotBlank(message = "流程名称不能为空")
     private String processName;
 
     private String processKey;
 
     /** leave/trip/outing/purchase/expense/contract/overtime/loan */
+    @NotBlank(message = "流程分类不能为空")
     private String processType;
 
     /** Graph JSON workflow definition, schemaVersion 2/3. */
+    @NotBlank(message = "流程定义配置不能为空")
     private String nodeConfig;
 
     private String status = "0";

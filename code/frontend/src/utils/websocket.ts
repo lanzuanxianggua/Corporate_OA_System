@@ -2,23 +2,23 @@ type MessageHandler = (data: any) => void;
 
 class WebSocketClient {
   private ws: WebSocket | null = null;
-  private empId: number | null = null;
+  private token: string | null = null;
   private handlers: Map<string, MessageHandler[]> = new Map();
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
 
-  connect(empId: number) {
-    this.empId = empId;
+  connect(token: string) {
+    this.token = token;
     this.reconnectAttempts = 0;
     this.doConnect();
   }
 
   private doConnect() {
-    if (!this.empId) return;
+    if (!this.token) return;
 
     const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${wsProtocol}//${window.location.host}/ws/notification?empId=${this.empId}`;
+    const wsUrl = `${wsProtocol}//${window.location.host}/ws/notification?token=${encodeURIComponent(this.token)}`;
 
     try {
       this.ws = new WebSocket(wsUrl);

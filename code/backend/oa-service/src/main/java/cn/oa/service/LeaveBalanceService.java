@@ -20,4 +20,6 @@ public interface LeaveBalanceService extends IService<OaLeaveBalance> {
     void restoreBalance(Long empId, Integer leaveType, Integer year, BigDecimal days);
 
     void addCompensatoryBalance(Long empId, Integer year, BigDecimal days);
+
+    void assertSufficientBalance(Long empId, Integer leaveType, Integer year, BigDecimal days);
 }

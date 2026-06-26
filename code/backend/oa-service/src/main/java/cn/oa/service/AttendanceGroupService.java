@@ -1,5 +1,6 @@
 package cn.oa.service;
 
+import cn.oa.common.dto.AttendanceSchedule;
 import cn.oa.entity.OaAttendanceGroup;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -13,4 +14,6 @@ public interface AttendanceGroupService extends IService<OaAttendanceGroup> {
     void assignEmployees(Long groupId, List<Long> empIds);
 
     void removeEmployees(Long groupId, List<Long> empIds);
+
+    AttendanceSchedule getScheduleForEmployee(Long empId);
 }

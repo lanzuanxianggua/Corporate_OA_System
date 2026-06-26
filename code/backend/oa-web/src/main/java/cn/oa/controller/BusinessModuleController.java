@@ -200,14 +200,14 @@ public class BusinessModuleController {
     }
 
     @PostMapping("/api/finance/contracts/{id}/activate")
-    @RequirePermission("finance:contract:list")
+    @RequirePermission("finance:contract:activate")
     public R<Void> activateFinanceContract(@PathVariable Long id) {
         service.updateStatus("financeContract", id, "ACTIVE");
         return R.ok();
     }
 
     @PostMapping("/api/finance/contracts/{id}/close")
-    @RequirePermission("finance:contract:list")
+    @RequirePermission("finance:contract:close")
     public R<Void> closeFinanceContract(@PathVariable Long id) {
         service.updateStatus("financeContract", id, "CLOSED");
         return R.ok();
@@ -227,14 +227,14 @@ public class BusinessModuleController {
     }
 
     @PostMapping("/api/finance/payments/{id}/submit")
-    @RequirePermission("finance:payment:list")
+    @RequirePermission("finance:payment:submit")
     public R<Void> submitFinancePayment(@PathVariable Long id) {
         service.updateStatus("financePayment", id, "SUBMITTED");
         return R.ok();
     }
 
     @PostMapping("/api/finance/payments/{id}/paid")
-    @RequirePermission("finance:payment:list")
+    @RequirePermission("finance:payment:approve")
     public R<Void> markFinancePaymentPaid(@PathVariable Long id, @RequestBody Map<String, Object> body) {
         service.updateFields("financePayment", id, Map.of(
                 "status", "PAID",

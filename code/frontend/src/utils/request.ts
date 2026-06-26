@@ -83,7 +83,10 @@ request.interceptors.request.use(
             pendingRequests = [];
           }
         } catch {
-          // refresh failed - clear auth and redirect
+          // refresh failed — drain and reject all pending requests
+          pendingRequests.forEach(cb => cb(""));  // noop resolution won't matter as we redirect
+          pendingRequests = [];
+          // clear auth and redirect
           hideLoading();
           clearAuthAndRedirect();
           return Promise.reject(new Error("Token refresh failed"));

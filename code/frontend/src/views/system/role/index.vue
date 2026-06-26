@@ -63,7 +63,13 @@
         :default-checked-keys="checkedMenuIds"
         :props="{ label: 'menuName', children: 'children' }"
         :check-strictly="false"
-        default-expand-all />
+        default-expand-all
+      >
+        <template #default="{ data }">
+          <span>{{ data.menuName }}</span>
+          <span v-if="data.perms" class="text-xs text-gray-400 ml-2">[{{ data.perms }}]</span>
+        </template>
+      </el-tree>
       <div v-if="menuTree.length === 0" class="text-center py-4 text-[var(--oa-subtle)]">加载菜单中...</div>
       <template #footer>
         <el-button @click="permDialogVisible = false">取消</el-button>

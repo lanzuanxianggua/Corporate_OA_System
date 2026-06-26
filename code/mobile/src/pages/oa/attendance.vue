@@ -5,17 +5,17 @@
       <view class="flex-between mt-20" v-if="today">
         <view class="clock-block">
           <text class="text-gray">上班</text>
-          <text class="clock-time">{{ today.clockInTime || '--:--' }}</text>
+          <text class="clock-time">{{ formatClock(today.clockIn) || '--:--' }}</text>
         </view>
         <view class="clock-block">
           <text class="text-gray">下班</text>
-          <text class="clock-time">{{ today.clockOutTime || '--:--' }}</text>
+          <text class="clock-time">{{ formatClock(today.clockOut) || '--:--' }}</text>
         </view>
       </view>
     </view>
 
-    <button class="clock-btn" :class="clockedIn && !clockedOut ? 'btn-out' : 'btn-in'" @click="handleClock">
-      {{ clockedIn && !clockedOut ? '下班打卡' : '上班打卡' }}
+    <button class="clock-btn" :class="clockedIn && !clockedOut ? 'btn-out' : 'btn-in'" :disabled="clocking" @click="handleClock">
+      {{ clocking ? '打卡中...' : (clockedIn && !clockedOut ? '下班打卡' : '上班打卡') }}
     </button>
     <text class="text-gray clock-hint">{{ currentTime }}</text>
   </view>
@@ -29,8 +29,16 @@ import { getTodayAttendance, clockIn, clockOut } from "@/api/attendance";
 const today = ref<any>(null);
 const clockedIn = ref(false);
 const clockedOut = ref(false);
+const clocking = ref(false);
 const currentTime = ref("");
 let timer: ReturnType<typeof setInterval> | null = null;
+
+/** Format backend clock datetime to "HH:mm" */
+const formatClock = (dt: string) => {
+  if (!dt) return "";
+  const parts = dt.split(" ");
+  return parts.length > 1 ? parts[1].substring(0, 5) : dt.substring(0, 5);
+};
 
 const updateTime = () => {
   const now = new Date();
@@ -41,14 +49,16 @@ const fetchToday = async () => {
   try {
     const res: any = await getTodayAttendance();
     today.value = res.data;
-    clockedIn.value = !!res.data?.clockInTime;
-    clockedOut.value = !!res.data?.clockOutTime;
+    clockedIn.value = !!res.data?.clockIn;
+    clockedOut.value = !!res.data?.clockOut;
   } catch {
     // silently handle
   }
 };
 
 const handleClock = async () => {
+  if (clocking.value) return;
+  clocking.value = true;
   try {
     if (clockedIn.value && !clockedOut.value) {
       await clockOut();
@@ -60,6 +70,8 @@ const handleClock = async () => {
     fetchToday();
   } catch {
     // Error toast handled by request interceptor
+  } finally {
+    clocking.value = false;
   }
 };
 

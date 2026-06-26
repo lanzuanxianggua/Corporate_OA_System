@@ -34,7 +34,7 @@
           <text class="text-gray">{{ item.nodeName || '-' }}</text>
         </view>
         <view class="mt-10">
-          <text class="text-gray text-sm">{{ formatTime(item.actionTime) }}</text>
+          <text class="text-gray text-sm">{{ formatTime(item.actionTime || item.completeTime) }}</text>
         </view>
       </view>
     </template>
@@ -47,7 +47,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { onShow, onPullDownRefresh } from "@dcloudio/uni-app";
 import { getPendingTasks, getHandledTasks } from "@/api/workflow";
 import { STATUS_MAP, BUSINESS_TYPE_MAP } from "@/utils/constants";
 
@@ -91,6 +91,7 @@ const fetchList = async () => {
     uni.showToast({ title: "加载失败", icon: "none" });
   } finally {
     loading.value = false;
+    uni.stopPullDownRefresh();
   }
 };
 
@@ -107,6 +108,7 @@ const goDetail = (item: any) => {
 const formatTime = (t: string) => t ? t.replace("T", " ").substring(0, 16) : "";
 
 onShow(fetchList);
+onPullDownRefresh(() => fetchList());
 </script>
 
 <style scoped>

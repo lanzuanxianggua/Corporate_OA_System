@@ -227,6 +227,26 @@ class LeaveApplyServiceImplTest {
     }
 
     @Test
+    @DisplayName("非年假(事假)通过后不应因余额不足而失败")
+    void updateStatus_SickLeaveApproved_NoBalanceCheck() {
+        Long id = 200L;
+        OaLeaveApply apply = createPersistedLeave(id, 0);
+        apply.setLeaveType("2"); // 事假，无需检查余额
+        apply.setStartTime(LocalDateTime.of(2026, 6, 1, 9, 0));
+        apply.setEndTime(LocalDateTime.of(2026, 6, 1, 18, 0));
+        apply.setDays(BigDecimal.ONE);
+
+        when(leaveApplyMapper.selectById(id)).thenReturn(apply);
+
+        // 事假通过不应抛出 BusinessException
+        leaveApplyService.updateStatus(id, 1);
+
+        verify(leaveBalanceService).deductBalance(1L, 2, 2026, BigDecimal.ONE);
+        verify(attendanceService).markLeaveAttendance(1L,
+                LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 1));
+    }
+
+    @Test
     @DisplayName("更新状态-驳回后恢复余额并清除考勤标记")
     void updateStatus_ToRejected_RestoreAndRemove() {
         Long id = 100L;

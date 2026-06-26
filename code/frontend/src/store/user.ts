@@ -32,11 +32,17 @@ function parseJwtPayload(token: string) {
 
 export const useUserStore = defineStore("user", () => {
   const token = ref(localStorage.getItem("token") || "");
-  const userInfo = ref<UserStoreInfo | null>(
-    localStorage.getItem("userInfo")
-      ? JSON.parse(localStorage.getItem("userInfo")!)
-      : null
-  );
+  const userInfo = ref<UserStoreInfo | null>(null);
+
+  // Initialize userInfo from localStorage with error handling
+  try {
+    const raw = localStorage.getItem("userInfo");
+    if (raw) {
+      userInfo.value = JSON.parse(raw);
+    }
+  } catch {
+    localStorage.removeItem("userInfo");
+  }
 
   const hasRole = (role: string) => {
     if (!userInfo.value?.roles) return false;

@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -73,10 +74,18 @@ public class SalaryController {
         return R.ok(PageResult.of(page.getTotal(), page.getRecords()));
     }
 
-    @GetMapping("/my")
+    @PostMapping("/my")
     @Operation(summary = "查询当前用户最新薪资记录")
-    public R<OaSalaryRecord> my(HttpServletRequest request) {
+    public R<OaSalaryRecord> my(@RequestBody(required = false) VerifySalaryDTO dto, HttpServletRequest request) {
         Long empId = WebUtil.getEmpId(request);
-        return R.ok(salaryRecordService.myLatestRecord(empId));
+        String month = dto != null ? dto.getMonth() : null;
+        String password = dto != null ? dto.getPassword() : null;
+        return R.ok(salaryRecordService.myLatestRecord(empId, month, password));
+    }
+
+    @Data
+    public static class VerifySalaryDTO {
+        private String month;
+        private String password;
     }
 }

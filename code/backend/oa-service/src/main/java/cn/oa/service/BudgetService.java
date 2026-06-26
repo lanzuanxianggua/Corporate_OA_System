@@ -13,4 +13,6 @@ public interface BudgetService extends IService<OaBudget> {
     OaBudget getByDeptMonth(Long deptId, Integer year, Integer month);
 
     void updateUsedAmount(Long budgetId, BigDecimal amount);
+
+    void assertSufficientBudget(Long deptId, Integer year, Integer month, BigDecimal amount);
 }

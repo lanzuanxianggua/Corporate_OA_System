@@ -182,11 +182,11 @@ class BaseApprovalServiceImplTest {
 
         BusinessException ex = assertThrows(BusinessException.class,
             () -> testService.doApprove(1L, 200L, 1, "同意"));
-        assertTrue(ex.getMessage().contains("未找到"));
+        assertTrue(ex.getMessage() != null && ex.getMessage().contains("待审批"));
     }
 
     @Test
-    void doApprove_adminFallback_handlesAnyPendingTaskForBusiness() {
+    void doApprove_adminCannotHandleOthersTask() {
         Long businessId = 1L;
         Long adminEmpId = 900L;
 
@@ -215,9 +215,10 @@ class BaseApprovalServiceImplTest {
         when(workflowService.getByBusiness("test", businessId)).thenReturn(instance);
         when(wfTaskMapper.selectOne(any())).thenReturn(task);
 
-        testService.doApprove(businessId, adminEmpId, 1, "admin approve");
-
-        verify(workflowService).handleTask(30L, adminEmpId, 1, "admin approve");
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> testService.doApprove(businessId, adminEmpId, 1, "admin approve"));
+        assertTrue(ex.getMessage() != null && ex.getMessage().contains("待审批"));
+        verify(workflowService, never()).handleTask(anyLong(), anyLong(), anyInt(), anyString());
     }
 
     @Test

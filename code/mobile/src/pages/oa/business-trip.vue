@@ -30,7 +30,7 @@
 
       <view class="form-item">
         <text class="form-label">出差事由</text>
-        <textarea class="form-textarea" v-model="form.reason" placeholder="请输入出差事由" :maxlength="200" />
+        <textarea class="form-textarea" v-model="form.purpose" placeholder="请输入出差事由" :maxlength="200" />
       </view>
     </view>
 
@@ -49,7 +49,7 @@ const form = ref({
   destination: "",
   startDate: "",
   endDate: "",
-  reason: ""
+  purpose: ""
 });
 
 const submitting = ref(false);
@@ -58,8 +58,8 @@ const onStartDateChange = (e: any) => { form.value.startDate = e.detail.value; }
 const onEndDateChange = (e: any) => { form.value.endDate = e.detail.value; };
 
 const handleSubmit = async () => {
-  const { destination, startDate, endDate, reason } = form.value;
-  if (!destination || !startDate || !endDate || !reason) {
+  const { destination, startDate, endDate, purpose } = form.value;
+  if (!destination || !startDate || !endDate || !purpose) {
     uni.showToast({ title: "请填写完整信息", icon: "none" });
     return;
   }
@@ -71,9 +71,14 @@ const handleSubmit = async () => {
     uni.showToast({ title: "目的地至少2个字", icon: "none" });
     return;
   }
+  if (purpose.trim().length < 2) {
+    uni.showToast({ title: "出差事由至少2个字", icon: "none" });
+    return;
+  }
   submitting.value = true;
   try {
-    await submitBusinessTrip({ destination, startDate, endDate, reason });
+    // Backend expects startTime/endTime as full datetime, purpose instead of reason
+    await submitBusinessTrip({ destination, startTime: startDate + " 09:00:00", endTime: endDate + " 18:00:00", purpose });
     uni.showToast({ title: "提交成功", icon: "success" });
     setTimeout(() => uni.navigateBack(), 1500);
   } catch {

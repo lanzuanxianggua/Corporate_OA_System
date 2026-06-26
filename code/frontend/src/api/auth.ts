@@ -1,4 +1,4 @@
-import request from "@/utils/request";
+﻿import request from "@/utils/request";
 import type { ApiResponse, LoginDTO, LoginVO } from "@/types/api";
 
 export const login = (data: LoginDTO) => {
@@ -19,4 +19,19 @@ export const logout = () => {
 
 export const changePassword = (oldPassword: string, newPassword: string) => {
   return request.post<unknown, ApiResponse<void>>("/api/auth/change-password", { oldPassword, newPassword });
+};
+
+export interface RegisterDTO {
+  username: string;
+  email: string;
+  password: string;
+}
+
+export interface RegisterResultVO {
+  pendingActivation: boolean;
+  message: string;
+}
+
+export const register = (data: RegisterDTO) => {
+  return request.post<unknown, ApiResponse<RegisterResultVO>>("/api/auth/register", data);
 };

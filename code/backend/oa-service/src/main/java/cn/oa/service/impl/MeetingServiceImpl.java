@@ -40,29 +40,24 @@ public class MeetingServiceImpl extends ServiceImpl<OaMeetingMapper, OaMeeting> 
     @Override
     @Transactional
     public void submit(OaMeeting meeting) {
+        validateMeetingTime(meeting);
         meeting.setStatus("0");
         meeting.setCreateTime(LocalDateTime.now());
 
-        // check for time conflicts with the same room
-        if (meeting.getRoomId() != null && meeting.getStartTime() != null && meeting.getEndTime() != null) {
-            LambdaQueryWrapper<OaMeeting> conflictQuery = new LambdaQueryWrapper<OaMeeting>()
-                    .eq(OaMeeting::getRoomId, meeting.getRoomId())
-                    .ne(OaMeeting::getStatus, "3") // exclude canceled meetings
-                    .lt(OaMeeting::getStartTime, meeting.getEndTime())
-                    .gt(OaMeeting::getEndTime, meeting.getStartTime());
-            long conflictCount = this.count(conflictQuery);
-            if (conflictCount > 0) {
-                throw new BusinessException("该会议室在指定时间段已被预定");
+        if (meeting.getRoomId() != null) {
+            Long lockedRoomId = roomMapper.lockById(meeting.getRoomId());
+            if (lockedRoomId == null) {
+                throw new BusinessException("??????");
             }
+            assertNoRoomConflict(meeting.getRoomId(), meeting.getStartTime(), meeting.getEndTime(), null);
         }
 
         this.save(meeting);
 
-        // create todo for all participants
         if (meeting.getParticipants() != null) {
             List<Long> participantIds = JSONUtil.toList(meeting.getParticipants(), Long.class);
             for (Long empId : participantIds) {
-                todoService.addTodo(empId, "会议通知: " + meeting.getTitle(), "meeting", meeting.getId(), "meeting");
+                todoService.addTodo(empId, "????: " + meeting.getTitle(), "meeting", meeting.getId(), "meeting");
             }
         }
     }
@@ -72,10 +67,10 @@ public class MeetingServiceImpl extends ServiceImpl<OaMeetingMapper, OaMeeting> 
     public void cancel(Long meetingId, Long organizerId) {
         OaMeeting meeting = this.getById(meetingId);
         if (meeting == null) {
-            throw new BusinessException("会议不存在");
+            throw new BusinessException("?????");
         }
         if (!meeting.getOrganizerId().equals(organizerId)) {
-            throw new BusinessException("只有组织者才能取消会议");
+            throw new BusinessException("???????????");
         }
         meeting.setStatus("3");
         meeting.setUpdateTime(LocalDateTime.now());
@@ -91,14 +86,37 @@ public class MeetingServiceImpl extends ServiceImpl<OaMeetingMapper, OaMeeting> 
         }
         wrapper.orderByDesc(OaMeeting::getCreateTime);
         IPage<OaMeeting> result = this.page(page, wrapper);
-
-        // fill roomName and organizerName
         fillExtraInfo(result.getRecords());
         return result;
     }
 
+    private void validateMeetingTime(OaMeeting meeting) {
+        if (meeting.getStartTime() == null || meeting.getEndTime() == null) {
+            throw new BusinessException("?????????????");
+        }
+        if (!meeting.getEndTime().isAfter(meeting.getStartTime())) {
+            throw new BusinessException("??????????????");
+        }
+    }
+
+    private void assertNoRoomConflict(Long roomId, LocalDateTime startTime, LocalDateTime endTime, Long excludeMeetingId) {
+        LambdaQueryWrapper<OaMeeting> conflictQuery = new LambdaQueryWrapper<OaMeeting>()
+                .eq(OaMeeting::getRoomId, roomId)
+                .ne(OaMeeting::getStatus, "3")
+                .lt(OaMeeting::getStartTime, endTime)
+                .gt(OaMeeting::getEndTime, startTime);
+        if (excludeMeetingId != null) {
+            conflictQuery.ne(OaMeeting::getId, excludeMeetingId);
+        }
+        if (this.count(conflictQuery) > 0) {
+            throw new BusinessException("??????????????");
+        }
+    }
+
     private void fillExtraInfo(List<OaMeeting> records) {
-        if (records == null || records.isEmpty()) return;
+        if (records == null || records.isEmpty()) {
+            return;
+        }
 
         Set<Long> roomIds = records.stream()
                 .map(OaMeeting::getRoomId)

@@ -1,10 +1,12 @@
 package cn.oa.service.impl;
 
+import cn.oa.common.dto.AttendanceSchedule;
 import cn.oa.common.exception.BusinessException;
 import cn.oa.entity.OaAttendance;
 import cn.oa.entity.SysEmployee;
 import cn.oa.mapper.OaAttendanceMapper;
 import cn.oa.mapper.SysEmployeeMapper;
+import cn.oa.service.AttendanceGroupService;
 import cn.oa.service.AttendanceService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -27,23 +29,22 @@ public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAtt
     @Autowired
     private SysEmployeeMapper employeeMapper;
 
-    private static final LocalTime NINE_OCLOCK = LocalTime.of(9, 0);
-    private static final LocalTime SIX_OCLOCK = LocalTime.of(18, 0);
+    @Autowired
+    private AttendanceGroupService attendanceGroupService;
 
     @Override
     @Transactional
     public void clockIn(Long empId) {
         OaAttendance existing = getTodayAttendance(empId);
         LocalDateTime now = LocalDateTime.now();
+        AttendanceSchedule schedule = attendanceGroupService.getScheduleForEmployee(empId);
         if (existing != null) {
             if (existing.getClockIn() != null) {
-                throw new BusinessException("今日已打卡");
+                throw new BusinessException("?????");
             }
             existing.setClockIn(now);
-            if (Integer.valueOf(5).equals(existing.getStatus()) || Integer.valueOf(4).equals(existing.getStatus())) {
-                // preserve leave/auto-marked status but record actual clock-in
-            } else {
-                existing.setStatus(now.toLocalTime().isAfter(NINE_OCLOCK) ? 1 : 0);
+            if (!Integer.valueOf(5).equals(existing.getStatus()) && !Integer.valueOf(4).equals(existing.getStatus())) {
+                existing.setStatus(resolveClockInStatus(now.toLocalTime(), schedule));
             }
             this.updateById(existing);
             return;
@@ -52,7 +53,7 @@ public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAtt
         attendance.setEmpId(empId);
         attendance.setWorkDate(LocalDate.now());
         attendance.setClockIn(now);
-        attendance.setStatus(now.toLocalTime().isAfter(NINE_OCLOCK) ? 1 : 0);
+        attendance.setStatus(resolveClockInStatus(now.toLocalTime(), schedule));
         this.save(attendance);
     }
 
@@ -61,18 +62,22 @@ public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAtt
     public void clockOut(Long empId) {
         OaAttendance attendance = getTodayAttendance(empId);
         if (attendance == null) {
-            throw new BusinessException("今日未打卡，请先签到");
+            throw new BusinessException("??????????");
         }
         if (attendance.getClockOut() != null) {
-            throw new BusinessException("今日已签退");
+            throw new BusinessException("?????");
         }
         LocalDateTime now = LocalDateTime.now();
         attendance.setClockOut(now);
-        // Only mark early leave (2) if currently normal (0); preserve late (1) status
-        if (now.toLocalTime().isBefore(SIX_OCLOCK) && Integer.valueOf(0).equals(attendance.getStatus())) {
+        AttendanceSchedule schedule = attendanceGroupService.getScheduleForEmployee(empId);
+        if (Integer.valueOf(0).equals(attendance.getStatus()) && now.toLocalTime().isBefore(schedule.getWorkEnd())) {
             attendance.setStatus(2);
         }
         this.updateById(attendance);
+    }
+
+    private int resolveClockInStatus(LocalTime clockTime, AttendanceSchedule schedule) {
+        return clockTime.isAfter(schedule.getLateDeadline()) ? 1 : 0;
     }
 
     @Override
@@ -94,7 +99,6 @@ public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAtt
 
     @Override
     public IPage<Map<String, Object>> adminPage(int pageNum, int pageSize, String empName, Integer status, LocalDate startDate, LocalDate endDate) {
-        // Resolve matching empIds first — only query employees when a name filter is provided
         Set<Long> matchEmpIds = null;
         Map<Long, SysEmployee> empMap;
         if (empName != null && !empName.isBlank()) {
@@ -127,7 +131,6 @@ public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAtt
 
         IPage<OaAttendance> page = this.page(new Page<>(pageNum, pageSize), wrapper);
 
-        // Batch-load only the employees that appear in the attendance records
         Set<Long> neededEmpIds = page.getRecords().stream()
                 .map(OaAttendance::getEmpId)
                 .filter(Objects::nonNull)
@@ -164,13 +167,13 @@ public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAtt
     @Override
     @Transactional
     public void markLeaveAttendance(Long empId, LocalDate startDate, LocalDate endDate) {
-        markAutoAttendance(empId, startDate, endDate, 5, "请假自动标记");
+        markAutoAttendance(empId, startDate, endDate, 5, "??????");
     }
 
     @Override
     @Transactional
     public void markTripAttendance(Long empId, LocalDate startDate, LocalDate endDate) {
-        markAutoAttendance(empId, startDate, endDate, 6, "出差自动标记");
+        markAutoAttendance(empId, startDate, endDate, 6, "??????");
     }
 
     @Override
@@ -180,7 +183,7 @@ public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAtt
                 .eq(OaAttendance::getEmpId, empId)
                 .between(OaAttendance::getWorkDate, startDate, endDate)
                 .eq(OaAttendance::getStatus, status)
-                .like(OaAttendance::getRemark, "自动标记"));
+                .like(OaAttendance::getRemark, "????"));
     }
 
     private void markAutoAttendance(Long empId, LocalDate startDate, LocalDate endDate, int status, String remark) {
@@ -199,7 +202,7 @@ public class AttendanceServiceImpl extends ServiceImpl<OaAttendanceMapper, OaAtt
                 attendance.setStatus(status);
                 attendance.setRemark(remark);
                 this.save(attendance);
-            } else if (existing.getStatus() != null && existing.getStatus() == 3) {
+            } else if (existing.getStatus() == null || existing.getStatus() != status) {
                 existing.setStatus(status);
                 existing.setRemark(remark);
                 this.updateById(existing);

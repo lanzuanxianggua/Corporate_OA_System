@@ -171,39 +171,34 @@ class WorkflowServiceImplTest {
 
     @Test
     @DisplayName("workflow test")
-    void startProcess_NoDefinition_AutoApproved() {
+    void startProcess_NoDefinition_Throws() {
         when(definitionMapper.selectOne(any(LambdaQueryWrapper.class), anyBoolean())).thenReturn(null);
 
-        WfProcessInstance result = workflowService.startProcess(businessType, businessId, initiatorId);
-
-        assertThat(result).isNotNull();
-        assertThat(result.getStatus()).isEqualTo("1");
-        assertThat(result.getProcessId()).isNull();
-        verify(callbackDispatcher).onApproved(businessType, businessId);
+        assertThatThrownBy(() -> workflowService.startProcess(businessType, businessId, initiatorId))
+                .isInstanceOf(BusinessException.class);
+        verify(callbackDispatcher, never()).onApproved(anyString(), anyLong());
     }
 
     @Test
     @DisplayName("workflow test")
-    void startProcess_NodeParseError_AutoApproved() {
+    void startProcess_NodeParseError_Throws() {
         WfProcessDefinition def = createDefinition("{invalid json}");
         when(definitionMapper.selectOne(any(LambdaQueryWrapper.class), anyBoolean())).thenReturn(def);
 
-        WfProcessInstance result = workflowService.startProcess(businessType, businessId, initiatorId);
-
-        assertThat(result.getStatus()).isEqualTo("1");
-        verify(callbackDispatcher).onApproved(businessType, businessId);
+        assertThatThrownBy(() -> workflowService.startProcess(businessType, businessId, initiatorId))
+                .isInstanceOf(BusinessException.class);
+        verify(callbackDispatcher, never()).onApproved(anyString(), anyLong());
     }
 
     @Test
     @DisplayName("workflow test")
-    void startProcess_EmptyNodes_AutoApproved() {
+    void startProcess_EmptyNodes_Throws() {
         WfProcessDefinition def = createDefinition("[]");
         when(definitionMapper.selectOne(any(LambdaQueryWrapper.class), anyBoolean())).thenReturn(def);
 
-        WfProcessInstance result = workflowService.startProcess(businessType, businessId, initiatorId);
-
-        assertThat(result.getStatus()).isEqualTo("1");
-        verify(callbackDispatcher).onApproved(businessType, businessId);
+        assertThatThrownBy(() -> workflowService.startProcess(businessType, businessId, initiatorId))
+                .isInstanceOf(BusinessException.class);
+        verify(callbackDispatcher, never()).onApproved(anyString(), anyLong());
     }
 
     @Test
@@ -226,17 +221,16 @@ class WorkflowServiceImplTest {
 
     @Test
     @DisplayName("workflow test")
-    void startProcess_NoApplicableNodes_AutoApproved() {
+    void startProcess_NoApplicableNodes_Throws() {
         String nodeConfig = v2ConditionalApproverConfig();
         WfProcessDefinition def = createDefinition(nodeConfig);
         when(definitionMapper.selectOne(any(LambdaQueryWrapper.class), anyBoolean())).thenReturn(def);
         Map<String, Object> ctx = new HashMap<>();
         ctx.put("amount", 500);
 
-        WfProcessInstance result = workflowService.startProcess(businessType, businessId, initiatorId, ctx);
-
-        assertThat(result.getStatus()).isEqualTo("1");
-        verify(callbackDispatcher).onApproved(businessType, businessId);
+        assertThatThrownBy(() -> workflowService.startProcess(businessType, businessId, initiatorId, ctx))
+                .isInstanceOf(BusinessException.class);
+        verify(callbackDispatcher, never()).onApproved(anyString(), anyLong());
     }
 
     // ==================== handleTask ====================
@@ -713,6 +707,7 @@ class WorkflowServiceImplTest {
 
         assertThat(def.getVersion()).isEqualTo(1);
         assertThat(def.getStatus()).isEqualTo("0");
+        assertThat(def.getProcessKey()).endsWith("_v1");
         verify(definitionMapper).insert(def);
     }
 

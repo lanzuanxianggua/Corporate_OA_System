@@ -34,11 +34,11 @@
       <view class="flex-between mt-20">
         <view>
           <text class="text-gray">上班打卡</text>
-          <text class="clock-time">{{ attendance.clockInTime || '未打卡' }}</text>
+          <text class="clock-time">{{ formatClockTime(attendance.clockIn) || '未打卡' }}</text>
         </view>
         <view>
           <text class="text-gray">下班打卡</text>
-          <text class="clock-time">{{ attendance.clockOutTime || '未打卡' }}</text>
+          <text class="clock-time">{{ formatClockTime(attendance.clockOut) || '未打卡' }}</text>
         </view>
       </view>
     </view>
@@ -55,7 +55,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { onShow, onPullDownRefresh } from "@dcloudio/uni-app";
 import { useUserStore } from "@/store/user";
 import { getTodayAttendance } from "@/api/attendance";
 import { getTodoCount } from "@/api/todo";
@@ -73,6 +73,13 @@ const greeting = computed(() => {
   if (h < 18) return "下午好";
   return "晚上好";
 });
+
+/** Format backend clock datetime (e.g. "2026-06-24 09:00:00") to "HH:mm" */
+const formatClockTime = (dt: string) => {
+  if (!dt) return "";
+  const parts = dt.split(" ");
+  return parts.length > 1 ? parts[1].substring(0, 5) : dt.substring(0, 5);
+};
 
 const quickActions = [
   { label: "考勤打卡", icon: "📍", path: "/pages/oa/attendance", bg: "#ecf5ff", color: "#409EFF" },
@@ -112,11 +119,13 @@ const fetchData = async () => {
     todoCount.value = 0;
   } finally {
     loading.value = false;
+    uni.stopPullDownRefresh();
   }
 };
 
 onMounted(fetchData);
 onShow(fetchData);
+onPullDownRefresh(() => fetchData());
 </script>
 
 <style scoped>

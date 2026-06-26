@@ -1,6 +1,8 @@
 package cn.oa.controller;
 
 import cn.oa.common.annotation.OperationLog;
+import cn.oa.common.constant.LeaveType;
+import cn.oa.common.utils.LeaveDurationUtil;
 import cn.oa.common.annotation.RequireAdmin;
 import cn.oa.common.result.PageResult;
 import cn.oa.common.result.R;
@@ -44,7 +46,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class LeaveApplyController {
 
-    private static final String[] LEAVE_TYPE_TEXT = {"", "年假", "事假", "病假", "婚假", "产假", "丧假"};
+    
     private static final String[] STATUS_TEXT = {"待审批", "已通过", "已拒绝", "", "已撤回"};
     private static final DateTimeFormatter DATETIME_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -116,9 +118,8 @@ public class LeaveApplyController {
             LeaveExportVO vo = new LeaveExportVO();
             SysEmployee emp = empMap.get(leave.getEmpId());
             vo.setEmpName(emp != null ? emp.getEmpName() : "");
-            vo.setLeaveType(leave.getLeaveType() != null && Character.isDigit(leave.getLeaveType().charAt(0))
-                    && Integer.parseInt(leave.getLeaveType()) < LEAVE_TYPE_TEXT.length
-                    ? LEAVE_TYPE_TEXT[Integer.parseInt(leave.getLeaveType())] : "其他");
+            vo.setLeaveType(leave.getLeaveType() != null && leave.getLeaveType().matches("\\d+")
+                    ? LeaveType.text(Integer.parseInt(leave.getLeaveType())) : "其他");
             vo.setStartTime(leave.getStartTime() != null ? leave.getStartTime().format(DATETIME_FMT) : "");
             vo.setEndTime(leave.getEndTime() != null ? leave.getEndTime().format(DATETIME_FMT) : "");
             vo.setDays(calculateDays(leave));
@@ -132,8 +133,6 @@ public class LeaveApplyController {
     }
 
     private BigDecimal calculateDays(OaLeaveApply leave) {
-        if (leave.getStartTime() == null || leave.getEndTime() == null) return BigDecimal.ZERO;
-        long days = java.time.Duration.between(leave.getStartTime(), leave.getEndTime()).toDays() + 1;
-        return BigDecimal.valueOf(Math.max(days, 0));
+        return LeaveDurationUtil.calculateLeaveDays(leave.getStartTime(), leave.getEndTime(), leave.getLeavePeriod());
     }
 }

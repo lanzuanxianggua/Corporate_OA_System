@@ -1,4 +1,4 @@
-package cn.oa.controller;
+﻿package cn.oa.controller;
 
 import cn.oa.common.annotation.OperationLog;
 import cn.oa.common.result.R;
@@ -95,62 +95,42 @@ public class AuthController {
         if (empId == null) {
             return R.fail("未登录");
         }
-        SysEmployee employee = employeeService.getById(empId);
-        if (employee == null) {
-            return R.fail("用户不存在");
-        }
-        if (!BCrypt.checkpw(dto.getOldPassword(), employee.getPassword())) {
-            return R.fail("旧密码不正确");
-        }
-        String strength = PasswordUtil.checkPasswordStrength(dto.getNewPassword());
-        if ("weak".equals(strength)) {
-            return R.fail("新密码强度过弱，密码长度至少8位且必须包含字母和数字");
-        }
-        PasswordUtil.validatePassword(dto.getNewPassword());
-        employee.setPassword(BCrypt.hashpw(dto.getNewPassword()));
-        employeeService.updateById(employee);
-        // 密码修改成功后，使旧Token立即失效
-        Long currentEmpId = WebUtil.getEmpId(request);
-        if (currentEmpId != null) {
-            redisTemplate.delete("token:" + currentEmpId);
-            redisTemplate.delete("refreshToken:" + currentEmpId);
-        }
-        log.info("Password changed: empId={}", empId);
+        authService.changePassword(empId, dto.getOldPassword(), dto.getNewPassword());
         return R.ok();
     }
 
     @PostMapping("/api/auth/register")
     @Operation(summary = "用户注册")
     @OperationLog(module = "认证管理", operation = "用户注册")
-    public R<Void> register(@RequestBody @Valid RegisterDTO dto) {
-        // 验证用户名是否已存在
+    public R<RegisterResultVO> register(@RequestBody @Valid RegisterDTO dto) {
         SysEmployee existingUser = employeeService.getByEmpCode(dto.getUsername());
         if (existingUser != null) {
             return R.fail("用户名已存在");
         }
 
-        // 验证邮箱是否已存在
         SysEmployee existingEmail = employeeService.getByEmail(dto.getEmail());
         if (existingEmail != null) {
             return R.fail("邮箱已被注册");
         }
 
-        // 密码长度验证
         if (dto.getPassword().length() < 6) {
             return R.fail("密码长度至少6位");
         }
 
-        // 创建新用户
         SysEmployee employee = new SysEmployee();
-        employee.setEmpCode(dto.getUsername()); // 使用 empCode 作为登录用户名
-        employee.setEmpName(dto.getUsername()); // 默认员工姓名为用户名
+        employee.setEmpCode(dto.getUsername());
+        employee.setEmpName(dto.getUsername());
         employee.setEmail(dto.getEmail());
         employee.setPassword(BCrypt.hashpw(dto.getPassword()));
-        employee.setStatus(1); // 默认启用
+        employee.setStatus(0);
 
         authService.register(employee);
-        log.info("User registered: username={}", dto.getUsername());
-        return R.ok();
+        log.info("User registered pending activation: username={}", dto.getUsername());
+
+        RegisterResultVO result = new RegisterResultVO();
+        result.setPendingActivation(true);
+        result.setMessage("注册成功，账号待管理员激活后可登录");
+        return R.ok(result);
     }
 
     @PostMapping("/api/auth/forgot-password")
@@ -163,13 +143,14 @@ public class AuthController {
             return R.fail("该邮箱未注册");
         }
 
-        // TODO: 发送重置密码邮件
-        // 1. 生成重置令牌
-        // 2. 保存到 Redis（设置过期时间 30 分钟）
-        // 3. 发送包含重置链接的邮件
-
         log.info("Password reset requested: email={}", dto.getEmail());
-        return R.ok();
+        return R.fail("忘记密码功能尚未开通，请联系管理员重置密码");
+    }
+
+    @Data
+    public static class RegisterResultVO {
+        private boolean pendingActivation;
+        private String message;
     }
 
     @Data
@@ -204,3 +185,6 @@ public class AuthController {
         private String newPassword;
     }
 }
+
+
+

@@ -142,9 +142,6 @@ public abstract class BaseApprovalServiceImpl<M extends BaseMapper<T>, T>
         }
 
         WfTask task = workflowService.findPendingTask(getBusinessType(), id, approverId);
-        if (task == null && isAdminUser(approverId)) {
-            task = findAnyPendingTaskForBusiness(id);
-        }
 
         if (task != null) {
             workflowService.handleTask(task.getId(), approverId, status, remark);
@@ -154,35 +151,7 @@ public abstract class BaseApprovalServiceImpl<M extends BaseMapper<T>, T>
         }
     }
 
-    private WfTask findAnyPendingTaskForBusiness(Long businessId) {
-        WfProcessInstance instance = workflowService.getByBusiness(getBusinessType(), businessId);
-        if (instance == null) return null;
 
-        LambdaQueryWrapper<WfTask> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(WfTask::getInstanceId, instance.getId())
-                .eq(WfTask::getStatus, "0")
-                .orderByAsc(WfTask::getCreateTime)
-                .last("LIMIT 1");
-        return wfTaskMapper.selectOne(wrapper);
-    }
-
-    private boolean isAdminUser(Long empId) {
-        if (empId == null) return false;
-        if (empRoleMapper == null || roleMapper == null) return false;
-
-        List<SysEmpRole> empRoles = empRoleMapper.selectList(
-                new LambdaQueryWrapper<SysEmpRole>().eq(SysEmpRole::getEmpId, empId));
-        if (empRoles == null || empRoles.isEmpty()) return false;
-
-        List<Long> roleIds = empRoles.stream()
-                .map(SysEmpRole::getRoleId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-        if (roleIds.isEmpty()) return false;
-
-        List<SysRole> roles = roleMapper.selectBatchIds(roleIds);
-        return roles != null && roles.stream().anyMatch(role -> "ADMIN".equalsIgnoreCase(role.getRoleKey()));
-    }
 
     // ====== updateStatus ======
 

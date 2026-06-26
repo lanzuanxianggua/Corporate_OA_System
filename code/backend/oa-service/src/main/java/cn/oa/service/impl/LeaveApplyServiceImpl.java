@@ -1,6 +1,9 @@
 package cn.oa.service.impl;
 
 import cn.oa.common.constant.BusinessType;
+import cn.oa.common.constant.LeaveType;
+import cn.oa.common.exception.BusinessException;
+import cn.oa.common.utils.LeaveDurationUtil;
 import cn.oa.entity.OaLeaveApply;
 import cn.oa.mapper.OaLeaveApplyMapper;
 import cn.oa.service.AttendanceService;
@@ -13,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
@@ -59,16 +61,20 @@ public class LeaveApplyServiceImpl extends BaseApprovalServiceImpl<OaLeaveApplyM
 
     @Override
     protected Map<String, Object> buildConditionContext(OaLeaveApply entity) {
-        BigDecimal days = calculateLeaveDays(entity);
         Map<String, Object> ctx = new HashMap<>();
-        ctx.put("days", days);
+        ctx.put("days", calculateLeaveDays(entity));
         return ctx;
     }
 
     @Override
     protected void onUpdateStatus(OaLeaveApply entity, Integer newStatus, Integer oldStatus) {
-        if (entity.getLeaveType() == null || entity.getEmpId() == null) return;
-        if (entity.getStartTime() == null || entity.getEndTime() == null) return;
+        Integer leaveType = parseLeaveType(entity.getLeaveType());
+        if (leaveType == null || entity.getEmpId() == null) {
+            return;
+        }
+        if (entity.getStartTime() == null || entity.getEndTime() == null) {
+            return;
+        }
 
         BigDecimal days = calculateLeaveDays(entity);
         LocalDate startDate = entity.getStartTime().toLocalDate();
@@ -76,49 +82,44 @@ public class LeaveApplyServiceImpl extends BaseApprovalServiceImpl<OaLeaveApplyM
         int year = startDate.getYear();
 
         if (newStatus == 1 && !Integer.valueOf(1).equals(oldStatus)) {
-            leaveBalanceService.deductBalance(entity.getEmpId(), Integer.valueOf(entity.getLeaveType()), year, days);
+            leaveBalanceService.deductBalance(entity.getEmpId(), leaveType, year, days);
             attendanceService.markLeaveAttendance(entity.getEmpId(), startDate, endDate);
         }
 
         if ((newStatus == 2 || newStatus == 3) && Integer.valueOf(1).equals(oldStatus)) {
-            leaveBalanceService.restoreBalance(entity.getEmpId(), Integer.valueOf(entity.getLeaveType()), year, days);
+            leaveBalanceService.restoreBalance(entity.getEmpId(), leaveType, year, days);
             attendanceService.removeMarkedAttendance(entity.getEmpId(), startDate, endDate, 5);
         }
     }
 
-    private BigDecimal calculateLeaveDays(OaLeaveApply apply) {
-        LocalDate startDate = apply.getStartTime().toLocalDate();
-        LocalDate endDate = apply.getEndTime().toLocalDate();
-        String period = apply.getLeavePeriod() != null ? apply.getLeavePeriod() : "full";
-
-        long fullWeekdays = 0;
-        for (LocalDate d = startDate; !d.isAfter(endDate); d = d.plusDays(1)) {
-            DayOfWeek dow = d.getDayOfWeek();
-            if (dow != DayOfWeek.SATURDAY && dow != DayOfWeek.SUNDAY) {
-                fullWeekdays++;
-            }
+    private Integer parseLeaveType(String leaveType) {
+        if (leaveType == null || !leaveType.matches("\\d+")) {
+            return null;
         }
-
-        if ("full".equals(period) || fullWeekdays == 0) {
-            return BigDecimal.valueOf(fullWeekdays);
-        }
-
-        boolean sameDay = startDate.equals(endDate);
-        if (sameDay) {
-            return BigDecimal.valueOf(0.5);
-        }
-        return BigDecimal.valueOf(fullWeekdays - 1).add(BigDecimal.valueOf(0.5));
+        return Integer.valueOf(leaveType);
     }
 
-    // ===== Interface method delegation =====
+    private BigDecimal calculateLeaveDays(OaLeaveApply apply) {
+        return LeaveDurationUtil.calculateLeaveDays(apply.getStartTime(), apply.getEndTime(), apply.getLeavePeriod());
+    }
 
     @Override
     @Transactional
     public void submit(OaLeaveApply apply) {
         if (apply.getStartTime() == null || apply.getEndTime() == null) {
-            throw new cn.oa.common.exception.BusinessException("请假起止时间不能为空");
+            throw new BusinessException("??????????");
+        }
+        if (apply.getStartTime().isAfter(apply.getEndTime())) {
+            throw new BusinessException("??????????????");
         }
         apply.setDays(calculateLeaveDays(apply));
+        if (String.valueOf(LeaveType.ANNUAL).equals(String.valueOf(apply.getLeaveType()))) {
+            leaveBalanceService.assertSufficientBalance(
+                    apply.getEmpId(),
+                    LeaveType.ANNUAL,
+                    apply.getStartTime().toLocalDate().getYear(),
+                    apply.getDays());
+        }
         doSubmit(apply);
     }
 

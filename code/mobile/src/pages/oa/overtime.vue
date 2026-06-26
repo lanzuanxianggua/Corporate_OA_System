@@ -77,9 +77,24 @@ const handleSubmit = async () => {
     uni.showToast({ title: "加班原因至少2个字", icon: "none" });
     return;
   }
+  // Calculate hours
+  const startParts = startTime.split(":").map(Number);
+  const endParts = endTime.split(":").map(Number);
+  const hours = Math.round(((endParts[0] * 60 + endParts[1]) - (startParts[0] * 60 + startParts[1])) / 60 * 10) / 10;
+  if (hours <= 0) {
+    uni.showToast({ title: "加班时长必须大于0", icon: "none" });
+    return;
+  }
   submitting.value = true;
   try {
-    await submitOvertime({ overtimeDate, startTime, endTime, reason });
+    // Backend expects full datetime for startTime/endTime, plus hours field
+    await submitOvertime({
+      overtimeDate,
+      startTime: overtimeDate + " " + startTime + ":00",
+      endTime: overtimeDate + " " + endTime + ":00",
+      hours,
+      reason
+    });
     uni.showToast({ title: "提交成功", icon: "success" });
     setTimeout(() => uni.navigateBack(), 1500);
   } catch {

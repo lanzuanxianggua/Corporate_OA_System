@@ -112,7 +112,7 @@ class AuthServiceImplTest {
         assertEquals("EMP001", vo.getUsername());
         assertTrue(vo.getRoles().contains("USER"));
 
-        verify(redisTemplate, times(2)).opsForValue();
+        verify(redisTemplate, times(3)).opsForValue();
         verify(onlineUserService).userLogin(eq(100L), eq("张三"), any(), any());
         verify(loginLogMapper).insert(any(OaLoginLog.class));
     }

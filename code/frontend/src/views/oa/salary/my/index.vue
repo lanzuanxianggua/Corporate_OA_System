@@ -38,6 +38,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { ElMessage, ElMessageBox } from "element-plus";
 import { getMySalary } from "@/api/salary";
 
 const loading = ref(false);
@@ -45,9 +46,21 @@ const tableData = ref<any[]>([]);
 const month = ref("");
 
 const fetchList = async () => {
+  let password = "";
+  try {
+    const { value } = await ElMessageBox.prompt("¼鿴н", "ȫ֤", {
+      inputType: "password",
+      confirmButtonText: "ȷ",
+      cancelButtonText: "ȡ"
+    });
+    password = value || "";
+  } catch {
+    return;
+  }
+
   loading.value = true;
   try {
-    const res: any = await getMySalary({ month: month.value || undefined });
+    const res: any = await getMySalary({ month: month.value || undefined, password });
     const data = res.data;
     // API returns single object, wrap in array for table
     if (data && typeof data === 'object' && !Array.isArray(data)) {
@@ -61,6 +74,7 @@ const fetchList = async () => {
     }
   } catch {
     tableData.value = [];
+    ElMessage.error("нʲѯʧܣԺ");
   } finally {
     loading.value = false;
   }

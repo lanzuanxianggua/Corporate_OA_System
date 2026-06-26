@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { post, get } from "@/utils/request";
+import { login as loginApi } from "@/api/auth";
 
 interface UserInfo {
   id?: number;
@@ -33,7 +34,7 @@ export const useUserStore = defineStore("user", {
 
   actions: {
     async login(username: string, password: string, captchaUuid: string, captchaCode: string) {
-      const res: any = await post("/login", { username, password, captchaUuid, captchaCode });
+      const res: any = await loginApi({ username, password, captchaUuid, captchaCode });
       // Backend LoginVO fields: accessToken, refreshToken, username, nickname, avatar, roles, permissions
       const data = res.data;
       this.token = data.accessToken;

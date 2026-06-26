@@ -63,11 +63,11 @@ import { LEAVE_TYPE_OPTIONS } from "@/utils/constants";
 
 /** Labels for picker (skip index 0 placeholder) */
 const leaveTypeLabels = LEAVE_TYPE_OPTIONS.slice(1);
-/** Maps picker index (0-based) to backend leaveType value (1-based) */
-const leaveTypeValueMap = [1, 2, 3, 4, 5, 6];
+/** Maps picker index (0-based) to backend leaveType value (1-based string) */
+const leaveTypeValueMap = ["1", "2", "3", "4", "5", "6"];
 
 const form = ref({
-  leaveType: 0,
+  leaveType: "0",
   startDate: "",
   endDate: "",
   days: "",
@@ -77,8 +77,8 @@ const form = ref({
 const submitting = ref(false);
 
 const selectedLeaveTypeLabel = computed(() => {
-  if (form.value.leaveType === 0) return "";
-  return LEAVE_TYPE_OPTIONS[form.value.leaveType] || "";
+  if (form.value.leaveType === "0") return "";
+  return LEAVE_TYPE_OPTIONS[Number(form.value.leaveType)] || "";
 });
 
 const onTypeChange = (e: any) => {
@@ -108,7 +108,7 @@ const calcDays = () => {
 
 const handleSubmit = async () => {
   const { leaveType, startDate, endDate, days, reason } = form.value;
-  if (!leaveType) {
+  if (leaveType === "0") {
     uni.showToast({ title: "请选择请假类型", icon: "none" });
     return;
   }
@@ -120,8 +120,8 @@ const handleSubmit = async () => {
     uni.showToast({ title: "结束日期不能早于开始日期", icon: "none" });
     return;
   }
-  const leavePeriod = Number(days);
-  if (isNaN(leavePeriod) || leavePeriod < 0.5) {
+  const leaveDays = Number(days);
+  if (isNaN(leaveDays) || leaveDays < 0.5) {
     uni.showToast({ title: "请假天数不能少于0.5天", icon: "none" });
     return;
   }
@@ -131,11 +131,12 @@ const handleSubmit = async () => {
   }
   submitting.value = true;
   try {
+    // Backend expects startTime/endTime as full datetime strings, leaveType as String
     await submitLeave({
       leaveType,
-      startDate,
-      endDate,
-      days: Number(days),
+      startTime: startDate + " 09:00:00",
+      endTime: endDate + " 18:00:00",
+      days: leaveDays,
       reason
     });
     uni.showToast({ title: "提交成功", icon: "success" });

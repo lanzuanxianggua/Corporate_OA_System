@@ -1,6 +1,6 @@
 /**
  * Leave type mapping matching backend LeaveApplyController.LEAVE_TYPE_TEXT.
- * Index: 1=年假, 2=事假, 3=病假, 4=婚假, 5=产假, 6=丧假
+ * Index: 1=年假, 2=事假, 3=病假, 4=婚假, 5=产假, 6=丧假, 7=调休
  */
 export const LEAVE_TYPE_MAP: Record<number, string> = {
   1: "年假",
@@ -8,7 +8,8 @@ export const LEAVE_TYPE_MAP: Record<number, string> = {
   3: "病假",
   4: "婚假",
   5: "产假",
-  6: "丧假"
+  6: "丧假",
+  7: "调休"
 };
 
 /**

@@ -31,6 +31,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 
 @Slf4j
@@ -85,6 +87,14 @@ public class DocumentController {
                 return ResponseEntity.status(404).body(Map.of("code", -1, "message", "文档不存在", "data", ""));
             }
             File file = new File(uploadPath, doc.getFilePath());
+            // 防止路径遍历：校验解析后的真实路径必须在上传目录内
+            String canonicalPath = file.getCanonicalPath();
+            String uploadCanonicalPath = new File(uploadPath).getCanonicalPath();
+            if (!canonicalPath.startsWith(uploadCanonicalPath + File.separator)
+                    && !canonicalPath.equals(uploadCanonicalPath)) {
+                log.warn("Path traversal attempt: filePath={}, resolved={}", doc.getFilePath(), canonicalPath);
+                return ResponseEntity.status(403).body(Map.of("code", -1, "message", "非法文件路径", "data", ""));
+            }
             if (!file.exists()) {
                 return ResponseEntity.status(404).body(Map.of("code", -1, "message", "文件不存在或已被删除", "data", ""));
             }

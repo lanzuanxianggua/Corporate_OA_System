@@ -1,18 +1,20 @@
 package cn.oa.service.impl;
 
-import lombok.extern.slf4j.Slf4j;
-
+import cn.hutool.crypto.digest.BCrypt;
 import cn.oa.common.exception.BusinessException;
 import cn.oa.entity.OaSalaryRecord;
 import cn.oa.entity.OaSalaryStructure;
+import cn.oa.entity.SysEmployee;
 import cn.oa.mapper.OaSalaryRecordMapper;
 import cn.oa.mapper.OaSalaryStructureMapper;
+import cn.oa.mapper.SysEmployeeMapper;
 import cn.oa.service.SalaryRecordService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +28,9 @@ public class SalaryRecordServiceImpl extends ServiceImpl<OaSalaryRecordMapper, O
     @Autowired
     private OaSalaryStructureMapper structureMapper;
 
+    @Autowired
+    private SysEmployeeMapper employeeMapper;
+
     @Override
     public IPage<OaSalaryRecord> pageList(int pageNum, int pageSize, Long empId, String salaryMonth, String searchKey) {
         Page<OaSalaryRecord> page = new Page<>(pageNum, pageSize);
@@ -34,10 +39,32 @@ public class SalaryRecordServiceImpl extends ServiceImpl<OaSalaryRecordMapper, O
 
     @Override
     public OaSalaryRecord myLatestRecord(Long empId) {
-        return this.getOne(new LambdaQueryWrapper<OaSalaryRecord>()
-                .eq(OaSalaryRecord::getEmpId, empId)
-                .orderByDesc(OaSalaryRecord::getCreateTime)
-                .last("LIMIT 1"));
+        return myLatestRecord(empId, null, null);
+    }
+
+    @Override
+    public OaSalaryRecord myLatestRecord(Long empId, String salaryMonth, String password) {
+        verifySalaryPassword(empId, password);
+        LambdaQueryWrapper<OaSalaryRecord> wrapper = new LambdaQueryWrapper<OaSalaryRecord>()
+                .eq(OaSalaryRecord::getEmpId, empId);
+        if (salaryMonth != null && !salaryMonth.isBlank()) {
+            wrapper.eq(OaSalaryRecord::getSalaryMonth, salaryMonth);
+        }
+        wrapper.orderByDesc(OaSalaryRecord::getCreateTime).last("LIMIT 1");
+        return this.getOne(wrapper);
+    }
+
+    private void verifySalaryPassword(Long empId, String password) {
+        if (password == null || password.isBlank()) {
+            throw new BusinessException("查看薪资需要输入登录密码");
+        }
+        SysEmployee employee = employeeMapper.selectById(empId);
+        if (employee == null) {
+            throw new BusinessException("用户不存在");
+        }
+        if (!BCrypt.checkpw(password, employee.getPassword())) {
+            throw new BusinessException("密码验证失败");
+        }
     }
 
     @Override
@@ -69,6 +96,5 @@ public class SalaryRecordServiceImpl extends ServiceImpl<OaSalaryRecordMapper, O
         record.setActualAmount(actualAmount);
         record.setPayTime(LocalDateTime.now());
         this.save(record);
-        log.info("Salary record generated: empId={}, month={}, amount={}", empId, month, actualAmount);
     }
 }

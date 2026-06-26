@@ -6,12 +6,12 @@
     <!-- Document list -->
     <view class="card" v-for="item in list" :key="item.id">
       <view class="flex-between">
-        <text class="doc-name">{{ item.fileName || item.name || '未命名文档' }}</text>
+        <text class="doc-name">{{ item.docName || '未命名文档' }}</text>
         <text class="text-primary" @click="handleDelete(item.id)">删除</text>
       </view>
       <view class="flex-between mt-20">
-        <text class="text-gray">{{ formatSize(item.fileSize || item.size) }}</text>
-        <text class="text-gray">{{ formatTime(item.uploadTime || item.createTime) }}</text>
+        <text class="text-gray">{{ formatSize(item.fileSize) }}</text>
+        <text class="text-gray">{{ formatTime(item.createTime) }}</text>
       </view>
     </view>
 
@@ -27,7 +27,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { onShow, onPullDownRefresh } from "@dcloudio/uni-app";
 import { getDocumentPage, uploadDocument, deleteDocument } from "@/api/document";
 
 const list = ref<any[]>([]);
@@ -45,7 +45,6 @@ const formatSize = (size: number) => {
 const formatTime = (t: string) => t ? t.replace("T", " ").substring(0, 16) : "";
 
 const fetchList = async () => {
-  if (loading.value || finished.value) return;
   loading.value = true;
   try {
     const res: any = await getDocumentPage({ pageNum: pageNum.value, pageSize: 20 });
@@ -61,6 +60,7 @@ const fetchList = async () => {
     // silently handle
   } finally {
     loading.value = false;
+    uni.stopPullDownRefresh();
   }
 };
 
@@ -86,8 +86,8 @@ const handleUpload = () => {
 };
 
 const handleDelete = async (id: number) => {
-  const [, res] = await uni.showModal({ title: "提示", content: "确定删除该文档？" }) as any;
-  if (!res?.confirm) return;
+  const modalRes = await uni.showModal({ title: "提示", content: "确定删除该文档？" });
+  if (!(modalRes as any)?.confirm) return;
   try {
     await deleteDocument(id);
     uni.showToast({ title: "删除成功", icon: "success" });
@@ -98,6 +98,11 @@ const handleDelete = async (id: number) => {
 };
 
 onShow(fetchList);
+onPullDownRefresh(() => {
+  pageNum.value = 1;
+  finished.value = false;
+  fetchList();
+});
 </script>
 
 <style scoped>
