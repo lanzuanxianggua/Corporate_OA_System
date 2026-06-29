@@ -145,7 +145,3 @@ cd code/backend && mvn test
 ## 许可证
 
 [MIT License](LICENSE)
-
-## 仓库
-
-- GitHub: https://github.com/lanzuanxianggua/Corporate_OA_System
